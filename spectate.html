@@ -64,8 +64,8 @@
 			<h1>Welcome User</h1>
 			<div id="welcome">
 				<form>
-					<input type="button" value="Sign-Up" /><br />
 					<input type="button" value="Log-In" /><br />
+					<input type="button" value="Sign-Up" /><br />
 					<input type="button" value="Cancel" />
 				</form>
 			</div>
@@ -100,7 +100,29 @@
 			<h1>Dashboard</h1>
 			<div id="dashboard">
 				<form>
+					<input type="button" value="Account" /><br />
 					<input type="button" value="Log-Out" />
+				</form>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>Account</h1>
+			<div id="account">
+				<form>
+					<label><font class="labelText">Username: </font><input type="text" disabled="true" /></label>
+					<label><font class="labelText">Display Name: </font><input type="text" /></label>
+
+					<div class="passcodes" style="display: none;">
+						<br />
+						<label><font class="labelText">Old <u>Public</u> Passcode: </font><input type="password" id="passCode" /></label>
+						<label><font class="labelText">New <u>Public</u> Passcode: </font><input type="password" id="passCode" /></label>
+						<label><font class="labelText">New Passcode Again: </font><input type="password" id="passCode" /></label>
+					</div>
+
+					<input type="button" value="Change Passcode" /><br />
+					<input type="submit" value="Save" /><br />
+					<input type="button" value="Cancel" />
 				</form>
 			</div>
 		</div>
@@ -138,8 +160,8 @@
 
 			var welcomeElem = document.querySelector("#welcome");
 			var welcomeButtons = welcomeElem.querySelectorAll("input[type='button']");
-			var welcomeSignUpButton = welcomeButtons[0];
-			var welcomeLogInButton = welcomeButtons[1];
+			var welcomeLogInButton = welcomeButtons[0];
+			var welcomeSignUpButton = welcomeButtons[1];
 			var welcomeCancelButton = welcomeButtons[2];
 
 			var universeElem = document.querySelector("#universe");
@@ -163,6 +185,7 @@
 
 			var logInElem = document.querySelector("#logIn");
 			var logInButtons = logInElem.querySelectorAll("input[type='button'], input[type='submit']");
+			var logInLogInButton = logInButtons[0];
 			var logInCancelButton = logInButtons[1];
 			var logInFields = logInElem.querySelectorAll("input[type='text'], input[type='password']");
 			var logInUsername = logInFields[0];
@@ -170,7 +193,19 @@
 
 			var dashboardElem = document.querySelector("#dashboard");
 			var dashboardButtons = dashboardElem.querySelectorAll("input[type='button'], input[type='submit']");
-			var dashboardLogOutButton = dashboardButtons[0];
+			var dashboardAccountButton = dashboardButtons[0];
+			var dashboardLogOutButton = dashboardButtons[1];
+
+			var accountElem = document.querySelector("#account");
+			var accountButtons = accountElem.querySelectorAll("input[type='button'], input[type='submit']");
+			var accountChangePasscodeButton = accountButtons[0];
+			var accountCancelButton = accountButtons[2];
+			var accountFields = accountElem.querySelectorAll("input[type='text'], input[type='password']");
+			var accountUsername = accountFields[0];
+			var accountDisplayName = accountFields[1];
+			var accountOldPublicPasscode = accountFields[2];
+			var accountNewPublicPasscode = accountFields[3];
+			var accountNewPublicPasscodeAgain = accountFields[4];
 
 			var elems, i;
 			metaverse.addEventListener("reset", function(e)
@@ -219,8 +254,7 @@
 					// Hide the firebase slate.
 					firebaseElem.parentNode.style.display = "none";
 
-					//// Show the welcome slate.
-					//welcomeElem.parentNode.style.display = "block";
+					universeUniverseSelect.options.length = 0;
 
 					var option;
 					var x;
@@ -228,9 +262,14 @@
 					{
 						option = document.createElement("option");
 						option.value = x;
-						option.text = metaverse.universeNames[x];
+						option.text = metaverse.universeNames[x] + " (" + x + ")";
 						universeUniverseSelect.appendChild(option);
 					}
+
+					// Unfreeze the universe inputs.
+					elems = universeElem.querySelectorAll("input");
+					for( i = 0; i < elems.length; i++ )
+						elems[i].disabled = false;
 
 					// Show the universe slate.
 					universeElem.parentNode.style.display = "block";
@@ -351,8 +390,30 @@
 				// Hide the newUniverse slate.
 				newUniverseElem.parentNode.style.display = "none";
 
+				universeUniverseSelect.options.length = 0;
+					
+				var option;
+				var x;
+				for( x in metaverse.universeNames )
+				{
+					option = document.createElement("option");
+					option.value = x;
+					option.text = metaverse.universeNames[x] + " (" + x + ")";
+					universeUniverseSelect.appendChild(option);
+				}
+
+				// Unfreeze the universe inputs.
+				elems = universeElem.querySelectorAll("input");
+				for( i = 0; i < elems.length; i++ )
+					elems[i].disabled = false;
+
 				// Show the universe slate.
 				universeElem.parentNode.style.display = "block";
+
+				if( !!x )
+					universeJoinButton.disabled = false;
+				else
+					universeJoinButton.disabled = true;
 			}, true);
 
 			newUniverseElem.querySelector("form").addEventListener("submit", function(e)
@@ -369,14 +430,6 @@
 					return;
 				}
 
-				if( name.search(/[^A-Za-z0-9_]/) !== -1 || name[0].search(/[A-Za-z]/) === -1 )
-				{
-					error = "ERROR: Universe name may contain only alphanumeric characters and the under_score symbol and must being with a letter.";
-					console.log(error);
-					alert(error);
-					return;
-				}
-
 				// Freeze the newUniverse inputs.
 				elems = newUniverseElem.querySelectorAll("input");
 				for( i = 0; i < elems.length; i++ )
@@ -388,63 +441,79 @@
 					elems = newUniverseElem.querySelectorAll("input");
 					for( i = 0; i < elems.length; i++ )
 						elems[i].disabled = false;
-						
-
-					if( !!error )
-					{
-						error = "ERROR: A universe with that name already exists.";
-						console.log(error);
-						alert(error);
-						return;
-					}
 
 					// Hide the newUniverse slate.
 					newUniverseElem.parentNode.style.display = "none";
 
+					var submitButton = universeElem.querySelector("input[type='submit']");
+
+					universeUniverseSelect.options.length = 0;
+					
 					var option;
 					var x;
 					for( x in metaverse.universeNames )
 					{
 						option = document.createElement("option");
 						option.value = x;
-						option.text = x;
-
-						if( x === name )
-							option.selected = true;
-
+						option.text = metaverse.universeNames[x] + " (" + x + ")";
 						universeUniverseSelect.appendChild(option);
 					}
 
-					var submitButton = universeElem.querySelector("input[type='submit']");
-
-					// Freeze the universe inputs.
+					// Unfreeze the universe inputs.
 					elems = universeElem.querySelectorAll("input");
 					for( i = 0; i < elems.length; i++ )
-						elems[i].disabled = true;
+						elems[i].disabled = false;
 
 					// Show the universe slate.
 					universeElem.parentNode.style.display = "block";
 
+					if( !!x )
+						universeJoinButton.disabled = false;
+					else
+						universeJoinButton.disabled = true;
+
 					submitButton.disabled = false;
 					submitButton.click();
 					submitButton.disabled = true;
-				});
-				/*
-				// Hide the newUniverse slate.
-				newUniverseElem.parentNode.style.display = "none";
 
-				// Show the universe slate.
-				universeElem.parentNode.style.display = "block";
-				*/
+					welcomeSignUpButton.click();
+				});
 			}, true);
 
 			welcomeCancelButton.addEventListener("click", function(e)
 			{
+				// Unfreeze the universe inputs.
+				elems = universeElem.querySelectorAll("input");
+				for( i = 0; i < elems.length; i++ )
+					elems[i].disabled = false;
+
 				// Hide the welcome slate.
 				welcomeElem.parentNode.style.display = "none";
 
+				universeUniverseSelect.options.length = 0;
+					
+				var option;
+				var x;
+				for( x in metaverse.universeNames )
+				{
+					option = document.createElement("option");
+					option.value = x;
+					option.text = metaverse.universeNames[x] + " (" + x + ")";
+					universeUniverseSelect.appendChild(option);
+				}
+
+				// Unfreeze the universe inputs.
+				elems = universeElem.querySelectorAll("input");
+				for( i = 0; i < elems.length; i++ )
+					elems[i].disabled = false;
+
 				// Show the universe slate.
 				universeElem.parentNode.style.display = "block";
+
+				if( !!x )
+					universeJoinButton.disabled = false;
+				else
+					universeJoinButton.disabled = true;
 
 				// Reset the universe that we connected to.
 				metaverse.universe = "";
@@ -528,10 +597,16 @@
 				data = metaverse.createUser(data);
 				if( !!data )
 				{
-					console.log("ready");
-					// Show the login screen.
-					//signUpElem.parentNode.style.display = "none";
-					//logInElem.parentNode.style.display = "block";
+					// Hide the signUp slate.
+					signUpElem.parentNode.style.display = "none";
+
+					logInPasscode.value = signUpPasscode.value;
+					logInUsername.value = signUpUsername.value;
+
+					// Show the logIn slate.
+					logInElem.parentNode.style.display = "block";
+
+					logInLogInButton.click();
 				}
 				else
 				{
@@ -614,7 +689,122 @@
 
 			dashboardLogOutButton.addEventListener("click", function(e)
 			{
-				console.log("LOG OUT!");
+				// Hide the dashboard slate.
+				dashboardElem.parentNode.style.display = "none";
+
+				// Show the metaverse slate.
+				metaverseElem.parentNode.style.display = "block";
+				metaverse.reset();
+			}, true);
+
+			dashboardAccountButton.addEventListener("click", function(e)
+			{
+				// Hide the dashboard slate.
+				dashboardElem.parentNode.style.display = "none";
+
+				// Show the account slate.
+				accountChangePasscodeButton.style.display = "inline-block";
+				accountUsername.value = metaverse.localUser.username;
+				accountDisplayName.value = metaverse.localUser.displayName;
+				accountElem.parentNode.style.display = "block";
+			}, true);
+
+			accountCancelButton.addEventListener("click", function(e)
+			{
+				// Hide the account slate.
+				accountElem.parentNode.style.display = "none";
+
+				// Hide the passcode elements.
+				accountElem.querySelector(".passcodes").style.display = "none";
+				accountOldPublicPasscode.value = "";
+				accountNewPublicPasscode.value = "";
+				accountNewPublicPasscodeAgain.value = "";
+
+				// Show the dashboard slate.
+				dashboardElem.parentNode.style.display = "block";
+			}, true);
+
+			accountChangePasscodeButton.addEventListener("click", function(e)
+			{
+				accountChangePasscodeButton.style.display = "none";
+
+				// Show the passcode elements.
+				accountElem.querySelector(".passcodes").style.display = "block";
+			}, true);
+
+			accountElem.querySelector("form").addEventListener("submit", function(e)
+			{
+				e.preventDefault();
+
+				var username = accountUsername.value;
+				var displayName = accountDisplayName.value;
+				var oldPasscode = accountOldPublicPasscode.value;
+				var newPasscode = accountNewPublicPasscode.value;
+				var newPasscodeAgain = accountNewPublicPasscodeAgain.value;
+
+				if( accountElem.querySelector(".passcodes").style.display !== "none" )
+				{
+					if( metaverse.encodePasscode(oldPasscode) !== metaverse.localUser.passcode )
+					{
+						error = "ERROR: Incorrect public passcode."
+						console.log(error);
+						alert(error);
+						return;
+					}
+
+					if( newPasscode !== newPasscodeAgain )
+					{
+						error = "ERROR: New public passcodes do not match."
+						console.log(error);
+						alert(error);
+						return;
+					}
+
+					if( !!!newPasscode || newPasscode.length <= 5 )
+					{
+						error = "ERROR: Public passcodes must be at least 6 characters long."
+						console.log(error);
+						alert(error);
+						return;
+					}
+				}
+
+				// Has anything changed?
+				if( newPasscode !== "" )
+					newPasscode = metaverse.encodePasscode(newPasscode);
+
+				var changed = false;
+				if( metaverse.localUser.displayName !== displayName )
+					changed = true;
+				else if( newPasscode !== "" && metaverse.localUser.passcode !== newPasscode )
+					changed = true;
+
+				if( changed )
+				{
+					var data = {};
+					if( displayName !== "" )
+						data.displayName = displayName;
+
+					if( newPasscode !== "" )
+						data.passcode = newPasscode;
+
+
+					metaverse.updateLocalUser(data, function(error)
+					{
+						if( !!error )
+						{
+							console.log(error);
+							alert(error);
+							return;
+						}
+
+						// Hide the account slate.
+						accountElem.parentNode.style.display = "none";
+
+						// Show the dashboard slate.
+						dashboardElem.parentNode.style.display = "block";
+					});
+				}
 			}, true);
 
 			//var universeElem = document.querySelector("#universe");

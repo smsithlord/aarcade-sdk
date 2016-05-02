@@ -40,6 +40,8 @@ function Metaverse()
 
 Metaverse.prototype.reset = function()
 {
+	Firebase.goOffline();
+
 	this.root = null;
 	this.universe = null;
 	this.universeNames = {};
@@ -58,6 +60,8 @@ Metaverse.prototype.reset = function()
 
 	for( x in this.listeners.reset )
 		this.listeners.reset[x](this.reset);
+
+	Firebase.goOnline();
 };
 
 Metaverse.prototype.connect = function(server)
@@ -115,7 +119,7 @@ Metaverse.prototype.connect = function(server)
 									universeKeys[objectKeys[count-1]] = val;
 
 									if( count < len )
-										this.rootRef.child(universeKeys[objectKeys[count-1]]).child("info").child("name").once("value", arguments.callee.bind(this));
+										this.rootRef.child(objectKeys[count]).child("info").child("name").once("value", arguments.callee.bind(this));
 								}
 
 								if( count >= len )
@@ -190,24 +194,31 @@ Metaverse.prototype.connect = function(server)
 
 Metaverse.prototype.createUniverse = function(name, callback)
 {
-	if( !!this.universeNames[name] )
-		callback("ERROR: Universe already exists.");
-	else
+	var ref = this.rootRef.push();
+	var key = ref.key();
+	var data = {
+		"info":
+		{
+			"id": key,
+			"name": name,
+			"owner": "",
+			"admins": {},
+			"remover": "",
+			"removed": "",
+			"created": Firebase.ServerValue.TIMESTAMP
+		}
+	};
+
+	ref.set(data, function(error)
 	{
-		var ref = this.rootRef.push();
-		ref.set({
-			"info":
-			{
-				"id": ref.key(),
-				"name": name,
-				"owner": "",
-				"admins": {},
-				"remover": "",
-				"removed": "",
-				"created": Firebase.ServerValue.TIMESTAMP
-			}
-		});
-	}
+		if( !!error )
+			callback("ERROR: Failed to update firebase.");
+		else
+		{
+			this.universeNames[key] = data.info.name;
+			callback();
+		}
+	}.bind(this));
 };
 
 Metaverse.prototype.joinUniverse = function(universeKey)
@@ -257,29 +268,88 @@ Metaverse.prototype.logIn = function(username, passcode, callback)
 
 			if( val.passcode === passcode )
 			{
-				this.localUserRef = this.usersRef.child(key);
-
-				this.connectedRef = new Firebase(this.root + ".info/connected");
-				this.connectedRef.on("value", function(connectedSnapshot)
+				// If there is no owner of this universe, then set US as the owner.
+				this.universeRef.child("info").child("owner").once("value", function(ownerSnapshot)
 				{
-					if( connectedSnapshot.val() === true )
+					if( !ownerSnapshot.exists() || ownerSnapshot.val() === "" )
 					{
-						this.sessionRef = this.localUserRef.child("sessions").push();
+						var data = {
+							"owner": key,
+							"admins": {}
+						};
 
-						this.sessionRef.onDisconnect().remove();
-						this.localUserRef.onDisconnect().update({"lastSeen": Firebase.ServerValue.TIMESTAMP});
-						this.sessionRef.set({"status": "Online", "mode": "Spectate", "timestamp": Firebase.ServerValue.TIMESTAMP});
+						data.admins[key] = {
+							"id": key,
+							"privileges":
+							{
+								"undo": true,
+								"ban": true,
+								"unban": true
+							}
+						};
 
-						this.status = "Online";
-
-						var x;
-						for( x in this.listeners.status )
-							this.listeners.status[x](this.status);
-
-						callback();
+						this.universeRef.child("info").update(data, function()
+						{
+							onOwnerResolved.call(this);
+						}.bind(this));
 					}
 					else
-						console.log("ERROR: Connection Fail???");
+						onOwnerResolved.call(this);
+
+					function onOwnerResolved()
+					{
+						this.localUserRef = this.usersRef.child(key);
+
+						this.connectedRef = new Firebase(this.root + ".info/connected");
+						this.connectedRef.on("value", connectedRefUpdate.bind(this));
+
+						function connectedRefUpdate(connectedSnapshot)
+						{
+							var needsCallback = false;
+
+							if( connectedSnapshot.val() === true )
+							{
+								if( this.localUserRef )
+								{
+									this.sessionRef = this.localUserRef.child("sessions").push();
+
+									this.sessionRef.onDisconnect().remove();
+									this.localUserRef.onDisconnect().update({"lastSeen": Firebase.ServerValue.TIMESTAMP});
+									this.sessionRef.set({"status": "Online", "mode": "Spectate", "timestamp": Firebase.ServerValue.TIMESTAMP}, function(error)
+									{
+										this.status = "Online";
+
+										var x;
+										for( x in this.listeners.status )
+											this.listeners.status[x](this.status);
+
+										// Monitor our own user for changes
+										needsCallback = true;
+										this.localUserRef.on("value", localUserUpdate.bind(this));
+									}.bind(this));
+								}
+								else
+									console.log("NOTICE: Connection reestablished.");
+							}
+							else
+							{
+								console.log("NOTICE: Connection lost.");
+								this.connectedRef.off("value", connectedRefUpdate.bind(this));
+								this.localUserRef.off("value", localUserUpdate.bind(this));
+							}
+
+							function localUserUpdate(userSnapshot)
+							{
+								this.localUser = userSnapshot.val();
+
+								if( needsCallback )
+								{
+									needsCallback = false;
+									callback();
+								}
+							}
+						}
+					}
 				}.bind(this));
 			}
 			else
@@ -297,6 +367,29 @@ Metaverse.prototype.createUser = function(data, callback)
 	data.passcode = this.encodePasscode(data.passcode);
 	ref.set(data);
 	return data;
+};
+
+Metaverse.prototype.updateLocalUser = function(data, callback)
+{
+	if( !this.localUserRef )
+	{
+		callback("No local user.");
+		return;
+	}
+
+	this.localUserRef.update(data, function(error)
+	{
+		if( !!error )
+			callback(error);
+		else
+		{
+			var x;
+			for( x in data )
+				this.localUser[x] = data[x];
+
+			callback();
+		}
+	}.bind(this));
 };
 
 Metaverse.prototype.addEventListener = function(eventType, handler)
