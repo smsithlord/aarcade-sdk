@@ -1,0 +1,827 @@
+<html>
+	<head>
+		<title>AArcade Metaverse: Spectate</title>
+		<link rel="stylesheet" type="text/css" href="spectate.css" />
+		<script src="scripts/metaverse.js"></script>
+		<script src="scripts/md5.min.js"></script>
+		<script src="https://cdn.firebase.com/js/client/2.3.2/firebase.js"></script>
+
+		<script>
+			var metaverse = new Metaverse();
+			var error;
+			//var g_userId = "WebUser" + Date.now();
+		</script>
+	</head>
+	<body>
+		<div class="container" style="display: block;">
+			<h1>AArcade Metaverse</h1>
+			<div id="metaverse">
+				<form>
+					<input type="button" value="Quick Join" style="font-weight: 900;" /><br /><br />
+					<input type="button" value="Connect to Firebase" /><br />
+					<input type="button" value="Host Firebase" /><br />
+					<input type="button" value="Load Local Session" /><br />
+					<input type="button" value="New Local Session" />
+				</form>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>Connect to Firebase</h1>
+			<div id="firebase">
+				<form>
+					<label>Firebase Address: <input type="text" value="https://metaverse.firebaseio.com/" /></label><br />
+					<input type="submit" value="Connect" /><br />
+					<input type="button" value="Cancel" />
+				</form>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>Join a Universe</h1>
+			<div id="universe">
+				<form>
+					<select></select><br />
+					<input type="submit" value="Join Universe" /><br />
+					<input type="button" value="New Universe" /><br />
+					<input type="button" value="Cancel" />
+				</form>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>New Universe</h1>
+			<div id="newUniverse">
+				<form>
+					<label><font class="labelText">Universe Name: </font><input type="text" /></label>
+					<input type="submit" value="Create Universe" /><br />
+					<input type="button" value="Cancel" />
+				</form>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>Welcome User</h1>
+			<div id="welcome">
+				<form>
+					<input type="button" value="Sign-Up" /><br />
+					<input type="button" value="Log-In" /><br />
+					<input type="button" value="Cancel" />
+				</form>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>Sign-Up</h1>
+			<div id="signUp">
+				<form>
+					<label><font class="labelText">Username: </font><input type="text" /></label>
+					<label><font class="labelText"><u>Public</u> Passcode: </font><input type="password" /></label>
+					<label><font class="labelText">Display Name: </font><input type="text" /></label>
+					<input type="submit" value="Sign-Up" /><br />
+					<input type="button" value="Cancel" />
+				</form>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>Log-In</h1>
+			<div id="logIn">
+				<form>
+					<label><font class="labelText">Username: </font><input type="text" /></label>
+					<label><font class="labelText"><u>Public</u> Passcode: </font><input type="password" /></label>
+					<input type="submit" value="Log-In" /><br />
+					<input type="button" value="Cancel" />
+				</form>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>Dashboard</h1>
+			<div id="dashboard">
+				<form>
+					<input type="button" value="Log-Out" />
+				</form>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>Your Identity:</h1>
+			<div id="identity">
+				<form id="identityForm">
+					<label>Username: <input type="text" id="displayName" /></label><br />
+					<label>Public Passcode: <input type="password" id="passCode" /></label><br />
+					<label>Display Name: <input type="text" id="displayName" /></label><br />
+					<input type="submit" value="Connect" id="connectButton" />
+				</form>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>Item Factory:</h1>
+			<div id="itemFactory">
+				<form id="itemFactoryForm">
+					<label>File: <input type="text" /></label>
+					<input type="submit" value="Create" />
+				</form>
+			</div>
+		</div>
+
+		<script>
+			var metaverseElem = document.querySelector("#metaverse");
+			var metaverseButtons = metaverseElem.querySelectorAll("input[type='button']");
+			var metaverseQuickButton = metaverseButtons[0];
+			var metaverseConnectButton = metaverseButtons[1];
+
+			var firebaseElem = document.querySelector("#firebase");
+			var firebaseCancelButton = firebaseElem.querySelector("input[type='button']");
+
+			var welcomeElem = document.querySelector("#welcome");
+			var welcomeButtons = welcomeElem.querySelectorAll("input[type='button']");
+			var welcomeSignUpButton = welcomeButtons[0];
+			var welcomeLogInButton = welcomeButtons[1];
+			var welcomeCancelButton = welcomeButtons[2];
+
+			var universeElem = document.querySelector("#universe");
+			var universeUniverseSelect = universeElem.querySelector("select");
+			var universeButtons = universeElem.querySelectorAll("input[type='button'], input[type='submit']");
+			var universeJoinButton = universeButtons[0];
+			var universeNewButton = universeButtons[1];
+			var universeCancelButton = universeButtons[2];
+
+			var newUniverseElem = document.querySelector("#newUniverse");
+			var newUniverseButtons = newUniverseElem.querySelectorAll("input[type='button'], input[type='submit']");
+			var newUniverseCreateButton = newUniverseButtons[0];
+			var newUniverseCancelButton = newUniverseButtons[1];
+
+			var signUpElem = document.querySelector("#signUp");
+			var signUpFields = signUpElem.querySelectorAll("input[type='text'], input[type='password']");
+			var signUpUsername = signUpFields[0];
+			var signUpPasscode = signUpFields[1];
+			var signUpDisplayName = signUpFields[2];
+			var signUpCancelButton = signUpElem.querySelector("input[type='button']");
+
+			var logInElem = document.querySelector("#logIn");
+			var logInButtons = logInElem.querySelectorAll("input[type='button'], input[type='submit']");
+			var logInCancelButton = logInButtons[1];
+			var logInFields = logInElem.querySelectorAll("input[type='text'], input[type='password']");
+			var logInUsername = logInFields[0];
+			var logInPasscode = logInFields[1];
+
+			var dashboardElem = document.querySelector("#dashboard");
+			var dashboardButtons = dashboardElem.querySelectorAll("input[type='button'], input[type='submit']");
+			var dashboardLogOutButton = dashboardButtons[0];
+
+			var elems, i;
+			metaverse.addEventListener("reset", function(e)
+			{
+				firebaseElem.querySelector("input[type='text']").value = "https://metaverse.firebaseio.com/";
+
+				elems = metaverseElem.querySelectorAll("input");
+				for( i = 0; i < elems.length; i++ )
+					elems[i].disabled = false;
+
+				elems = firebaseElem.querySelectorAll("input");
+				for( i = 0; i < elems.length; i++ )
+					elems[i].disabled = false;
+
+				elems = welcomeElem.querySelectorAll("input");
+				for( i = 0; i < elems.length; i++ )
+					elems[i].disabled = false;
+			});
+
+			metaverseQuickButton.addEventListener("click", function(e)
+			{
+				// Freeze the metaverse inputs.
+				elems = metaverseElem.querySelectorAll("input");
+				for( i = 0; i < elems.length; i++ )
+					elems[i].disabled = false;
+
+				universeUniverseSelect.options.length = 0;
+
+				// Connect to the firebase
+				if( !metaverse.connect(firebaseElem.querySelector("input[type='text']").value) )
+				{
+					// Unfreeze the metaverse inputs.
+					elems = metaverseElem.querySelectorAll("input");
+					for( i = 0; i < elems.length; i++ )
+						elems[i].disabled = false;
+				}
+			}, true);
+
+			metaverse.addEventListener("status", function(status)
+			{
+				if( status === "Select Universe" )
+				{
+					// Hide the metaverse slate.
+					metaverseElem.parentNode.style.display = "none";
+
+					// Hide the firebase slate.
+					firebaseElem.parentNode.style.display = "none";
+
+					//// Show the welcome slate.
+					//welcomeElem.parentNode.style.display = "block";
+
+					var option;
+					var x;
+					for( x in metaverse.universeNames )
+					{
+						option = document.createElement("option");
+						option.value = x;
+						option.text = metaverse.universeNames[x];
+						universeUniverseSelect.appendChild(option);
+					}
+
+					// Show the universe slate.
+					universeElem.parentNode.style.display = "block";
+
+					if( !!x )
+						universeJoinButton.disabled = false;
+					else
+						universeJoinButton.disabled = true;
+				}
+				else if( status === "Connection Failed" )
+				{
+					error = "ERROR: Failed to connect to firebase.";
+					console.log(error);
+					alert(error);
+				}
+			});
+
+			metaverseConnectButton.addEventListener("click", function(e)
+			{
+				e.preventDefault();
+
+				// Hide the metaverse slate.
+				metaverseElem.parentNode.style.display = "none";
+
+				// Show the firebase slate.
+				firebaseElem.parentNode.style.display = "block";
+			});
+
+			firebaseCancelButton.addEventListener("click", function(e)
+			{
+				// Hide the firebase slate.
+				firebaseElem.parentNode.style.display = "none";
+
+				// Show the metaverse slate.
+				metaverseElem.parentNode.style.display = "block";
+				firebaseElem.querySelector("input[type='text']").value = "https://metaverse.firebaseio.com/";
+
+			}, true);
+
+			firebaseElem.querySelector("form").addEventListener("submit", function(e)
+			{
+				e.preventDefault();
+
+				// Freeze the firebase inputs.
+				elems = firebaseElem.querySelectorAll("input");
+				for( i = 0; i < elems.length; i++ )
+				{
+					elems[i].disabled = true;
+				}
+/*
+				// Connect to the firebase
+				metaverse.addEventListener("status", function(status)
+				{
+					if( status === "LogIn" )
+					{
+						// Hide the firebase slate.
+						firebaseElem.parentNode.style.display = "none";
+
+						//// Show the welcome slate.
+						//welcomeElem.parentNode.style.display = "block";
+
+						// Show the universe slate.
+						universeElem.parentNode.style.display = "block";
+					}
+
+					metaverse.removeEventListener("status", arguments.callee);
+				});
+*/
+
+				universeUniverseSelect.options.length = 0;
+
+				if( !metaverse.connect(firebaseElem.querySelector("input[type='text']").value) )
+				{
+					// Unfreeze the firebase buttons.
+					elems = firebaseElem.querySelectorAll("input");
+					for( i = 0; i < elems.length; i++ )
+						elems[i].disabled = false;
+				}
+			}, true);
+
+			universeNewButton.addEventListener("click", function(e)
+			{
+				// Hide the universe slate.
+				universeElem.parentNode.style.display = "none";
+
+				// Show the newUniverse slate.
+				newUniverseElem.parentNode.style.display = "block";
+			}, true);
+
+			universeCancelButton.addEventListener("click", function(e)
+			{
+				// Hide the universe slate.
+				universeElem.parentNode.style.display = "none";
+
+				// Show the metverse slate.
+				metaverseElem.parentNode.style.display = "block";
+				metaverse.reset();
+			}, true);
+
+			universeElem.querySelector("form").addEventListener("submit", function(e)
+			{
+				e.preventDefault();
+
+				var value = universeUniverseSelect.options[universeUniverseSelect.selectedIndex].value;
+				metaverse.joinUniverse(value);
+
+				// Hide the universe slate.
+				universeElem.parentNode.style.display = "none";
+
+				welcomeElem.parentNode.querySelector("h1").innerHTML = "Welcome to " + metaverse.getUniverseName(metaverse.universe);
+
+				// Show the welcome slate.
+				welcomeElem.parentNode.style.display = "block";
+			}, true);
+
+			newUniverseCancelButton.addEventListener("click", function(e)
+			{
+				// Hide the newUniverse slate.
+				newUniverseElem.parentNode.style.display = "none";
+
+				// Show the universe slate.
+				universeElem.parentNode.style.display = "block";
+			}, true);
+
+			newUniverseElem.querySelector("form").addEventListener("submit", function(e)
+			{
+				e.preventDefault();
+
+				var name = newUniverseElem.querySelector("input[type='text']").value;
+				
+				if( !name || name.length <= 5 )
+				{
+					error = "ERROR: Universe name must be at least 6 characters long."
+					console.log(error);
+					alert(error);
+					return;
+				}
+
+				if( name.search(/[^A-Za-z0-9_]/) !== -1 || name[0].search(/[A-Za-z]/) === -1 )
+				{
+					error = "ERROR: Universe name may contain only alphanumeric characters and the under_score symbol and must being with a letter.";
+					console.log(error);
+					alert(error);
+					return;
+				}
+
+				// Freeze the newUniverse inputs.
+				elems = newUniverseElem.querySelectorAll("input");
+				for( i = 0; i < elems.length; i++ )
+					elems[i].disabled = true;
+
+				metaverse.createUniverse(name, function(error)
+				{
+					// Unfreeze the newUniverse inputs.
+					elems = newUniverseElem.querySelectorAll("input");
+					for( i = 0; i < elems.length; i++ )
+						elems[i].disabled = false;
+						
+
+					if( !!error )
+					{
+						error = "ERROR: A universe with that name already exists.";
+						console.log(error);
+						alert(error);
+						return;
+					}
+
+					// Hide the newUniverse slate.
+					newUniverseElem.parentNode.style.display = "none";
+
+					var option;
+					var x;
+					for( x in metaverse.universeNames )
+					{
+						option = document.createElement("option");
+						option.value = x;
+						option.text = x;
+
+						if( x === name )
+							option.selected = true;
+
+						universeUniverseSelect.appendChild(option);
+					}
+
+					var submitButton = universeElem.querySelector("input[type='submit']");
+
+					// Freeze the universe inputs.
+					elems = universeElem.querySelectorAll("input");
+					for( i = 0; i < elems.length; i++ )
+						elems[i].disabled = true;
+
+					// Show the universe slate.
+					universeElem.parentNode.style.display = "block";
+
+					submitButton.disabled = false;
+					submitButton.click();
+					submitButton.disabled = true;
+				});
+				/*
+				// Hide the newUniverse slate.
+				newUniverseElem.parentNode.style.display = "none";
+
+				// Show the universe slate.
+				universeElem.parentNode.style.display = "block";
+				*/
+			}, true);
+
+			welcomeCancelButton.addEventListener("click", function(e)
+			{
+				// Hide the welcome slate.
+				welcomeElem.parentNode.style.display = "none";
+
+				// Show the universe slate.
+				universeElem.parentNode.style.display = "block";
+
+				// Reset the universe that we connected to.
+				metaverse.universe = "";
+				metaverse.universeRef = null;
+				metaverse.usersRef = null;
+			}, true);
+
+			welcomeSignUpButton.addEventListener("click", function(e)
+			{
+				// Hide the welcome slate.
+				welcomeElem.parentNode.style.display = "none";
+
+				// Show the signUp slate.
+				signUpElem.parentNode.style.display = "block";
+
+
+				//var id = md5("auto" + Date.now() + "katchup" + Math.random());
+				//signUpId.value = id;
+			}, true);
+
+			signUpCancelButton.addEventListener("click", function(e)
+			{
+				// Unfreeze the signUp inputs.
+				elems = signUpElem.querySelectorAll("input");
+				for( i = 0; i < elems.length; i++ )
+					elems[i].disabled = false;
+
+				// Hide the signUp slate.
+				signUpElem.parentNode.style.display = "none";
+
+				// Show the welcome slate.
+				welcomeElem.parentNode.style.display = "block";
+			}, true);
+
+			signUpElem.querySelector("form").addEventListener("submit", function(e)
+			{
+				e.preventDefault();
+
+				var username = signUpUsername.value;
+
+				if( !!!username || username.length <= 5 )
+				{
+					error = "ERROR: Username must be at least 6 characters long."
+					console.log(error);
+					alert(error);
+					return;
+				}
+
+				if( username.search(/[^A-Za-z0-9_]/) !== -1 || username[0].search(/[A-Za-z]/) === -1 )
+				{
+					error = "ERROR: Username may contain only alphanumeric characters, the under_score symbol, and must start with a letter.";
+					console.log(error);
+					alert(error);
+					return;
+				}
+
+				var passcode = signUpPasscode.value;
+				if( !!!passcode || passcode.length <= 5 )
+				{
+					error = "ERROR: Public passcodes must be at least 6 characters long."
+					console.log(error);
+					alert(error);
+					return;
+				}
+
+				var displayName = signUpDisplayName.value;
+
+				if( !!!displayName )
+					displayName = "";
+
+				// Create the new user.
+				var data = {
+					"username": username,
+					"passcode": passcode,
+					"displayName": displayName,
+					"sessoins": {},
+					"lastSeen": Firebase.ServerValue.TIMESTAMP,
+					"created": Firebase.ServerValue.TIMESTAMP
+				};
+
+				data = metaverse.createUser(data);
+				if( !!data )
+				{
+					console.log("ready");
+					// Show the login screen.
+					//signUpElem.parentNode.style.display = "none";
+					//logInElem.parentNode.style.display = "block";
+				}
+				else
+				{
+					error = "ERROR: Username is already in use.";
+					console.log(error);
+					alert(error);
+					return;	
+				}
+
+				// Freeze the signUp inputs.
+//				elems = signUpElem.querySelectorAll("input");
+//			for( i = 0; i < elems.length; i++ )
+	//				elems[i].disabled = true;
+			}, true);
+
+			welcomeLogInButton.addEventListener("click", function(e)
+			{
+				// Hide the welcome slate.
+				welcomeElem.parentNode.style.display = "none";
+
+				// Show the logIn slate.
+				logInElem.parentNode.style.display = "block";
+			});
+
+			logInCancelButton.addEventListener("click", function(e)
+			{
+				// Hide the logIn slate.
+				logInElem.parentNode.style.display = "none";
+
+				// Show the welcome slate.
+				welcomeElem.parentNode.style.display = "block";
+			});
+
+			logInElem.querySelector("form").addEventListener("submit", function(e)
+			{
+				e.preventDefault();
+
+				var username = logInUsername.value;
+				if( !!!username || username.length <= 5 )
+				{
+					error = "ERROR: Invalid username or passcode."
+					console.log(error);
+					alert(error);
+					return;
+				}
+
+				if( username.search(/[^A-Za-z0-9_]/) !== -1 || username[0].search(/[A-Za-z]/) === -1 )
+				{
+					error = "ERROR: Invalid username or passcode.";
+					console.log(error);
+					alert(error);
+					return;
+				}
+
+				var passcode = logInPasscode.value;
+				if( !!!passcode || passcode.length <= 5 )
+				{
+					error = "ERROR: Invalid username or passcode."
+					console.log(error);
+					alert(error);
+					return;
+				}
+
+				metaverse.logIn(username, passcode, function(error)
+				{
+					if( !!error )
+					{
+						console.log(error);
+						alert(error);
+						return;
+					}
+
+					// Hide the logIn slate.
+					logInElem.parentNode.style.display = "none";
+
+					// Show the deashboard slate.
+					dashboard.parentNode.style.display = "block";
+				});
+			});
+
+			dashboardLogOutButton.addEventListener("click", function(e)
+			{
+				console.log("LOG OUT!");
+			}, true);
+
+			//var universeElem = document.querySelector("#universe");
+
+			/*
+			var signUpElem = document.querySelector("#signUp");
+			var logInElem = document.querySelector("#logIn");
+			var welcomeElem = document.querySelector("#welcome");
+			var welcomeButtons = welcomeElem.querySelectorAll("input[type='button']");
+			var signUpButton = welcomeButtons[0];
+			var logInButton = welcomeButtons[1];
+
+			signUpButton.addEventListener("click", function(e)
+			{
+				welcomeElem.parentNode.style.display = "none";
+				signUpElem.parentNode.style.display = "block";
+			}, true);
+
+			logInButton.addEventListener("click", function(e)
+			{
+				welcomeElem.parentNode.style.display = "none";
+			}, true);
+
+			var signUpFields = signUpElem.querySelectorAll("input[type='text'], input[type='password']");
+			var idElem = signUpFields[0];
+			var usernameElem = signUpFields[1];
+			var passcodeElem = signUpFields[2];
+			var displayNameElem = signUpFields[3];
+
+			var id = md5(g_userId);
+			idElem.value = id;
+
+			var signUpFormElem = signUpElem.querySelector("form");
+			signUpFormElem.addEventListener("submit", function(e)
+			{
+				e.preventDefault();
+
+				var username = usernameElem.value;
+
+				if( username.search(/[^A-Za-z0-9_]/) !== -1 )
+				{
+					error = "ERROR: Username may contain only alphanumeric characters and the under_score symbol.";
+					console.log(error);
+					alert(error);
+					return;
+				}
+
+				if( passcodeElem.value.length <= 5 )
+				{
+					error = "ERROR: Public passcodes must be at least 5 characters long."
+					console.log(error);
+					alert(error);
+					return;
+				}
+
+				var passcode = md5(passcodeElem.value + "katchup");
+
+				var displayName = displayNameElem.value;
+				if( displayName.search(/[^A-Za-z0-9_ ]/) !== -1 )
+				{
+					error = "ERROR: Display name may contain only alphanumeric characters, spaces, and the under_score symbol.";
+					console.log(error);
+					alert(error);
+					return;
+				}
+
+				// Create the new user.
+				var data = {
+					"id": id.toString(),
+					"steamId": "",
+					"username": username,
+					"passcode": passcode,
+					"displayName": displayName,
+					"status": "Offline",
+					"mode": "",
+					"timestamp": Firebase.ServerValue.TIMESTAMP
+				};
+
+				var userData = metaverse.createUser(data);
+				if( !!userData )
+				{
+					// Show the login screen.
+					signUpElem.parentNode.style.display = "none";
+					logInElem.parentNode.style.display = "block";
+				}
+				else
+				{
+					error = "ERROR: Username is already in use.";
+					console.log(error);
+					alert(error);
+					return;	
+				}
+			}, true);
+
+*/
+		</script>
+
+		<script>
+			var itemFactoryElem = document.querySelector("#itemFactory");
+			itemFactoryElem.querySelector("#itemFactoryForm").addEventListener("submit", function(e)
+			{
+				e.preventDefault();
+
+				var inputs = itemFactoryElem.querySelectorAll("input");
+				var fileElem = inputs[0];
+				var buttonElem = inputs[1];
+
+				fileElem.disabled = true;
+				buttonElem.value = "Creating...";
+				buttonElem.disabled = true;
+
+				var item = {};
+				item.id = metaverse.generateHash(fileElem.value);
+				item.title = metaverse.generateTitle(fileElem.value);
+				item.type = metaverse.generateType(fileElem.value);
+				item.file = fileElem.value;
+				item.app = "";
+				item.description = "";
+				item.preview = "";
+				item.reference = "";
+				item.model = "";
+				item.marquee = "";
+				item.screen = "";
+
+				console.log(item);
+
+				// Finished creating the item
+				fileElem.value = "";
+				fileElem.disabled = false;
+				buttonElem.value = "Create";
+				buttonElem.disabled = false;
+			}, true);
+		</script>
+
+		<script>
+			var identityElem = document.querySelector("#identity");
+
+			var g_displayName;
+
+			identityElem.querySelector("#identityForm").addEventListener("submit", function(e)
+			{
+				var displayNameElem = identityElem.querySelector("#displayName");
+				var buttonElem = identityElem.querySelector("#connectButton");
+
+				g_displayName = displayNameElem.value;
+				if( g_displayName === "" )
+					g_displayName = g_userId;
+
+				buttonElem.value = "Connecting...";
+				buttonElem.disabled = true;
+				displayNameElem.disabled = true;
+
+				var options = 
+				{
+					"root": "https://metaverse.firebaseio.com/",
+					"universe": "uswest",
+					"user":
+					{
+						"id": g_userId,
+						"steamid": "",
+						"name": g_displayName,
+						"status": "Online",
+						"mode": "Spectate",
+						"timestamp": Firebase.ServerValue.TIMESTAMP
+					}
+				};
+
+				metaverse.addEventListener("connect", function()
+				{
+					var html = "<div class='nameCard'>";
+					html += "<h2>Name: " + metaverse.localUser.name + "</h2>";
+					html += "<h2>ID: " + metaverse.localUser.id + "</h2>";
+					html += "</div>";
+
+					identityElem.innerHTML = html;
+
+					itemFactoryElem.parentNode.style.display = "block";
+				});
+
+				e.preventDefault();
+/*
+				this.firebase.usersRef.on("child_removed", function(snapshot)
+				{
+					if( !this.pendingEvents.hasOwnProperty("userdisconnect") )
+						this.pendingEvents.userdisconnect = {};
+					
+					var val = snapshot.val();
+					this.pendingEvents["userdisconnect"][val.id] = val;
+				}.bind(this));
+
+				this.firebase.usersRef.on("child_added", function(snapshot)
+				{
+					if( !this.pendingEvents.hasOwnProperty("userconnect") )
+						this.pendingEvents.userconnect = {};
+
+					var val = snapshot.val();
+					this.pendingEvents["userconnect"][val.id] = val;
+				}.bind(this));
+
+				this.firebase.usersRef.on("value", function(snapshot)
+				{
+					var val = snapshot.val();
+					if( val )
+						this.users = val;
+				}.bind(this));
+*/
+			}, true);
+		</script>
+	</body>
+</html>
