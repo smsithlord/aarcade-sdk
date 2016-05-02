@@ -101,13 +101,14 @@
 			<div id="dashboard">
 				<form>
 					<input type="button" value="Account" /><br />
+					<input type="button" value="Metaverse Library" /><br />
 					<input type="button" value="Log-Out" />
 				</form>
 			</div>
 		</div>
 
 		<div class="container">
-			<h1>Account</h1>
+			<h1>Dashboard / Account</h1>
 			<div id="account">
 				<form>
 					<label><font class="labelText">Username: </font><input type="text" disabled="true" /></label>
@@ -122,6 +123,25 @@
 
 					<input type="button" value="Change Passcode" /><br />
 					<input type="submit" value="Save" /><br />
+					<input type="button" value="Cancel" />
+				</form>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>Dashboard / Metaverse Library</h1>
+			<div id="metaverseLibrary">
+				<form>
+					<input type="button" value="Items" /><br />
+					<input type="button" value="Cancel" />
+				</form>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>Dashboard / Metaverse Library / Items</h1>
+			<div id="metaverseLibraryItems">
+				<form>
 					<input type="button" value="Cancel" />
 				</form>
 			</div>
@@ -194,7 +214,8 @@
 			var dashboardElem = document.querySelector("#dashboard");
 			var dashboardButtons = dashboardElem.querySelectorAll("input[type='button'], input[type='submit']");
 			var dashboardAccountButton = dashboardButtons[0];
-			var dashboardLogOutButton = dashboardButtons[1];
+			var dashboardMetaverseLibraryButton = dashboardButtons[1];
+			var dashboardLogOutButton = dashboardButtons[2];
 
 			var accountElem = document.querySelector("#account");
 			var accountButtons = accountElem.querySelectorAll("input[type='button'], input[type='submit']");
@@ -206,6 +227,15 @@
 			var accountOldPublicPasscode = accountFields[2];
 			var accountNewPublicPasscode = accountFields[3];
 			var accountNewPublicPasscodeAgain = accountFields[4];
+
+			var metaverseLibraryElem = document.querySelector("#metaverseLibrary");
+			var metaverseLibraryButtons = metaverseLibraryElem.querySelectorAll("input[type='button'], input[type='submit']");
+			var metaverseLibraryItemsButton = metaverseLibraryButtons[0];
+			var metaverseLibraryCancelButton = metaverseLibraryButtons[1];
+
+			var metaverseLibraryItemsElem = document.querySelector("#metaverseLibraryItems");
+			var metaverseLibraryItemsButtons = metaverseLibraryItemsElem.querySelectorAll("input[type='button'], input[type='submit']");
+			var metaverseLibraryItemsCancelButton = metaverseLibraryItemsButtons[0];
 
 			var elems, i;
 			metaverse.addEventListener("reset", function(e)
@@ -805,6 +835,42 @@
 						dashboardElem.parentNode.style.display = "block";
 					});
 				}
+			}, true);
+
+			dashboardMetaverseLibraryButton.addEventListener("click", function(e)
+			{
+				// Hide the dashboard slate.
+				dashboardElem.parentNode.style.display = "none";
+
+				// Show the metaverseLibrary slate.
+				metaverseLibraryElem.parentNode.style.display = "block";
+			}, true);
+
+			metaverseLibraryCancelButton.addEventListener("click", function(e)
+			{
+				// Hide the metaverseLibrary slate.
+				metaverseLibraryElem.parentNode.style.display = "none";
+
+				// Show the dashboard slate.
+				dashboardElem.parentNode.style.display = "block";
+			}, true);
+
+			metaverseLibraryItemsButton.addEventListener("click", function(e)
+			{
+				// Hide the metaverseLibrary slate.
+				metaverseLibraryElem.parentNode.style.display = "none";
+
+				// Show the metaverseLibraryItems slate.
+				metaverseLibraryItemsElem.parentNode.style.display = "block";
+			}, true);
+
+			metaverseLibraryItemsCancelButton.addEventListener("click", function(e)
+			{
+				// Hide the metaverseLibraryItem slate.
+				metaverseLibraryItemsElem.parentNode.style.display = "none";
+
+				// Show the metaverseLibrary slate.
+				metaverseLibraryElem.parentNode.style.display = "block";
 			}, true);
 
 			//var universeElem = document.querySelector("#universe");
