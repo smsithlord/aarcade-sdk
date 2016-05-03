@@ -16,6 +16,7 @@ body
 
 .container input[type="button"], .container input[type="submit"]
 {
+	display: block;
 	font-size: 20px;
 	width: 200px;
 	cursor: pointer;
@@ -32,8 +33,10 @@ body
 	width: 150px;
 	text-align: right;
 }
-
+/*
 #metaverse input[type="button"], #universe input[type="button"], #universe input[type="submit"]
 {
+	display: block;
 	width: 250px;
 }
+*/

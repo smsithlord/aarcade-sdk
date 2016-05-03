@@ -1,13 +1,26 @@
 function Metaverse()
 {
+	this.users = {};
+	this.library = {
+		"items": {},
+		"maps": {}
+	};
+
+	this.localUser = 
+	{
+		"id": "annon",
+		"username": "annon",
+		"displayName": "Annon"
+	};
+
 	this.root = null;
 	this.universe = null;
 	this.universeNames = {};
 	this.local = {};
-	this.localUser = null;
 	this.rootRef = null;
 	this.universeRef = null;
 	this.usersRef = null;
+	this.libraryRef = null;
 	this.localUserRef = null;
 	this.connectedRef = null;
 	this.status = "Offline";
@@ -40,21 +53,48 @@ function Metaverse()
 
 Metaverse.prototype.reset = function()
 {
+	// Unregister change listeners
+
+	var x;
+	for( x in this.library.items )
+		this.libraryRef.child("items").off();
+	
+	for( x in this.library.maps )
+		this.libraryRef.child("maps").off();
+
+	if( this.connectedRef )
+		this.connectedRef.off();
+
+	if( this.localUserRef )
+		this.localUserRef.off();
+
 	Firebase.goOffline();
+
+	this.users = {};
+	this.library = {
+		"items": {},
+		"maps": {}
+	};
+
+	this.localUser = 
+	{
+		"id": "annon",
+		"username": "annon",
+		"displayName": "Annon"
+	};
 
 	this.root = null;
 	this.universe = null;
 	this.universeNames = {};
 	this.local = {};
-	this.localUser = null;
 	this.rootRef = null;
 	this.universeRef = null;
 	this.usersRef = null;
 	this.localUserRef = null;
 	this.connectedRef = null;
-	this.status = "Offline";
+	
+	this.setStatus("Offline");
 
-	var x;
 	for( x in this.listeners.status )
 		this.listeners.status[x](this.status);
 
@@ -64,17 +104,18 @@ Metaverse.prototype.reset = function()
 	Firebase.goOnline();
 };
 
-Metaverse.prototype.connect = function(server)
+Metaverse.prototype.connect = function(server, callback)
 {
 	if( this.status !== "Offline" )
-		return false;
+	{
+		callback("ERROR: Not ready to connect.");
+		return;
+	}
 
 	if( server !== "local" && !this.isUrl(server) )
 	{
-		var error = "ERROR: Invalid server.";
-		console.log(error);
-		alert(error);
-		return false;
+		callback("ERROR: Invalid server.");
+		return;
 	}
 
 	this.root = server;
@@ -82,11 +123,7 @@ Metaverse.prototype.connect = function(server)
 	{
 		this.rootRef = new Firebase(this.root);
 
-		this.status = "Connecting";
-
-		var x;
-		for( x in this.listeners.status )
-			this.listeners.status[x](this.status);
+		this.setStatus("Connecting");
 
 		function getUniverseNames()
 		{
@@ -132,21 +169,16 @@ Metaverse.prototype.connect = function(server)
 						function onGotUniverseNames(universeKeys)
 						{
 							this.universeNames = universeKeys;
+							this.setStatus("Select Universe");
 
-							this.status = "Select Universe";
-
-							var x;
-							for( x in this.listeners.status )
-								this.listeners.status[x](this.status);
+							callback();
 						}
 					}
 					else if( request.status === 404 )
 					{
-						this.status = "Connection Failed";
+						this.setStatus("Offline");
 
-						var x;
-						for( x in this.listeners.status )
-							this.listeners.status[x](this.status);
+						callback("ERROR: Failed to connect.");
 					}
 				}
 			}.bind(this);
@@ -182,14 +214,8 @@ Metaverse.prototype.connect = function(server)
 			"types": {}
 		};
 		*/
-		this.status = "Select Universe";
-
-		var x;
-		for( x in this.listeners.status )
-			this.listeners.status[x](this.status);
+		this.setStatus("Select Universe");
 	}
-
-	return true;
 };
 
 Metaverse.prototype.createUniverse = function(name, callback)
@@ -211,21 +237,112 @@ Metaverse.prototype.createUniverse = function(name, callback)
 
 	ref.set(data, function(error)
 	{
-		if( !!error )
-			callback("ERROR: Failed to update firebase.");
-		else
+		if( !!!error )
 		{
 			this.universeNames[key] = data.info.name;
-			callback();
+			callback(key);
 		}
 	}.bind(this));
 };
 
-Metaverse.prototype.joinUniverse = function(universeKey)
+Metaverse.prototype.setStatus = function(status)
+{
+	this.status = status;
+
+	var x;
+	for( x in this.listeners.status )
+		this.listeners.status[x](this.status);
+};
+
+Metaverse.prototype.joinUniverse = function(universeKey, callback)
 {
 	this.universe = universeKey;
 	this.universeRef = this.rootRef.child(this.universe);
 	this.usersRef = this.universeRef.child("users");
+	this.libraryRef = this.universeRef.child("library");
+
+	this.library = {
+		"items": {},
+		"maps": {}
+	};
+
+	this.libraryRef.child("items").on("child_changed", this.itemChanged.bind(this));
+	this.libraryRef.child("items").on("child_added", this.itemAdded.bind(this))
+	this.libraryRef.child("items").on("child_removed", this.itemRemoved.bind(this));
+
+	this.libraryRef.child("maps").on("child_changed", this.mapChanged.bind(this));
+	this.libraryRef.child("maps").on("child_added", this.mapAdded.bind(this))
+	this.libraryRef.child("maps").on("child_removed", this.mapRemoved.bind(this));
+
+	callback();
+/*
+	// Download the entire library node.
+	this.universeRef.child("library").once("value", function(librarySnapshot)
+	{
+		var library = librarySnapshot.val();
+		if( !library )
+			library = {};
+		if( !!!library.items )
+			library.items = {};
+		if( !!!library.maps )
+			library.maps = {};
+
+		this.library = library;
+
+		var x;
+		// Subscribe to all items
+		for( x in library.items )
+			this.universeRef.child("library").child("items").on("child_changed", this.itemChanged);
+
+		// Subscribe to all maps
+		for( x in library.maps )
+			this.universeRef.child("library").child("maps").on("child_changed", this.mapChanged);
+
+		callback();
+	}.bind(this));
+*/
+};
+
+Metaverse.prototype.itemChanged = function(child, prevChildKey)
+{
+	this.library.items[child.key()] = child.val();
+};
+
+Metaverse.prototype.itemAdded = function(child, prevChildKey)
+{
+	var key = child.key();
+	console.log("Downloaded metaverse information for item " + key);
+	this.library.items[key] = child.val();
+};
+
+Metaverse.prototype.itemRemoved = function(child)
+{
+	console.log("Item removed.");
+	delete this.library.items[child.key()];
+};
+
+Metaverse.prototype.itemChanged = function(child, prevChildKey)
+{
+	this.library.items[child.key()] = child.val();
+};
+
+Metaverse.prototype.mapAdded = function(child, prevChildKey)
+{
+	var key = child.key();
+	console.log("Downloaded metaverse information for map " + key);
+
+	this.library.maps[key] = child.val();
+};
+
+Metaverse.prototype.mapRemoved = function(child)
+{
+	console.log("Map removed.");
+	delete this.library.maps[child.key()];
+};
+
+Metaverse.prototype.mapChanged = function(child, prevChildKey)
+{
+	this.library.maps[child.key()] = child.val();
 };
 
 Metaverse.prototype.getUniverseKey = function(universeName)
@@ -317,11 +434,7 @@ Metaverse.prototype.logIn = function(username, passcode, callback)
 									this.localUserRef.onDisconnect().update({"lastSeen": Firebase.ServerValue.TIMESTAMP});
 									this.sessionRef.set({"status": "Online", "mode": "Spectate", "timestamp": Firebase.ServerValue.TIMESTAMP}, function(error)
 									{
-										this.status = "Online";
-
-										var x;
-										for( x in this.listeners.status )
-											this.listeners.status[x](this.status);
+										this.setStatus("Online");
 
 										// Monitor our own user for changes
 										needsCallback = true;
@@ -334,8 +447,8 @@ Metaverse.prototype.logIn = function(username, passcode, callback)
 							else
 							{
 								console.log("NOTICE: Connection lost.");
-								this.connectedRef.off("value", connectedRefUpdate.bind(this));
-								this.localUserRef.off("value", localUserUpdate.bind(this));
+								//this.connectedRef.off("value", connectedRefUpdate.bind(this));
+								//this.localUserRef.off("value", localUserUpdate.bind(this));
 							}
 
 							function localUserUpdate(userSnapshot)
@@ -416,6 +529,47 @@ Metaverse.prototype.removeEventListener = function(eventType, handler)
 	}
 };
 
+Metaverse.prototype.findTwin = function(original, callback)
+{
+	//this.items
+	callback();
+};
+
+Metaverse.prototype.createItem = function(data, callback)
+{
+	var ref = this.universeRef.child("library").child("items").push();
+	var key = ref.key();
+
+	var itemData = {};
+	itemData.id = key;
+
+	var x;
+	for( x in data )
+	{
+		itemData[x] = {
+			"info":
+			{
+				"id": x,
+				"created": Firebase.ServerValue.TIMESTAMP,
+				"owner": metaverse.localUser.id,
+				"removed": "",
+				"remover": ""
+			}
+		};
+
+		itemData[x][metaverse.userId] = {
+			"value": data[x],
+			"timestamp": Firebase.ServerValue.TIMESTAMP
+		};
+	}
+
+	ref.set(itemData, function(error)
+	{
+		if( !!!error )
+			callback(key);
+	});
+};
+
 Metaverse.prototype.generateHash = function(text)
 {
 	var hash = 0, i, chr, len;
@@ -441,7 +595,6 @@ Metaverse.prototype.generateTitle = function(file)
 Metaverse.prototype.generateType = function(file)
 {
 	var type;
-
 	var x;
 	for( x in this.types )
 	{
@@ -450,6 +603,7 @@ Metaverse.prototype.generateType = function(file)
 		if( file.search(eval(this.types[x].extensions)) !== -1 )
 		{
 			type = x;
+			console.log(type);
 			break;
 		}
 	}
