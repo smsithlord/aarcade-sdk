@@ -33,10 +33,14 @@ body
 	width: 150px;
 	text-align: right;
 }
-/*
-#metaverse input[type="button"], #universe input[type="button"], #universe input[type="submit"]
+
+.itemContainer
 {
-	display: block;
-	width: 250px;
+	display: none;
+	border: 2px solid #000;
 }
-*/
+
+#metaverseLibraryItems select
+{
+	width: 450px;
+}

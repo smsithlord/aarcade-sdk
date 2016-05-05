@@ -154,7 +154,9 @@
 			<div id="metaverseLibraryItems">
 				<center>
 					<form>
-						<div class="libraryContainer"></div>
+						<select size="10"></select>
+						<div class="itemContainer"></div>
+						<input type="submit" value="Edit Selected" disabled="true" />
 						<input type="button" value="Create New" />
 						<input type="button" value="Cancel" />
 					</form>
@@ -169,6 +171,29 @@
 					<form>
 						<label><font class="labelText">Shortcut: </font><input type="text" /></label>
 						<input type="submit" value="Create" />
+						<input type="button" value="Cancel" />
+					</form>
+				</center>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>Metaverse Library / Items / Edit Item</h1>
+			<div id="metaverseLibraryItemsEditItem">
+				<center>
+					<form>
+						<label><font class="labelText">ID: </font><input type="text" disabled="true" /></label>
+						<label><font class="labelText">App: </font><input type="text" /></label>
+						<label><font class="labelText">Description: </font><input type="text" /></label>
+						<label><font class="labelText">File: </font><input type="text" /></label>
+						<label><font class="labelText">Marquee: </font><input type="text" /></label>
+						<label><font class="labelText">Model: </font><input type="text" /></label>
+						<label><font class="labelText">Preview: </font><input type="text" /></label>
+						<label><font class="labelText">Reference: </font><input type="text" /></label>
+						<label><font class="labelText">Screen: </font><input type="text" /></label>
+						<label><font class="labelText">Title: </font><input type="text" /></label>
+						<label><font class="labelText">Type: </font><input type="text" /></label>
+						<input type="submit" value="Save" />
 						<input type="button" value="Cancel" />
 					</form>
 				</center>
@@ -225,15 +250,34 @@
 			var metaverseLibraryCancelButton = metaverseLibraryButtons[1];
 
 			var metaverseLibraryItemsElem = document.querySelector("#metaverseLibraryItems");
+			var metaverseLibraryItemsSelect = metaverseLibraryItemsElem.querySelector("select");
 			var metaverseLibraryItemsButtons = metaverseLibraryItemsElem.querySelectorAll("input[type='button'], input[type='submit']");
-			var metaverseLibraryItemsCreateButton = metaverseLibraryItemsButtons[0];
-			var metaverseLibraryItemsCancelButton = metaverseLibraryItemsButtons[1];
+			var metaverseLibraryItemsEditButton = metaverseLibraryItemsButtons[0];
+			var metaverseLibraryItemsCreateButton = metaverseLibraryItemsButtons[1];
+			var metaverseLibraryItemsCancelButton = metaverseLibraryItemsButtons[2];
 
 			var metaverseLibraryItemsCreateElem = document.querySelector("#metaverseLibraryItemsCreate");
 			var metaverseLibraryItemsCreateFields = metaverseLibraryItemsCreateElem.querySelectorAll("input[type='text'], input[type='password']");
 			var metaverseLibraryItemsCreateButtons = metaverseLibraryItemsCreateElem.querySelectorAll("input[type='button'], input[type='submit']");
 			var metaverseLibraryItemsCreateCancelButton = metaverseLibraryItemsCreateButtons[1];
 			var metaverseLibraryItemsCreateFile = metaverseLibraryItemsCreateFields[0];
+
+			var metaverseLibraryItemsEditItemElem = document.querySelector("#metaverseLibraryItemsEditItem");
+			var metaverseLibraryItemsEditItemButtons = metaverseLibraryItemsEditItemElem.querySelectorAll("input[type='button'], input[type='submit']");
+			var metaverseLibraryItemsEditItemSaveButton = metaverseLibraryItemsEditItemButtons[0];
+			var metaverseLibraryItemsEditItemCancelButton = metaverseLibraryItemsEditItemButtons[1];
+			var metaverseLibraryItemsEditItemFields = metaverseLibraryItemsEditItemElem.querySelectorAll("input[type='text'], input[type='password']");
+			var metaverseLibraryItemsEditItemId = metaverseLibraryItemsEditItemFields[0];
+			var metaverseLibraryItemsEditItemApp = metaverseLibraryItemsEditItemFields[1];
+			var metaverseLibraryItemsEditItemDescription = metaverseLibraryItemsEditItemFields[2];
+			var metaverseLibraryItemsEditItemFile = metaverseLibraryItemsEditItemFields[3];
+			var metaverseLibraryItemsEditItemMarquee = metaverseLibraryItemsEditItemFields[4];
+			var metaverseLibraryItemsEditItemModel = metaverseLibraryItemsEditItemFields[5];
+			var metaverseLibraryItemsEditItemPreview = metaverseLibraryItemsEditItemFields[6];
+			var metaverseLibraryItemsEditItemReference = metaverseLibraryItemsEditItemFields[7];
+			var metaverseLibraryItemsEditItemScreen = metaverseLibraryItemsEditItemFields[8];
+			var metaverseLibraryItemsEditItemTitle = metaverseLibraryItemsEditItemFields[9];
+			var metaverseLibraryItemsEditItemType = metaverseLibraryItemsEditItemFields[10];
 
 			var accountElem = document.querySelector("#account");
 			var accountButtons = accountElem.querySelectorAll("input[type='button'], input[type='submit']");
@@ -350,20 +394,29 @@
 					firebaseElem.querySelector("input[type='text']").value = "https://metaverse.firebaseio.com/";
 				else if( slateElem === metaverseLibraryItemsElem )
 				{
-					var libraryContainer = metaverseLibraryItemsElem.querySelector(".libraryContainer");
-					libraryContainer.innerHTML = "";
+					metaverseLibraryItemsEditButton.disabled = true;
 
-					var itemContainer;
-					var x, item;
+					metaverseLibraryItemsSelect.options.length = 0;
+
+					var x, rawItem, item, itemOption;
 					for( x in metaverse.library.items )
 					{
-						item = metaverse.library.items[x];
+						rawItem = metaverse.library.items[x];
+						item = metaverse.cookItem(rawItem);
 
-						itemContainer = document.createElement("div");
-						itemContainer.innerHTML = "ID: " + item.id + "<br />File: " + item.file;
-
-						libraryContainer.appendChild(itemContainer);
+						itemOption = document.createElement("option");
+						itemOption.value = x;
+						itemOption.text = item.title;
+						
+						metaverseLibraryItemsSelect.appendChild(itemOption);
 					}
+				}
+				else if( slateElem === metaverseLibraryItemsElem )
+				{
+
+
+
+
 				}
 				else if( slateElem === dashboardElem )
 				{
@@ -386,6 +439,68 @@
 			{
 				slateElem.parentNode.style.display = "none";
 			}
+
+			metaverseLibraryItemsEditItemElem.querySelector("form").addEventListener("submit", function(e)
+			{
+				e.preventDefault();
+
+				var item =
+				{
+					"info":
+					{
+						"id": metaverseLibraryItemsEditItemId.value
+					}
+				};
+
+				item.app = metaverseLibraryItemsEditItemApp.value;
+				item.description = metaverseLibraryItemsEditItemDescription.value;
+				item.file = metaverseLibraryItemsEditItemFile.value;
+				item.marquee = metaverseLibraryItemsEditItemMarquee.value;
+				item.model = metaverseLibraryItemsEditItemModel.value;
+				item.preview = metaverseLibraryItemsEditItemPreview.value;
+				item.reference = metaverseLibraryItemsEditItemReference.value;
+				item.screen = metaverseLibraryItemsEditItemScreen.value;
+				item.title = metaverseLibraryItemsEditItemTitle.value;
+				item.type = metaverseLibraryItemsEditItemType.value;
+
+				metaverse.updateItem(item, function(error)
+				{
+					hideSlate(metaverseLibraryItemsEditItemElem);
+					showSlate(metaverseLibraryItemsElem);
+				});
+			});
+
+			metaverseLibraryItemsSelect.addEventListener("change", function(e)
+			{
+				if( metaverseLibraryItemsSelect.selectedIndex !== -1 )
+					metaverseLibraryItemsEditButton.disabled = false;
+			});
+
+			metaverseLibraryItems.querySelector("form").addEventListener("submit", function(e)
+			{
+				e.preventDefault();
+
+				hideSlate(metaverseLibraryItemsElem);
+
+				var itemId = metaverseLibraryItemsSelect.options[metaverseLibraryItemsSelect.selectedIndex].value;
+				var rawItem = metaverse.library.items[itemId];
+				item = metaverse.cookItem(rawItem);
+
+				metaverseLibraryItemsEditItemId.value = item.info.id;
+				metaverseLibraryItemsEditItemApp.value = item.app;
+				metaverseLibraryItemsEditItemDescription.value = item.description;
+				metaverseLibraryItemsEditItemFile.value = item.file;
+				metaverseLibraryItemsEditItemMarquee.value = item.marquee;
+				metaverseLibraryItemsEditItemModel.value = item.model;
+				metaverseLibraryItemsEditItemPreview.value = item.preview;
+				metaverseLibraryItemsEditItemReference.value = item.reference;
+				metaverseLibraryItemsEditItemTitle.value = item.title;
+				metaverseLibraryItemsEditItemType.value = item.type;
+
+				showSlate(metaverseLibraryItemsEditItemElem);
+
+				metaverseLibraryItemsEditItemId.disabled = true;
+			});
 
 			metaverseQuickButton.addEventListener("click", function(e)
 			{
@@ -421,6 +536,12 @@
 
 				hideSlate(metaverseElem);
 				showSlate(firebaseElem);
+			});
+
+			metaverseLibraryItemsEditItemCancelButton.addEventListener("click", function(e)
+			{
+				hideSlate(metaverseLibraryItemsEditItemElem);
+				showSlate(metaverseLibraryItemsElem);
 			});
 
 			firebaseCancelButton.addEventListener("click", function(e)

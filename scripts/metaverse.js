@@ -51,6 +51,43 @@ function Metaverse()
 	};
 }
 
+Metaverse.prototype.updateItem = function(data, callback)
+{
+	var rawItem = this.library.items[data.info.id];
+	var item = this.cookItem(rawItem);
+
+	// Detect which fields have actually changed.
+	var updateData = {};
+
+	var x, dataObject;
+	for( x in data )
+	{
+		if( x === "info" )
+			continue;
+
+		if( item[x] !== data[x] )
+		{
+			dataObject = {"timestamp": Firebase.ServerValue.TIMESTAMP, "value": data[x]};
+			rawItem[x][metaverse.localUser.id] = dataObject;
+			
+			updateData[x + "/" + metaverse.localUser.id] = dataObject;
+		}
+	}
+
+	for( x in updateData )
+	{
+		this.libraryRef.child("items").child(data.info.id).update(updateData, function(error)
+		{
+			if( !!error )
+				callback("ERROR: Failed to update item.");
+			else
+				callback();
+		});
+
+		break;
+	}
+};
+
 Metaverse.prototype.reset = function()
 {
 	// Unregister change listeners
@@ -218,6 +255,39 @@ Metaverse.prototype.connect = function(server, callback)
 	}
 };
 
+Metaverse.prototype.cookItem = function(rawItem)
+{
+	var item = {
+		"info": rawItem.info
+	};
+
+	var x, y, mostRecent, value, timestamp;
+	for( x in rawItem )
+	{
+		if( x === "info" )
+			continue;
+
+		// Find the most recent entry.
+		mostRecentTimestamp = 0;
+		mostRecentKey = null;
+
+		for( y in rawItem[x] )
+		{
+			timestamp = rawItem[x][y].timestamp;
+			if( timestamp > mostRecentTimestamp )
+			{
+				mostRecentTimestamp = timestamp;
+				mostRecentKey = y;
+			}
+		}
+
+		if( mostRecentKey )
+			item[x] = rawItem[x][mostRecentKey].value;
+	}
+
+	return item;
+};
+
 Metaverse.prototype.createUniverse = function(name, callback)
 {
 	var ref = this.rootRef.push();
@@ -230,7 +300,7 @@ Metaverse.prototype.createUniverse = function(name, callback)
 			"owner": "",
 			"admins": {},
 			"remover": "",
-			"removed": "",
+			"removed": 0,
 			"created": Firebase.ServerValue.TIMESTAMP
 		}
 	};
@@ -540,24 +610,23 @@ Metaverse.prototype.createItem = function(data, callback)
 	var ref = this.universeRef.child("library").child("items").push();
 	var key = ref.key();
 
-	var itemData = {};
-	itemData.id = key;
+	var itemData = {
+		"info":
+		{
+			"id": key,
+			"created": Firebase.ServerValue.TIMESTAMP,
+			"owner": metaverse.localUser.id,
+			"removed": 0,
+			"remover": ""
+		}
+	};
 
 	var x;
 	for( x in data )
 	{
-		itemData[x] = {
-			"info":
-			{
-				"id": x,
-				"created": Firebase.ServerValue.TIMESTAMP,
-				"owner": metaverse.localUser.id,
-				"removed": "",
-				"remover": ""
-			}
-		};
+		itemData[x] = {};
 
-		itemData[x][metaverse.userId] = {
+		itemData[x][metaverse.localUser.id] = {
 			"value": data[x],
 			"timestamp": Firebase.ServerValue.TIMESTAMP
 		};
