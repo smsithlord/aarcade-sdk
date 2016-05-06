@@ -3,7 +3,8 @@ function Metaverse()
 	this.users = {};
 	this.library = {
 		"items": {},
-		"types": {}
+		"types": {},
+		"platforms": {}
 	};
 
 	this.localUser = 
@@ -220,6 +221,48 @@ Metaverse.prototype.updateType = function(data, callback)
 		callback();
 };
 
+Metaverse.prototype.updatePlatform = function(data, callback)
+{
+	var rawPlatform = this.library.platforms[data.info.id];
+	var platform = this.cookPlatform(rawPlatform);
+
+	// Detect which fields have actually changed.
+	var updateData = {};
+
+	var x, dataObject;
+	for( x in data )
+	{
+		if( x === "info" )
+			continue;
+
+		if( platform[x] !== data[x] )
+		{
+			dataObject = {"timestamp": Firebase.ServerValue.TIMESTAMP, "value": data[x]};
+			rawPlatform[x][metaverse.localUser.id] = dataObject;
+			
+			updateData[x + "/" + metaverse.localUser.id] = dataObject;
+		}
+	}
+
+	var needsCallback = true;
+	for( x in updateData )
+	{
+		needsCallback = false;
+		this.libraryRef.child("platforms").child(data.info.id).update(updateData, function(error)
+		{
+			if( !!error )
+				callback("ERROR: Failed to update platform.");
+			else
+				callback();
+		});
+
+		break;
+	}
+
+	if( needsCallback )
+		callback();
+};
+
 Metaverse.prototype.reset = function()
 {
 	// Unregister change listeners
@@ -242,7 +285,8 @@ Metaverse.prototype.reset = function()
 	this.users = {};
 	this.library = {
 		"items": {},
-		"types": {}
+		"types": {},
+		"platforms": {}
 	};
 
 	this.localUser = 
@@ -420,6 +464,39 @@ Metaverse.prototype.cookType = function(rawType)
 	return type;
 };
 
+Metaverse.prototype.cookPlatform = function(rawPlatform)
+{
+	var platform = {
+		"info": rawPlatform.info
+	};
+
+	var x, y, mostRecent, value, timestamp;
+	for( x in rawPlatform )
+	{
+		if( x === "info" )
+			continue;
+
+		// Find the most recent entry.
+		mostRecentTimestamp = 0;
+		mostRecentKey = null;
+
+		for( y in rawPlatform[x] )
+		{
+			timestamp = rawPlatform[x][y].timestamp;
+			if( timestamp > mostRecentTimestamp )
+			{
+				mostRecentTimestamp = timestamp;
+				mostRecentKey = y;
+			}
+		}
+
+		if( mostRecentKey )
+			platform[x] = rawPlatform[x][mostRecentKey].value;
+	}
+
+	return platform;
+};
+
 Metaverse.prototype.cookItem = function(rawItem)
 {
 	var item = {
@@ -498,7 +575,8 @@ Metaverse.prototype.joinUniverse = function(universeKey, callback)
 
 	this.library = {
 		"items": {},
-		"types": {}
+		"types": {},
+		"platforms": {}
 	};
 
 	this.libraryRef.child("items").on("child_changed", this.itemChanged.bind(this));
@@ -508,6 +586,10 @@ Metaverse.prototype.joinUniverse = function(universeKey, callback)
 	this.libraryRef.child("types").on("child_changed", this.typeChanged.bind(this));
 	this.libraryRef.child("types").on("child_added", this.typeAdded.bind(this))
 	this.libraryRef.child("types").on("child_removed", this.typeRemoved.bind(this));
+
+	this.libraryRef.child("platforms").on("child_changed", this.platformChanged.bind(this));
+	this.libraryRef.child("platforms").on("child_added", this.platformAdded.bind(this))
+	this.libraryRef.child("platforms").on("child_removed", this.platformRemoved.bind(this));
 
 	callback();
 };
@@ -552,6 +634,25 @@ Metaverse.prototype.typeRemoved = function(child)
 Metaverse.prototype.typeChanged = function(child, prevChildKey)
 {
 	this.library.types[child.key()] = child.val();
+};
+
+Metaverse.prototype.platformAdded = function(child, prevChildKey)
+{
+	var key = child.key();
+	console.log("Downloaded metaverse information for platform " + key);
+
+	this.library.platforms[key] = child.val();
+};
+
+Metaverse.prototype.platformRemoved = function(child)
+{
+	console.log("Platform removed.");
+	delete this.library.platforms[child.key()];
+};
+
+Metaverse.prototype.platformChanged = function(child, prevChildKey)
+{
+	this.library.platforms[child.key()] = child.val();
 };
 
 Metaverse.prototype.getUniverseKey = function(universeName)
@@ -795,6 +896,46 @@ Metaverse.prototype.createType = function(data, callback)
 	}
 
 	ref.set(typeData, function(error)
+	{
+		if( !!!error )
+			callback(key);
+		else
+			callback();
+	});
+};
+
+Metaverse.prototype.findTwinPlatform = function(original, callback)
+{
+	callback();
+};
+
+Metaverse.prototype.createPlatform = function(data, callback)
+{
+	var ref = this.universeRef.child("library").child("platforms").push();
+	var key = ref.key();
+
+	var platformData = {
+		"info":
+		{
+			"id": key,
+			"created": Firebase.ServerValue.TIMESTAMP,
+			"owner": metaverse.localUser.id,
+			"removed": 0,
+			"remover": ""
+		}
+	};
+
+	var x;
+	for( x in data )
+	{
+		platformData[x] = {};
+		platformData[x][metaverse.localUser.id] = {
+			"value": data[x],
+			"timestamp": Firebase.ServerValue.TIMESTAMP
+		};
+	}
+
+	ref.set(platformData, function(error)
 	{
 		if( !!!error )
 			callback(key);

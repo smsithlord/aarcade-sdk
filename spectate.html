@@ -46,7 +46,7 @@
 			<div id="universe">
 				<center>
 					<form>
-						<select></select><br />
+						<select size="4"></select><br />
 						<input type="submit" value="Join Universe" />
 						<input type="button" value="New Universe" />
 						<input type="button" value="Cancel" />
@@ -144,6 +144,7 @@
 					<form>
 						<input type="button" value="Items" />
 						<input type="button" value="Types" />
+						<input type="button" value="Platforms" />
 						<input type="button" value="Cancel" />
 					</form>
 				</center>
@@ -198,6 +199,57 @@
 		</div>
 
 		<div class="container">
+			<h1>Metaverse Library / Platforms</h1>
+			<div id="metaverseLibraryPlatforms">
+				<center>
+					<form>
+						<select size="10"></select>
+						<input type="submit" value="Edit Selected" disabled="true" />
+						<input type="button" value="Create New" />
+						<input type="button" value="Cancel" />
+					</form>
+				</center>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>Metaverse Library / Platforms / Create New</h1>
+			<div id="metaverseLibraryPlatformsCreate">
+				<center>
+					<form>
+						<label><font class="labelText">Title: </font><input type="text" placeholder="string" /></label>
+						<label><font class="labelText">Reference: </font><input type="text" placeholder="uri" /></label>
+						<label><font class="labelText">Download: </font><input type="text" placeholder="uri" /></label>
+						<label><font class="labelText">Model Priority: </font><input type="text" placeholder="integer (default = 2)" /></label>
+						<label><font class="labelText">Model File Format: </font><input type="text" placeholder="regex (default = /.+$/i)" /></label>
+						<label><font class="labelText">Model Title Format: </font><input type="text" placeholder="regex (default = /(?=[^\\/]*$).+$/i" /></label>
+						<input type="submit" value="Create" />
+						<input type="button" value="Cancel" />
+					</form>
+				</center>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>Metaverse Library / Platforms / Edit Platform</h1>
+			<div id="metaverseLibraryPlatformsEditPlatform">
+				<center>
+					<form>
+						<label><font class="labelText">ID: </font><input type="text" disabled="true" /></label>
+						<label><font class="labelText">Title: </font><input type="text" /></label>
+						<label><font class="labelText">Reference: </font><input type="text" /></label>
+						<label><font class="labelText">Download: </font><input type="text" /></label>
+						<label><font class="labelText">Model Priority: </font><input type="text" /></label>
+						<label><font class="labelText">Model File Format: </font><input type="text" /></label>
+						<label><font class="labelText">Model Title Format: </font><input type="text" /></label>
+						<input type="submit" value="Save" />
+						<input type="button" value="Cancel" />
+					</form>
+				</center>
+			</div>
+		</div>
+
+		<div class="container">
 			<h1>Metaverse Library / Items</h1>
 			<div id="metaverseLibraryItems">
 				<center>
@@ -237,6 +289,8 @@
 						<label><font class="labelText">Model: </font><input type="text" /></label>
 						<label><font class="labelText">Preview: </font><input type="text" /></label>
 						<label><font class="labelText">Reference: </font><input type="text" /></label>
+						<label><font class="labelText">Download: </font><input type="text" /></label>
+						<label><font class="labelText">Stream: </font><input type="text" /></label>
 						<label><font class="labelText">Screen: </font><input type="text" /></label>
 						<label><font class="labelText">Title: </font><input type="text" /></label>
 						<label><font class="labelText">Type: </font><input type="text" /></label>
@@ -299,7 +353,8 @@
 			var metaverseLibraryButtons = metaverseLibraryElem.querySelectorAll("input[type='button'], input[type='submit']");
 			var metaverseLibraryItemsButton = metaverseLibraryButtons[0];
 			var metaverseLibraryTypesButton = metaverseLibraryButtons[1];
-			var metaverseLibraryCancelButton = metaverseLibraryButtons[2];
+			var metaverseLibraryPlatformsButton = metaverseLibraryButtons[2];
+			var metaverseLibraryCancelButton = metaverseLibraryButtons[3];
 
 			var metaverseLibraryTypesElem = document.querySelector("#metaverseLibraryTypes");
 			var metaverseLibraryTypesSelect = metaverseLibraryTypesElem.querySelector("select");
@@ -328,6 +383,39 @@
 			var metaverseLibraryTypesEditTypeSaveButton = metaverseLibraryTypesEditTypeButtons[0];
 			var metaverseLibraryTypesEditTypeCancelButton = metaverseLibraryTypesEditTypeButtons[1];
 
+			var metaverseLibraryPlatformsElem = document.querySelector("#metaverseLibraryPlatforms");
+			var metaverseLibraryPlatformsSelect = metaverseLibraryPlatformsElem.querySelector("select");
+			var metaverseLibraryPlatformsButtons = metaverseLibraryPlatformsElem.querySelectorAll("input[type='button'], input[type='submit']");
+			var metaverseLibraryPlatformsEditButton = metaverseLibraryPlatformsButtons[0];
+			var metaverseLibraryPlatformsCreateButton = metaverseLibraryPlatformsButtons[1];
+			var metaverseLibraryPlatformsCancelButton = metaverseLibraryPlatformsButtons[2];
+
+			var metaverseLibraryPlatformsCreateElem = document.querySelector("#metaverseLibraryPlatformsCreate");
+			var metaverseLibraryPlatformsCreateFields = metaverseLibraryPlatformsCreateElem.querySelectorAll("input[type='text'], input[type='password']");
+			var metaverseLibraryPlatformsCreateButtons = metaverseLibraryPlatformsCreateElem.querySelectorAll("input[type='button'], input[type='submit']");
+			var metaverseLibraryPlatformsCreateCancelButton = metaverseLibraryPlatformsCreateButtons[1];
+			var metaverseLibraryPlatformsCreateTitle = metaverseLibraryPlatformsCreateFields[0];
+			var metaverseLibraryPlatformsCreateReference = metaverseLibraryPlatformsCreateFields[1];
+			var metaverseLibraryPlatformsCreateDownload = metaverseLibraryPlatformsCreateFields[2];
+			var metaverseLibraryPlatformsCreateModelPriority = metaverseLibraryPlatformsCreateFields[3];
+			var metaverseLibraryPlatformsCreateModelFileFormat = metaverseLibraryPlatformsCreateFields[4];
+			var metaverseLibraryPlatformsCreateModelTitleFormat = metaverseLibraryPlatformsCreateFields[5];
+
+			metaverseLibraryPlatformsEditPlatform
+
+			var metaverseLibraryPlatformsEditPlatformElem = document.querySelector("#metaverseLibraryPlatformsEditPlatform");
+			var metaverseLibraryPlatformsEditPlatformButtons = metaverseLibraryPlatformsEditPlatformElem.querySelectorAll("input[type='button'], input[type='submit']");
+			var metaverseLibraryPlatformsEditPlatformSaveButton = metaverseLibraryPlatformsEditPlatformButtons[0];
+			var metaverseLibraryPlatformsEditPlatformCancelButton = metaverseLibraryPlatformsEditPlatformButtons[1];
+			var metaverseLibraryPlatformsEditPlatformFields = metaverseLibraryPlatformsEditPlatformElem.querySelectorAll("input[type='text'], input[type='password']");
+			var metaverseLibraryPlatformsEditPlatformId = metaverseLibraryPlatformsEditPlatformFields[0];
+			var metaverseLibraryPlatformsEditPlatformTitle = metaverseLibraryPlatformsEditPlatformFields[1];
+			var metaverseLibraryPlatformsEditPlatformReference = metaverseLibraryPlatformsEditPlatformFields[2];
+			var metaverseLibraryPlatformsEditPlatformDownload = metaverseLibraryPlatformsEditPlatformFields[3];
+			var metaverseLibraryPlatformsEditPlatformModelPriority = metaverseLibraryPlatformsEditPlatformFields[4];
+			var metaverseLibraryPlatformsEditPlatformModelFileFormat = metaverseLibraryPlatformsEditPlatformFields[5];
+			var metaverseLibraryPlatformsEditPlatformModelTitleFormat = metaverseLibraryPlatformsEditPlatformFields[6];
+
 			var metaverseLibraryItemsElem = document.querySelector("#metaverseLibraryItems");
 			var metaverseLibraryItemsSelect = metaverseLibraryItemsElem.querySelector("select");
 			var metaverseLibraryItemsButtons = metaverseLibraryItemsElem.querySelectorAll("input[type='button'], input[type='submit']");
@@ -354,9 +442,11 @@
 			var metaverseLibraryItemsEditItemModel = metaverseLibraryItemsEditItemFields[5];
 			var metaverseLibraryItemsEditItemPreview = metaverseLibraryItemsEditItemFields[6];
 			var metaverseLibraryItemsEditItemReference = metaverseLibraryItemsEditItemFields[7];
-			var metaverseLibraryItemsEditItemScreen = metaverseLibraryItemsEditItemFields[8];
-			var metaverseLibraryItemsEditItemTitle = metaverseLibraryItemsEditItemFields[9];
-			var metaverseLibraryItemsEditItemType = metaverseLibraryItemsEditItemFields[10];
+			var metaverseLibraryItemsEditItemDownload = metaverseLibraryItemsEditItemFields[8];
+			var metaverseLibraryItemsEditItemStream = metaverseLibraryItemsEditItemFields[9];
+			var metaverseLibraryItemsEditItemScreen = metaverseLibraryItemsEditItemFields[10];
+			var metaverseLibraryItemsEditItemTitle = metaverseLibraryItemsEditItemFields[11];
+			var metaverseLibraryItemsEditItemType = metaverseLibraryItemsEditItemFields[12];
 
 			var accountElem = document.querySelector("#account");
 			var accountButtons = accountElem.querySelectorAll("input[type='button'], input[type='submit']");
@@ -444,6 +534,25 @@
 						metaverseLibraryTypesSelect.appendChild(typeOption);
 					}
 				}
+				else if( slateElem === metaverseLibraryPlatformsElem )
+				{
+					metaverseLibraryPlatformsEditButton.disabled = true;
+
+					metaverseLibraryPlatformsSelect.options.length = 0;
+
+					var x, rawPlatform, platform, platformOption;
+					for( x in metaverse.library.platforms )
+					{
+						rawPlatform = metaverse.library.platforms[x];
+						platform = metaverse.cookType(rawPlatform);
+
+						platformOption = document.createElement("option");
+						platformOption.value = x;
+						platformOption.text = platform.title;
+						
+						metaverseLibraryPlatformsSelect.appendChild(platformOption);
+					}
+				}
 				else if( slateElem === accountElem )
 				{
 					accountMetaverse.value = metaverse.root;
@@ -483,6 +592,8 @@
 				}
 				else if( slateElem === universeElem )
 				{
+					universeJoinButton.disabled = true;
+
 					universeUniverseSelect.options.length = 0;
 
 					var option;
@@ -496,9 +607,11 @@
 					}
 
 					if( universeUniverseSelect.options.length > 0 )
+					{
+						universeUniverseSelect.focus();
+						universeUniverseSelect.selectedIndex = 0;
 						universeJoinButton.disabled = false;
-					else
-						universeJoinButton.disabled = true;
+					}
 				}
 				else if( slateElem === firebaseElem )
 				{
@@ -578,6 +691,8 @@
 				item.model = metaverseLibraryItemsEditItemModel.value;
 				item.preview = metaverseLibraryItemsEditItemPreview.value;
 				item.reference = metaverseLibraryItemsEditItemReference.value;
+				item.download = metaverseLibraryItemsEditItemDownload.value;
+				item.stream = metaverseLibraryItemsEditItemStream.value;
 				item.screen = metaverseLibraryItemsEditItemScreen.value;
 				item.title = metaverseLibraryItemsEditItemTitle.value;
 				item.type = metaverseLibraryItemsEditItemType.value;
@@ -589,17 +704,49 @@
 				});
 			});
 
+			metaverseLibraryPlatformsEditPlatformElem.querySelector("form").addEventListener("submit", function(e)
+			{
+				e.preventDefault();
+
+				var platform =
+				{
+					"info":
+					{
+						"id": metaverseLibraryPlatformsEditPlatformId.value
+					}
+				};
+
+				platform.title = metaverseLibraryPlatformsEditPlatformTitle.value;
+				platform.reference = metaverseLibraryPlatformsEditPlatformReference.value;
+				platform.download = metaverseLibraryPlatformsEditPlatformDownload.value;
+				platform.modelPriority = metaverseLibraryPlatformsEditPlatformModelPriority.value;
+				platform.modelFileFormat = metaverseLibraryPlatformsEditPlatformModelFileFormat.value;
+				platform.modelTitleFormat = metaverseLibraryPlatformsEditPlatformModelTitleFormat.value;
+
+				metaverse.updatePlatform(platform, function(error)
+				{
+					hideSlate(metaverseLibraryPlatformsEditPlatformElem);
+					showSlate(metaverseLibraryPlatformsElem);
+				});
+			});
+
+			universeUniverseSelect.addEventListener("change", function(e)
+			{
+				if( universeUniverseSelect.selectedIndex !== -1 )
+					universeJoinButton.disabled = false;
+			}, true);
+
 			metaverseLibraryItemsSelect.addEventListener("change", function(e)
 			{
 				if( metaverseLibraryItemsSelect.selectedIndex !== -1 )
 					metaverseLibraryItemsEditButton.disabled = false;
-			});
+			}, true);
 
 			metaverseLibraryTypesSelect.addEventListener("change", function(e)
 			{
 				if( metaverseLibraryTypesSelect.selectedIndex !== -1 )
 					metaverseLibraryTypesEditButton.disabled = false;
-			});
+			}, true);
 
 			metaverseLibraryItems.querySelector("form").addEventListener("submit", function(e)
 			{
@@ -609,7 +756,7 @@
 
 				var itemId = metaverseLibraryItemsSelect.options[metaverseLibraryItemsSelect.selectedIndex].value;
 				var rawItem = metaverse.library.items[itemId];
-				item = metaverse.cookItem(rawItem);
+				var item = metaverse.cookItem(rawItem);
 
 				metaverseLibraryItemsEditItemId.value = item.info.id;
 				metaverseLibraryItemsEditItemApp.value = item.app;
@@ -619,12 +766,43 @@
 				metaverseLibraryItemsEditItemModel.value = item.model;
 				metaverseLibraryItemsEditItemPreview.value = item.preview;
 				metaverseLibraryItemsEditItemReference.value = item.reference;
+				metaverseLibraryItemsEditItemDownload.value = item.download;
+				metaverseLibraryItemsEditItemStream.value = item.stream;
 				metaverseLibraryItemsEditItemTitle.value = item.title;
 				metaverseLibraryItemsEditItemType.value = item.type;
 
 				showSlate(metaverseLibraryItemsEditItemElem);
 
 				metaverseLibraryItemsEditItemId.disabled = true;
+			});
+
+			metaverseLibraryPlatformsSelect.addEventListener("change", function(e)
+			{
+				if( metaverseLibraryPlatformsSelect.selectedIndex !== -1 )
+					metaverseLibraryPlatformsEditButton.disabled = false;
+			}, true);
+
+			metaverseLibraryPlatforms.querySelector("form").addEventListener("submit", function(e)
+			{
+				e.preventDefault();
+
+				hideSlate(metaverseLibraryPlatformsElem);
+
+				var platformId = metaverseLibraryPlatformsSelect.options[metaverseLibraryPlatformsSelect.selectedIndex].value;
+				var rawPlatform = metaverse.library.platforms[platformId];
+				var platform = metaverse.cookPlatform(rawPlatform);
+
+				metaverseLibraryPlatformsEditPlatformId.value = platform.info.id;
+				metaverseLibraryPlatformsEditPlatformTitle.value = platform.title;
+				metaverseLibraryPlatformsEditPlatformReference.value = platform.reference;
+				metaverseLibraryPlatformsEditPlatformDownload.value = platform.download;
+				metaverseLibraryPlatformsEditPlatformModelPriority.value = platform.modelPriority;
+				metaverseLibraryPlatformsEditPlatformModelFileFormat.value = platform.modelFileFormat;
+				metaverseLibraryPlatformsEditPlatformModelTitleFormat.value = platform.modelTitleFormat;
+
+				showSlate(metaverseLibraryPlatformsEditPlatformElem);
+
+				metaverseLibraryPlatformsEditPlatformId.disabled = true;
 			});
 
 			metaverseQuickButton.addEventListener("click", function(e)
@@ -644,11 +822,12 @@
 					else
 					{
 						hideSlate(metaverseElem);
-
+/*
 						if( universeUniverseSelect.options.length > 0 )
 							universeJoinButton.disabled = false;
 						else
 							universeJoinButton.disabled = true;
+						*/
 
 						showSlate(universeElem);
 					}
@@ -667,6 +846,12 @@
 			{
 				hideSlate(metaverseLibraryItemsEditItemElem);
 				showSlate(metaverseLibraryItemsElem);
+			});
+
+			metaverseLibraryPlatformsEditPlatformCancelButton.addEventListener("click", function(e)
+			{
+				hideSlate(metaverseLibraryPlatformsEditPlatformElem);
+				showSlate(metaverseLibraryPlatformsElem);
 			});
 
 			firebaseCancelButton.addEventListener("click", function(e)
@@ -757,6 +942,7 @@
 					universeUniverseSelect.value = resultId;
 
 					var submitButton = universeElem.querySelector("input[type='submit']");
+					submitButton.disabled = false;
 					submitButton.click();
 
 					dashboardSignUpButton.click();
@@ -889,6 +1075,12 @@
 				showSlate(metaverseLibraryTypesElem);
 			}, true);
 
+			metaverseLibraryPlatformsButton.addEventListener("click", function(e)
+			{
+				hideSlate(metaverseLibraryElem);
+				showSlate(metaverseLibraryPlatformsElem);
+			}, true);
+
 			metaverseLibraryTypesCancelButton.addEventListener("click", function(e)
 			{
 				hideSlate(metaverseLibraryTypesElem);
@@ -914,7 +1106,7 @@
 				var title = metaverseLibraryTypesCreateTitle.value;
 				if( !!!title || title.length <= 2 )
 				{
-					error = "ERROR: Name must be at least 3 characters long.";
+					error = "ERROR: Title must be at least 3 characters long.";
 					console.log(error);
 					alert(error);
 					return;
@@ -994,6 +1186,65 @@
 				});
 			}, true);
 
+			metaverseLibraryPlatformsCancelButton.addEventListener("click", function(e)
+			{
+				hideSlate(metaverseLibraryPlatformsElem);
+				showSlate(metaverseLibraryElem);
+			}, true);
+
+			metaverseLibraryPlatformsCreateButton.addEventListener("click", function(e)
+			{
+				hideSlate(metaverseLibraryPlatformsElem);
+				showSlate(metaverseLibraryPlatformsCreateElem);
+			}, true);
+
+			metaverseLibraryPlatformsCreateCancelButton.addEventListener("click", function(e)
+			{
+				hideSlate(metaverseLibraryPlatformsCreateElem);
+				showSlate(metaverseLibraryPlatformsElem);
+			}, true);
+
+			metaverseLibraryPlatformsCreateElem.querySelector("form").addEventListener("submit", function(e)
+			{
+				e.preventDefault();
+
+				var title = metaverseLibraryPlatformsCreateTitle.value;
+				if( !!!title || title.length <= 2 )
+				{
+					error = "ERROR: Title must be at least 3 characters long.";
+					console.log(error);
+					alert(error);
+					return;
+				}
+
+				var modelPriority = parseInt(metaverseLibraryPlatformsCreateModelPriority.value);
+				if( isNaN(modelPriority) )
+					modelPriority = 2;
+
+				var platform = {
+					"title": title,
+					"reference": metaverseLibraryPlatformsCreateReference.value,
+					"download": metaverseLibraryPlatformsCreateDownload.value,
+					"modelPriority": modelPriority,
+					"modelFileFormat": metaverseLibraryPlatformsCreateModelFileFormat.value,
+					"modelTitleFormat": metaverseLibraryPlatformsCreateModelTitleFormat.value
+				};
+
+				metaverse.createPlatform(platform, function(platformId)
+				{
+					if( !!!platformId )
+					{
+						error = "ERROR: Failed to create platform.";
+						console.log(error);
+						alert(error);
+						return;
+					}
+
+					hideSlate(metaverseLibraryPlatformsCreateElem);
+					showSlate(metaverseLibraryPlatformsElem);
+				});
+			}, true);
+
 			metaverseLibraryItemsButton.addEventListener("click", function(e)
 			{
 				hideSlate(metaverseLibraryElem);
@@ -1035,6 +1286,8 @@
 				item.description = "";
 				item.preview = "";
 				item.reference = "";
+				item.download = "";
+				item.stream = "";
 				item.model = "";
 				item.marquee = "";
 				item.screen = "";
