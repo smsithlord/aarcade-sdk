@@ -3,7 +3,7 @@ function Metaverse()
 	this.users = {};
 	this.library = {
 		"items": {},
-		"maps": {}
+		"types": {}
 	};
 
 	this.localUser = 
@@ -33,22 +33,107 @@ function Metaverse()
 		"reset": {}
 	};
 
-	// FIX ME: hard-coded types for now.
+	this.types = {};
+
 	// NOTE: The regex's get encoded as strings to be compatible with JSON.
-	this.types = {
-		"youtube":
+	this.defaultTypes = [
 		{
-			extensions: "/(http|https):\\/\\/(?:www\\.)?youtu(?:be\\.com\\/watch\\?v=|\\.be\\/)([\\w\\-]+)(&(amp;)?[\\w\\?=]*)?/i"
+			"title": "youtube",
+			"fileFormat": "/(http|https):\\/\\/(?:www\\.)?youtu(?:be\\.com\\/watch\\?v=|\\.be\\/)([\\w\\-]+)(&(amp;)?[\\w\\?=]*)?/i",
+			"titleFormat": "/(?=[^\\/]*$).+$/i",
+			"priority": 2
 		},
-		"website":
 		{
-			extensions: "/((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?/i"
+			"title": "image",
+			"fileFormat": "/(.jpg|.jpeg|.gif|.png|.tga)$/i",
+			"titleFormat": "/(?=[^\\/]*$).+$/i",
+			"priority": 2
 		},
-		"standard":
 		{
-			extensions: "/.*/i"
+			"title": "ds",
+			"fileFormat": "/(.nds)$/i",
+			"titleFormat": "/.+$/i",
+			"priority": 1
+		},
+		{
+			"title": "wii",
+			"fileFormat": "/(.iso)$/i",
+			"titleFormat": "/.+$/i",
+			"priority": 1
+		},
+		{
+			"title": "ps",
+			"fileFormat": "/(.iso|.bin|.img|.ccd|.mds|.pbp|.ecm)$/i",
+			"titleFormat": "/.+$/i",
+			"priority": 1
+		},
+		{
+			"title": "nes",
+			"fileFormat": "/(.nes|.zip)$/i",
+			"titleFormat": "/.+$/i",
+			"priority": 1
+		},
+		{
+			"title": "genesis",
+			"fileFormat": "/(.zip|.gen|.smc)$/i",
+			"titleFormat": "/.+$/i",
+			"priority": 1
+		},
+		{
+			"title": "arcade",
+			"fileFormat": "/(.zip)$/i",
+			"titleFormat": "/.+$/i",
+			"priority": 1
+		},
+		{
+			"title": "psp",
+			"fileFormat": "/(.iso)$/i",
+			"titleFormat": "/.+$/i",
+			"priority": 1
+		},
+		{
+			"title": "n64",
+			"fileFormat": "/(.n64|.zip)$/i",
+			"titleFormat": "/.+$/i",
+			"priority": 1
+		},
+		{
+			"title": "snes",
+			"fileFormat": "/(.smc|.zip)$/i",
+			"titleFormat": "/.+$/i",
+			"priority": 1
+		},
+		{
+			"title": "gb",
+			"fileFormat": "/(.zip)$/i",
+			"titleFormat": "/.+$/i",
+			"priority": 1
+		},
+		{
+			"title": "gba",
+			"fileFormat": "/(.zip)$/i",
+			"titleFormat": "/.+$/i",
+			"priority": 1
+		},
+		{
+			"title": "pinball",
+			"fileFormat": "/(.vpt)$/i",
+			"titleFormat": "/.+$/i",
+			"priority": 1
+		},
+		{
+			"title": "website",
+			"fileFormat": "/((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?/i",
+			"titleFormat": "/(?=[^\\/]*$).+$/i",
+			"priority": 1
+		},
+		{
+			"title": "standard",
+			"fileFormat": "/.+$/i",
+			"titleFormat": "/.+$/i",
+			"priority": 0
 		}
-	};
+	];
 }
 
 Metaverse.prototype.updateItem = function(data, callback)
@@ -74,8 +159,10 @@ Metaverse.prototype.updateItem = function(data, callback)
 		}
 	}
 
+	var needsCallback = true;
 	for( x in updateData )
 	{
+		needsCallback = false;
 		this.libraryRef.child("items").child(data.info.id).update(updateData, function(error)
 		{
 			if( !!error )
@@ -86,6 +173,51 @@ Metaverse.prototype.updateItem = function(data, callback)
 
 		break;
 	}
+
+	if( needsCallback )
+		callback();
+};
+
+Metaverse.prototype.updateType = function(data, callback)
+{
+	var rawType = this.library.types[data.info.id];
+	var type = this.cookType(rawType);
+
+	// Detect which fields have actually changed.
+	var updateData = {};
+
+	var x, dataObject;
+	for( x in data )
+	{
+		if( x === "info" )
+			continue;
+
+		if( type[x] !== data[x] )
+		{
+			dataObject = {"timestamp": Firebase.ServerValue.TIMESTAMP, "value": data[x]};
+			rawType[x][metaverse.localUser.id] = dataObject;
+			
+			updateData[x + "/" + metaverse.localUser.id] = dataObject;
+		}
+	}
+
+	var needsCallback = true;
+	for( x in updateData )
+	{
+		needsCallback = false;
+		this.libraryRef.child("types").child(data.info.id).update(updateData, function(error)
+		{
+			if( !!error )
+				callback("ERROR: Failed to update type.");
+			else
+				callback();
+		});
+
+		break;
+	}
+
+	if( needsCallback )
+		callback();
 };
 
 Metaverse.prototype.reset = function()
@@ -97,7 +229,7 @@ Metaverse.prototype.reset = function()
 		this.libraryRef.child("items").off();
 	
 	for( x in this.library.maps )
-		this.libraryRef.child("maps").off();
+		this.libraryRef.child("types").off();
 
 	if( this.connectedRef )
 		this.connectedRef.off();
@@ -110,7 +242,7 @@ Metaverse.prototype.reset = function()
 	this.users = {};
 	this.library = {
 		"items": {},
-		"maps": {}
+		"types": {}
 	};
 
 	this.localUser = 
@@ -255,6 +387,39 @@ Metaverse.prototype.connect = function(server, callback)
 	}
 };
 
+Metaverse.prototype.cookType = function(rawType)
+{
+	var type = {
+		"info": rawType.info
+	};
+
+	var x, y, mostRecent, value, timestamp;
+	for( x in rawType )
+	{
+		if( x === "info" )
+			continue;
+
+		// Find the most recent entry.
+		mostRecentTimestamp = 0;
+		mostRecentKey = null;
+
+		for( y in rawType[x] )
+		{
+			timestamp = rawType[x][y].timestamp;
+			if( timestamp > mostRecentTimestamp )
+			{
+				mostRecentTimestamp = timestamp;
+				mostRecentKey = y;
+			}
+		}
+
+		if( mostRecentKey )
+			type[x] = rawType[x][mostRecentKey].value;
+	}
+
+	return type;
+};
+
 Metaverse.prototype.cookItem = function(rawItem)
 {
 	var item = {
@@ -333,44 +498,18 @@ Metaverse.prototype.joinUniverse = function(universeKey, callback)
 
 	this.library = {
 		"items": {},
-		"maps": {}
+		"types": {}
 	};
 
 	this.libraryRef.child("items").on("child_changed", this.itemChanged.bind(this));
 	this.libraryRef.child("items").on("child_added", this.itemAdded.bind(this))
 	this.libraryRef.child("items").on("child_removed", this.itemRemoved.bind(this));
 
-	this.libraryRef.child("maps").on("child_changed", this.mapChanged.bind(this));
-	this.libraryRef.child("maps").on("child_added", this.mapAdded.bind(this))
-	this.libraryRef.child("maps").on("child_removed", this.mapRemoved.bind(this));
+	this.libraryRef.child("types").on("child_changed", this.typeChanged.bind(this));
+	this.libraryRef.child("types").on("child_added", this.typeAdded.bind(this))
+	this.libraryRef.child("types").on("child_removed", this.typeRemoved.bind(this));
 
 	callback();
-/*
-	// Download the entire library node.
-	this.universeRef.child("library").once("value", function(librarySnapshot)
-	{
-		var library = librarySnapshot.val();
-		if( !library )
-			library = {};
-		if( !!!library.items )
-			library.items = {};
-		if( !!!library.maps )
-			library.maps = {};
-
-		this.library = library;
-
-		var x;
-		// Subscribe to all items
-		for( x in library.items )
-			this.universeRef.child("library").child("items").on("child_changed", this.itemChanged);
-
-		// Subscribe to all maps
-		for( x in library.maps )
-			this.universeRef.child("library").child("maps").on("child_changed", this.mapChanged);
-
-		callback();
-	}.bind(this));
-*/
 };
 
 Metaverse.prototype.itemChanged = function(child, prevChildKey)
@@ -396,23 +535,23 @@ Metaverse.prototype.itemChanged = function(child, prevChildKey)
 	this.library.items[child.key()] = child.val();
 };
 
-Metaverse.prototype.mapAdded = function(child, prevChildKey)
+Metaverse.prototype.typeAdded = function(child, prevChildKey)
 {
 	var key = child.key();
-	console.log("Downloaded metaverse information for map " + key);
+	console.log("Downloaded metaverse information for type " + key);
 
-	this.library.maps[key] = child.val();
+	this.library.types[key] = child.val();
 };
 
-Metaverse.prototype.mapRemoved = function(child)
+Metaverse.prototype.typeRemoved = function(child)
 {
-	console.log("Map removed.");
-	delete this.library.maps[child.key()];
+	console.log("Type removed.");
+	delete this.library.types[child.key()];
 };
 
-Metaverse.prototype.mapChanged = function(child, prevChildKey)
+Metaverse.prototype.typeChanged = function(child, prevChildKey)
 {
-	this.library.maps[child.key()] = child.val();
+	this.library.types[child.key()] = child.val();
 };
 
 Metaverse.prototype.getUniverseKey = function(universeName)
@@ -477,13 +616,13 @@ Metaverse.prototype.logIn = function(username, passcode, callback)
 
 						this.universeRef.child("info").update(data, function()
 						{
-							onOwnerResolved.call(this);
+							onOwnerResolved.call(this, true);
 						}.bind(this));
 					}
 					else
-						onOwnerResolved.call(this);
+						onOwnerResolved.call(this, false);
 
-					function onOwnerResolved()
+					function onOwnerResolved(needsDefaultTypes)
 					{
 						this.localUserRef = this.usersRef.child(key);
 
@@ -504,8 +643,6 @@ Metaverse.prototype.logIn = function(username, passcode, callback)
 									this.localUserRef.onDisconnect().update({"lastSeen": Firebase.ServerValue.TIMESTAMP});
 									this.sessionRef.set({"status": "Online", "mode": "Spectate", "timestamp": Firebase.ServerValue.TIMESTAMP}, function(error)
 									{
-										this.setStatus("Online");
-
 										// Monitor our own user for changes
 										needsCallback = true;
 										this.localUserRef.on("value", localUserUpdate.bind(this));
@@ -528,7 +665,33 @@ Metaverse.prototype.logIn = function(username, passcode, callback)
 								if( needsCallback )
 								{
 									needsCallback = false;
-									callback();
+
+									if( needsDefaultTypes )
+									{
+										// Now import all of the default types.
+										var numDefaultTypes = this.defaultTypes.length;
+										var resolvedIndex = -1;
+										createTypeHelper.call(this);
+
+										function createTypeHelper(typeId)
+										{
+											if( !!typeId )
+												resolvedIndex++;
+
+											if( resolvedIndex+1 < numDefaultTypes )
+												this.createType(this.defaultTypes[resolvedIndex+1], arguments.callee.bind(this));
+											else
+												onCallbackReady.call(this);
+										}
+									}
+									else
+										onCallbackReady.call(this);
+
+									function onCallbackReady()
+									{
+										this.setStatus("Online");
+										callback();
+									}
 								}
 							}
 						}
@@ -599,7 +762,48 @@ Metaverse.prototype.removeEventListener = function(eventType, handler)
 	}
 };
 
-Metaverse.prototype.findTwin = function(original, callback)
+Metaverse.prototype.findTwinType = function(original, callback)
+{
+	callback();
+};
+
+Metaverse.prototype.createType = function(data, callback)
+{
+	var ref = this.universeRef.child("library").child("types").push();
+	var key = ref.key();
+
+	var typeData = {
+		"info":
+		{
+			"id": key,
+			"created": Firebase.ServerValue.TIMESTAMP,
+			"owner": metaverse.localUser.id,
+			"removed": 0,
+			"remover": ""
+		}
+	};
+
+	var x;
+	for( x in data )
+	{
+		typeData[x] = {};
+
+		typeData[x][metaverse.localUser.id] = {
+			"value": data[x],
+			"timestamp": Firebase.ServerValue.TIMESTAMP
+		};
+	}
+
+	ref.set(typeData, function(error)
+	{
+		if( !!!error )
+			callback(key);
+		else
+			callback();
+	});
+};
+
+Metaverse.prototype.findTwinItem = function(original, callback)
 {
 	//this.items
 	callback();
@@ -636,6 +840,8 @@ Metaverse.prototype.createItem = function(data, callback)
 	{
 		if( !!!error )
 			callback(key);
+		else
+			callback();
 	});
 };
 
@@ -655,29 +861,49 @@ Metaverse.prototype.generateHash = function(text)
 	return hash;
 };
 
-Metaverse.prototype.generateTitle = function(file)
+Metaverse.prototype.generateTitle = function(file, typeId)
 {
 	var title = file;
+	var cookedType = this.cookType(this.library.types[typeId]);
+
+	if( cookedType.titleFormat !== "" )
+	{
+		var regEx = eval(cookedType.titleFormat);
+		var matches = regEx.exec(file);
+		if( matches )
+			title = matches[matches.length-1];
+	}
+
 	return title;
 };
 
 Metaverse.prototype.generateType = function(file)
 {
-	var type;
-	var x;
-	for( x in this.types )
+	var typeMatches = new Array();
+	var x, cookedType;
+	for( x in this.library.types )
 	{
 		// FIX ME: use new RegExp instead of eval for security reasons.
 		// new RegExp
-		if( file.search(eval(this.types[x].extensions)) !== -1 )
-		{
-			type = x;
-			console.log(type);
-			break;
-		}
+		//var regEx = new RegExp(this.types[x].format);
+
+		cookedType = metaverse.cookType(this.library.types[x]);
+		if( file.search(eval(cookedType.fileFormat)) !== -1 )
+			typeMatches.push(cookedType);
 	}
 
-	return type;
+	typeMatches.sort(function(a, b)
+	{
+		return b.priority-a.priority;
+	});
+
+	if( typeMatches.length === 0 )
+	{
+		console.log("ERROR: No type matches found!");
+		return;
+	}
+
+	return typeMatches[0].info.id;
 };
 
 Metaverse.prototype.isUrl = function(text)

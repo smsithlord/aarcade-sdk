@@ -143,6 +143,54 @@
 				<center>
 					<form>
 						<input type="button" value="Items" />
+						<input type="button" value="Types" />
+						<input type="button" value="Cancel" />
+					</form>
+				</center>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>Metaverse Library / Types</h1>
+			<div id="metaverseLibraryTypes">
+				<center>
+					<form>
+						<select size="10"></select>
+						<input type="submit" value="Edit Selected" disabled="true" />
+						<input type="button" value="Create New" />
+						<input type="button" value="Cancel" />
+					</form>
+				</center>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>Metaverse Library / Types / Create New</h1>
+			<div id="metaverseLibraryTypesCreate">
+				<center>
+					<form>
+						<label><font class="labelText">Title: </font><input type="text" /></label>
+						<label><font class="labelText">Priority: </font><input type="text" value="2" /></label>
+						<label><font class="labelText">File Format: </font><input type="text" /></label>
+						<label><font class="labelText">Title Format: </font><input type="text" /></label>
+						<input type="submit" value="Create" />
+						<input type="button" value="Cancel" />
+					</form>
+				</center>
+			</div>
+		</div>
+
+		<div class="container">
+			<h1>Metaverse Library / Types / Edit Type</h1>
+			<div id="metaverseLibraryTypesEditType">
+				<center>
+					<form>
+						<label><font class="labelText">ID: </font><input type="text" disabled="true" /></label>
+						<label><font class="labelText">Title: </font><input type="text" /></label>
+						<label><font class="labelText">Priority: </font><input type="text" /></label>
+						<label><font class="labelText">File Format: </font><input type="text" /></label>
+						<label><font class="labelText">Title Format: </font><input type="text" /></label>
+						<input type="submit" value="Save" />
 						<input type="button" value="Cancel" />
 					</form>
 				</center>
@@ -155,7 +203,6 @@
 				<center>
 					<form>
 						<select size="10"></select>
-						<div class="itemContainer"></div>
 						<input type="submit" value="Edit Selected" disabled="true" />
 						<input type="button" value="Create New" />
 						<input type="button" value="Cancel" />
@@ -208,6 +255,8 @@
 
 			var firebaseElem = document.querySelector("#firebase");
 			var firebaseCancelButton = firebaseElem.querySelector("input[type='button']");
+			var firebaseFields = firebaseElem.querySelectorAll("input[type='text'], input[type='password']");
+			var firebaseAddress = firebaseFields[0];
 
 			var dashboardElem = document.querySelector("#dashboard");
 			var dashboardButtons = dashboardElem.querySelectorAll("input[type='button']");
@@ -228,6 +277,8 @@
 			var newUniverseButtons = newUniverseElem.querySelectorAll("input[type='button'], input[type='submit']");
 			var newUniverseCreateButton = newUniverseButtons[0];
 			var newUniverseCancelButton = newUniverseButtons[1];
+			var newUniverseFields = newUniverseElem.querySelectorAll("input[type='text'], input[type='password']");
+			var newUniverseName = newUniverseFields[0];
 
 			var signUpElem = document.querySelector("#signUp");
 			var signUpFields = signUpElem.querySelectorAll("input[type='text'], input[type='password']");
@@ -247,7 +298,35 @@
 			var metaverseLibraryElem = document.querySelector("#metaverseLibrary");
 			var metaverseLibraryButtons = metaverseLibraryElem.querySelectorAll("input[type='button'], input[type='submit']");
 			var metaverseLibraryItemsButton = metaverseLibraryButtons[0];
-			var metaverseLibraryCancelButton = metaverseLibraryButtons[1];
+			var metaverseLibraryTypesButton = metaverseLibraryButtons[1];
+			var metaverseLibraryCancelButton = metaverseLibraryButtons[2];
+
+			var metaverseLibraryTypesElem = document.querySelector("#metaverseLibraryTypes");
+			var metaverseLibraryTypesSelect = metaverseLibraryTypesElem.querySelector("select");
+			var metaverseLibraryTypesButtons = metaverseLibraryTypesElem.querySelectorAll("input[type='button'], input[type='submit']");
+			var metaverseLibraryTypesEditButton = metaverseLibraryTypesButtons[0];
+			var metaverseLibraryTypesCreateButton = metaverseLibraryTypesButtons[1];
+			var metaverseLibraryTypesCancelButton = metaverseLibraryTypesButtons[2];
+
+			var metaverseLibraryTypesCreateElem = document.querySelector("#metaverseLibraryTypesCreate");
+			var metaverseLibraryTypesCreateFields = metaverseLibraryTypesCreateElem.querySelectorAll("input[type='text'], input[type='password']");
+			var metaverseLibraryTypesCreateButtons = metaverseLibraryTypesCreateElem.querySelectorAll("input[type='button'], input[type='submit']");
+			var metaverseLibraryTypesCreateCancelButton = metaverseLibraryTypesCreateButtons[1];
+			var metaverseLibraryTypesCreateTitle = metaverseLibraryTypesCreateFields[0];
+			var metaverseLibraryTypesCreatePriority = metaverseLibraryTypesCreateFields[1];
+			var metaverseLibraryTypesCreateFileFormat = metaverseLibraryTypesCreateFields[2];
+			var metaverseLibraryTypesCreateTitleFormat = metaverseLibraryTypesCreateFields[3];
+
+			var metaverseLibraryTypesEditTypeElem = document.querySelector("#metaverseLibraryTypesEditType");
+			var metaverseLibraryTypesEditTypeFields = metaverseLibraryTypesEditTypeElem.querySelectorAll("input[type='text'], input[type='password']");
+			var metaverseLibraryTypesEditTypeId = metaverseLibraryTypesEditTypeFields[0];
+			var metaverseLibraryTypesEditTypeTitle = metaverseLibraryTypesEditTypeFields[1];
+			var metaverseLibraryTypesEditTypePriority = metaverseLibraryTypesEditTypeFields[2];
+			var metaverseLibraryTypesEditTypeFileFormat = metaverseLibraryTypesEditTypeFields[3];
+			var metaverseLibraryTypesEditTypeTitleFormat = metaverseLibraryTypesEditTypeFields[4];
+			var metaverseLibraryTypesEditTypeButtons = metaverseLibraryTypesEditTypeElem.querySelectorAll("input[type='button'], input[type='submit']");
+			var metaverseLibraryTypesEditTypeSaveButton = metaverseLibraryTypesEditTypeButtons[0];
+			var metaverseLibraryTypesEditTypeCancelButton = metaverseLibraryTypesEditTypeButtons[1];
 
 			var metaverseLibraryItemsElem = document.querySelector("#metaverseLibraryItems");
 			var metaverseLibraryItemsSelect = metaverseLibraryItemsElem.querySelector("select");
@@ -260,7 +339,7 @@
 			var metaverseLibraryItemsCreateFields = metaverseLibraryItemsCreateElem.querySelectorAll("input[type='text'], input[type='password']");
 			var metaverseLibraryItemsCreateButtons = metaverseLibraryItemsCreateElem.querySelectorAll("input[type='button'], input[type='submit']");
 			var metaverseLibraryItemsCreateCancelButton = metaverseLibraryItemsCreateButtons[1];
-			var metaverseLibraryItemsCreateFile = metaverseLibraryItemsCreateFields[0];
+			var metaverseLibraryItemsCreateShortcut = metaverseLibraryItemsCreateFields[0];
 
 			var metaverseLibraryItemsEditItemElem = document.querySelector("#metaverseLibraryItemsEditItem");
 			var metaverseLibraryItemsEditItemButtons = metaverseLibraryItemsEditItemElem.querySelectorAll("input[type='button'], input[type='submit']");
@@ -334,7 +413,36 @@
 
 				if( slateElem === newUniverseElem )
 				{
-					newUniverseElem.querySelector("input[type='text']").value = "";
+					newUniverseName.value = "";
+					newUniverseName.focus();
+				}
+				else if( slateElem === metaverseLibraryTypesCreateElem )
+				{
+					metaverseLibraryTypesCreateTitle.value = "";
+					metaverseLibraryTypesCreatePriority.value = 2;
+					metaverseLibraryTypesCreateFileFormat.value = "/.+$/i";
+					metaverseLibraryTypesCreateTitleFormat.value = "/.+$/i";
+
+					metaverseLibraryTypesCreateTitle.focus();
+				}
+				else if( slateElem === metaverseLibraryTypesElem )
+				{
+					metaverseLibraryTypesEditButton.disabled = true;
+
+					metaverseLibraryTypesSelect.options.length = 0;
+
+					var x, rawTypes, type, typeOption;
+					for( x in metaverse.library.types )
+					{
+						rawType = metaverse.library.types[x];
+						type = metaverse.cookType(rawType);
+
+						typeOption = document.createElement("option");
+						typeOption.value = x;
+						typeOption.text = type.title;
+						
+						metaverseLibraryTypesSelect.appendChild(typeOption);
+					}
 				}
 				else if( slateElem === accountElem )
 				{
@@ -370,6 +478,8 @@
 					signUpUsername.value = "";
 					signUpPasscode.value = "";
 					signUpDisplayName.value = "";
+
+					signUpUsername.focus();
 				}
 				else if( slateElem === universeElem )
 				{
@@ -381,7 +491,7 @@
 					{
 						option = document.createElement("option");
 						option.value = x;
-						option.text = metaverse.universeNames[x] + " (" + x + ")";
+						option.text = metaverse.universeNames[x];
 						universeUniverseSelect.appendChild(option);
 					}
 
@@ -391,7 +501,11 @@
 						universeJoinButton.disabled = true;
 				}
 				else if( slateElem === firebaseElem )
-					firebaseElem.querySelector("input[type='text']").value = "https://metaverse.firebaseio.com/";
+				{
+					//firebaseElem.querySelector("input[type='text']").value = "https://metaverse.firebaseio.com/";
+					firebaseAddress.value = "https://metaverse.firebaseio.com/";
+					firebaseAddress.focus();
+				}
 				else if( slateElem === metaverseLibraryItemsElem )
 				{
 					metaverseLibraryItemsEditButton.disabled = true;
@@ -411,12 +525,17 @@
 						metaverseLibraryItemsSelect.appendChild(itemOption);
 					}
 				}
-				else if( slateElem === metaverseLibraryItemsElem )
+				else if( slateElem === metaverseLibraryItemsCreateElem )
 				{
+					metaverseLibraryItemsCreateShortcut.value = "";
+					metaverseLibraryItemsCreateShortcut.focus();
+				}
+				else if( slateElem === metaverseLibraryItemsEditItemElem )
+				{
+//					metaverseLibraryTypesEditTypeTitle.value = "";
+//					metaverseLibraryTypesEditTypeFormat.value = "";
 
-
-
-
+//					metaverseLibraryTypesEditTypeTitle.focus();
 				}
 				else if( slateElem === dashboardElem )
 				{
@@ -474,6 +593,12 @@
 			{
 				if( metaverseLibraryItemsSelect.selectedIndex !== -1 )
 					metaverseLibraryItemsEditButton.disabled = false;
+			});
+
+			metaverseLibraryTypesSelect.addEventListener("change", function(e)
+			{
+				if( metaverseLibraryTypesSelect.selectedIndex !== -1 )
+					metaverseLibraryTypesEditButton.disabled = false;
 			});
 
 			metaverseLibraryItems.querySelector("form").addEventListener("submit", function(e)
@@ -613,9 +738,9 @@
 
 				var name = newUniverseElem.querySelector("input[type='text']").value;
 				
-				if( !name || name.length <= 5 )
+				if( !name || name.length <= 2 )
 				{
-					error = "ERROR: Universe name must be at least 6 characters long."
+					error = "ERROR: Universe name must be at least 3 characters long."
 					console.log(error);
 					alert(error);
 					return;
@@ -758,6 +883,117 @@
 				showSlate(dashboardElem);
 			}, true);
 
+			metaverseLibraryTypesButton.addEventListener("click", function(e)
+			{
+				hideSlate(metaverseLibraryElem);
+				showSlate(metaverseLibraryTypesElem);
+			}, true);
+
+			metaverseLibraryTypesCancelButton.addEventListener("click", function(e)
+			{
+				hideSlate(metaverseLibraryTypesElem);
+				showSlate(metaverseLibraryElem);
+			}, true);
+
+			metaverseLibraryTypesCreateButton.addEventListener("click", function(e)
+			{
+				hideSlate(metaverseLibraryTypesElem);
+				showSlate(metaverseLibraryTypesCreateElem);
+			}, true);
+
+			metaverseLibraryTypesCreateCancelButton.addEventListener("click", function(e)
+			{
+				hideSlate(metaverseLibraryTypesCreateElem);
+				showSlate(metaverseLibraryTypesElem);
+			}, true);
+
+			metaverseLibraryTypesCreateElem.querySelector("form").addEventListener("submit", function(e)
+			{
+				e.preventDefault();
+
+				var title = metaverseLibraryTypesCreateTitle.value;
+				if( !!!title || title.length <= 2 )
+				{
+					error = "ERROR: Name must be at least 3 characters long.";
+					console.log(error);
+					alert(error);
+					return;
+				}
+
+				var priority = parseInt(metaverseLibraryTypesCreatePriority.value);
+
+				var type = {
+					"title": title,
+					"priority": priority,
+					"fileFormat": metaverseLibraryTypesCreateFileFormat.value,
+					"titleFormat": metaverseLibraryTypesCreateTitleFormat.value
+				};
+
+				metaverse.createType(type, function(typeId)
+				{
+					if( !!!typeId )
+					{
+						error = "ERROR: Failed to create type.";
+						console.log(error);
+						alert(error);
+						return;
+					}
+
+					hideSlate(metaverseLibraryTypesCreateElem);
+					showSlate(metaverseLibraryTypesElem);
+				});
+			}, true);
+
+			metaverseLibraryTypesElem.querySelector("form").addEventListener("submit", function(e)
+			{
+				e.preventDefault();
+
+				hideSlate(metaverseLibraryTypesElem);
+
+				var typeId = metaverseLibraryTypesSelect.options[metaverseLibraryTypesSelect.selectedIndex].value;
+				var rawType = metaverse.library.types[typeId];
+				type = metaverse.cookType(rawType);
+
+				metaverseLibraryTypesEditTypeId.value = type.info.id;
+				metaverseLibraryTypesEditTypeTitle.value = type.title;
+				metaverseLibraryTypesEditTypePriority.value = type.priority;
+				metaverseLibraryTypesEditTypeFileFormat.value = type.fileFormat;
+				metaverseLibraryTypesEditTypeTitleFormat.value = type.titleFormat;
+
+				showSlate(metaverseLibraryTypesEditTypeElem);
+
+				metaverseLibraryTypesEditTypeId.disabled = true;
+			}, true);
+
+			metaverseLibraryTypesEditTypeCancelButton.addEventListener("click", function(e)
+			{
+				hideSlate(metaverseLibraryTypesEditTypeElem);
+				showSlate(metaverseLibraryTypesElem);
+			}, true);
+
+			metaverseLibraryTypesEditTypeElem.querySelector("form").addEventListener("submit", function(e)
+			{
+				e.preventDefault();
+
+				var type =
+				{
+					"info":
+					{
+						"id": metaverseLibraryTypesEditTypeId.value
+					}
+				};
+
+				type.title = metaverseLibraryTypesEditTypeTitle.value;
+				type.fileFormat = metaverseLibraryTypesEditTypeFileFormat.value;
+				type.titleFormat = metaverseLibraryTypesEditTypeTitleFormat.value;
+
+				metaverse.updateType(type, function(error)
+				{
+					hideSlate(metaverseLibraryTypesEditTypeElem);
+					showSlate(metaverseLibraryTypesElem);
+				});
+			}, true);
+
 			metaverseLibraryItemsButton.addEventListener("click", function(e)
 			{
 				hideSlate(metaverseLibraryElem);
@@ -788,13 +1024,12 @@
 
 				freezeInputs(metaverseLibraryItemsCreateElem);
 
-				var file = metaverseLibraryItemsCreateFile.value;
+				var file = metaverseLibraryItemsCreateShortcut.value;
 
 				// Generate the item.
 				var item = {};
-				//item.id = metaverse.generateHash(file);
-				item.title = metaverse.generateTitle(file);
 				item.type = metaverse.generateType(file);
+				item.title = metaverse.generateTitle(file, item.type);
 				item.file = file;
 				item.app = "";
 				item.description = "";
@@ -805,7 +1040,7 @@
 				item.screen = "";
 
 				// Now that the item is constructed, let's check for an existing twin.
-				metaverse.findTwin(item, function(twin)
+				metaverse.findTwinItem(item, function(twin)
 				{
 					if( !!twin )
 					{
@@ -820,8 +1055,6 @@
 					// Add the item.
 					metaverse.createItem(item, function(resultId)
 					{
-						item.resultId = resultId;
-
 						hideSlate(metaverseLibraryItemsCreateElem);
 						showSlate(metaverseLibraryItemsElem);
 					});
@@ -840,9 +1073,9 @@
 
 				var username = signUpUsername.value;
 
-				if( !!!username || username.length <= 5 )
+				if( !!!username || username.length <= 2 )
 				{
-					error = "ERROR: Username must be at least 6 characters long."
+					error = "ERROR: Username must be at least 3 characters long."
 					console.log(error);
 					alert(error);
 					return;
@@ -941,12 +1174,14 @@
 					return;
 				}
 
+				freezeInputs(logInElem);
 				metaverse.logIn(username, passcode, function(error)
 				{
 					if( !!error )
 					{
 						console.log(error);
 						alert(error);
+						unfreezeInputs(logInElem);
 						return;
 					}
 
