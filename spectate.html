@@ -170,10 +170,10 @@
 			<div id="metaverseLibraryTypesCreate">
 				<center>
 					<form>
-						<label><font class="labelText">Title: </font><input type="text" /></label>
-						<label><font class="labelText">Priority: </font><input type="text" value="2" /></label>
-						<label><font class="labelText">File Format: </font><input type="text" /></label>
-						<label><font class="labelText">Title Format: </font><input type="text" /></label>
+						<label><font class="labelText">Title: </font><input type="text" placeholder="string" /></label>
+						<label><font class="labelText">Priority: </font><input type="text" placeholder="integer (default = 2)" /></label>
+						<label><font class="labelText">File Format: </font><input type="text" placeholder="regex (default = /.+$/i)" /></label>
+						<label><font class="labelText">Title Format: </font><input type="text" placeholder="regex (default = /(?=[^\\/]*$).+$/i)" /></label>
 						<input type="submit" value="Create" />
 						<input type="button" value="Cancel" />
 					</form>
@@ -187,10 +187,10 @@
 				<center>
 					<form>
 						<label><font class="labelText">ID: </font><input type="text" disabled="true" /></label>
-						<label><font class="labelText">Title: </font><input type="text" /></label>
-						<label><font class="labelText">Priority: </font><input type="text" /></label>
-						<label><font class="labelText">File Format: </font><input type="text" /></label>
-						<label><font class="labelText">Title Format: </font><input type="text" /></label>
+						<label><font class="labelText">Title: </font><input type="text" placeholder="string" /></label>
+						<label><font class="labelText">Priority: </font><input type="text" placeholder="integer (default = 2)" /></label>
+						<label><font class="labelText">File Format: </font><input type="text" placeholder="regex (default = /.+$/i)" /></label>
+						<label><font class="labelText">Title Format: </font><input type="text" placeholder="regex (default = /(?=[^\\/]*$).+$/i)" /></label>
 						<input type="submit" value="Save" />
 						<input type="button" value="Cancel" />
 					</form>
@@ -222,7 +222,7 @@
 						<label><font class="labelText">Download: </font><input type="text" placeholder="uri" /></label>
 						<label><font class="labelText">Model Priority: </font><input type="text" placeholder="integer (default = 2)" /></label>
 						<label><font class="labelText">Model File Format: </font><input type="text" placeholder="regex (default = /.+$/i)" /></label>
-						<label><font class="labelText">Model Title Format: </font><input type="text" placeholder="regex (default = /(?=[^\\/]*$).+$/i" /></label>
+						<label><font class="labelText">Model Title Format: </font><input type="text" placeholder="regex (default = /(?=[^\\/]*$).+$/i)" /></label>
 						<input type="submit" value="Create" />
 						<input type="button" value="Cancel" />
 					</form>
@@ -236,12 +236,12 @@
 				<center>
 					<form>
 						<label><font class="labelText">ID: </font><input type="text" disabled="true" /></label>
-						<label><font class="labelText">Title: </font><input type="text" /></label>
-						<label><font class="labelText">Reference: </font><input type="text" /></label>
-						<label><font class="labelText">Download: </font><input type="text" /></label>
-						<label><font class="labelText">Model Priority: </font><input type="text" /></label>
-						<label><font class="labelText">Model File Format: </font><input type="text" /></label>
-						<label><font class="labelText">Model Title Format: </font><input type="text" /></label>
+						<label><font class="labelText">Title: </font><input type="text" placeholder="string" /></label>
+						<label><font class="labelText">Reference: </font><input type="text" placeholder="uri" /></label>
+						<label><font class="labelText">Download: </font><input type="text" placeholder="uri" /></label>
+						<label><font class="labelText">Model Priority: </font><input type="text" placeholder="integer (default = 2)" /></label>
+						<label><font class="labelText">Model File Format: </font><input type="text" placeholder="regex (default = /.+$/i)" /></label>
+						<label><font class="labelText">Model Title Format: </font><input type="text" placeholder="regex (default = /(?=[^\\/]*$).+$/i)" /></label>
 						<input type="submit" value="Save" />
 						<input type="button" value="Cancel" />
 					</form>
@@ -268,7 +268,7 @@
 			<div id="metaverseLibraryItemsCreate">
 				<center>
 					<form>
-						<label><font class="labelText">Shortcut: </font><input type="text" /></label>
+						<label><font class="labelText">Shortcut: </font><input type="text" placeholder="uri|string" /></label>
 						<input type="submit" value="Create" />
 						<input type="button" value="Cancel" />
 					</form>
@@ -282,18 +282,18 @@
 				<center>
 					<form>
 						<label><font class="labelText">ID: </font><input type="text" disabled="true" /></label>
-						<label><font class="labelText">App: </font><input type="text" /></label>
-						<label><font class="labelText">Description: </font><input type="text" /></label>
-						<label><font class="labelText">File: </font><input type="text" /></label>
-						<label><font class="labelText">Marquee: </font><input type="text" /></label>
-						<label><font class="labelText">Model: </font><input type="text" /></label>
-						<label><font class="labelText">Preview: </font><input type="text" /></label>
-						<label><font class="labelText">Reference: </font><input type="text" /></label>
-						<label><font class="labelText">Download: </font><input type="text" /></label>
-						<label><font class="labelText">Stream: </font><input type="text" /></label>
-						<label><font class="labelText">Screen: </font><input type="text" /></label>
-						<label><font class="labelText">Title: </font><input type="text" /></label>
-						<label><font class="labelText">Type: </font><input type="text" /></label>
+						<label><font class="labelText">App: </font><input type="text" placeholder="AUTOKEY" /></label>
+						<label><font class="labelText">Description: </font><input type="text" placeholder="string" /></label>
+						<label><font class="labelText">File: </font><input type="text" placeholder="uri|string" /></label>
+						<label><font class="labelText">Marquee: </font><input type="text" placeholder="uri|string" /></label>
+						<label><font class="labelText">Model: </font><input type="text" placeholder="AUTOKEY" /></label>
+						<label><font class="labelText">Preview: </font><input type="text" placeholder="uri|string" /></label>
+						<label><font class="labelText">Reference: </font><input type="text" placeholder="uri" /></label>
+						<label><font class="labelText">Download: </font><input type="text" placeholder="uri" /></label>
+						<label><font class="labelText">Stream: </font><input type="text" placeholder="uri" /></label>
+						<label><font class="labelText">Screen: </font><input type="text" placeholder="uri|string" /></label>
+						<label><font class="labelText">Title: </font><input type="text" placeholder="string" /></label>
+						<label><font class="labelText">Type: </font><input type="text" placeholder="AUTOKEY" /></label>
 						<input type="submit" value="Save" />
 						<input type="button" value="Cancel" />
 					</form>
@@ -464,6 +464,7 @@
 			var elems, i;
 			metaverse.addEventListener("reset", function(e)
 			{
+				console.log("Reset detected!");
 				firebaseElem.querySelector("input[type='text']").value = "https://metaverse.firebaseio.com/";
 
 				elems = metaverseElem.querySelectorAll("input");
@@ -509,9 +510,9 @@
 				else if( slateElem === metaverseLibraryTypesCreateElem )
 				{
 					metaverseLibraryTypesCreateTitle.value = "";
-					metaverseLibraryTypesCreatePriority.value = 2;
-					metaverseLibraryTypesCreateFileFormat.value = "/.+$/i";
-					metaverseLibraryTypesCreateTitleFormat.value = "/.+$/i";
+					metaverseLibraryTypesCreatePriority.value = "";
+					metaverseLibraryTypesCreateFileFormat.value = "";
+					metaverseLibraryTypesCreateTitleFormat.value = "";
 
 					metaverseLibraryTypesCreateTitle.focus();
 				}
@@ -922,7 +923,6 @@
 				e.preventDefault();
 
 				var name = newUniverseElem.querySelector("input[type='text']").value;
-				
 				if( !name || name.length <= 2 )
 				{
 					error = "ERROR: Universe name must be at least 3 characters long."
@@ -1103,7 +1103,8 @@
 			{
 				e.preventDefault();
 
-				var title = metaverseLibraryTypesCreateTitle.value;
+				//var title = metaverseLibraryTypesCreateTitle.value;
+				/*
 				if( !!!title || title.length <= 2 )
 				{
 					error = "ERROR: Title must be at least 3 characters long.";
@@ -1111,12 +1112,13 @@
 					alert(error);
 					return;
 				}
+				*/
 
-				var priority = parseInt(metaverseLibraryTypesCreatePriority.value);
+				//var priority = parseInt(metaverseLibraryTypesCreatePriority.value);
 
 				var type = {
-					"title": title,
-					"priority": priority,
+					"title": metaverseLibraryTypesCreateTitle.value,
+					"priority": metaverseLibraryTypesCreatePriority.value,
 					"fileFormat": metaverseLibraryTypesCreateFileFormat.value,
 					"titleFormat": metaverseLibraryTypesCreateTitleFormat.value
 				};
@@ -1125,9 +1127,13 @@
 				{
 					if( !!!typeId )
 					{
-						error = "ERROR: Failed to create type.";
-						console.log(error);
-						alert(error);
+						//error = "ERROR: Failed to create type.";
+						if( !!metaverse.error )
+						{
+							console.log(metaverse.error);
+							alert(metaverse.error);
+						}
+
 						return;
 					}
 
@@ -1273,9 +1279,16 @@
 			{
 				e.preventDefault();
 
-				freezeInputs(metaverseLibraryItemsCreateElem);
-
 				var file = metaverseLibraryItemsCreateShortcut.value;
+				if( !!!file || file.length <= 2 )
+				{
+					error = "ERROR: Shortcuts must be at least 3 characters long."
+					console.log(error);
+					alert(error);
+					return;
+				}
+
+				freezeInputs(metaverseLibraryItemsCreateElem);
 
 				// Generate the item.
 				var item = {};

@@ -1,5 +1,6 @@
 function Metaverse()
 {
+	this.error;
 	this.users = {};
 	this.library = {
 		"items": {},
@@ -34,9 +35,222 @@ function Metaverse()
 		"reset": {}
 	};
 
-	this.types = {};
+	this.defaultInfo = {
+		"created":
+		{
+			"default": Firebase.ServerValue.TIMESTAMP,
+			"types": "timestamp",
+			"format": "/^[-+]?\\d+$/i",
+			"formatDescription": "Created must be a timestamp."
+		},
+		"id":
+		{
+			"default": "",
+			"types": "autokey",
+			"format": "/.+$/i",
+			"formatDescription": "ID must be an auto-generated key."
+		},
+		"owner":
+		{
+			"default": "",
+			"types": "autokey",
+			"format": "/.+$/i",
+			"formatDescription": "Owner must be an auto-generated key."
+		},
+		"removed":
+		{
+			"default": "0",
+			"types": "timestamp",
+			"format": "/^[-+]?\\d+$/i",
+			"formatDescription": "Removed must be a timestamp."
+		},
+		"remover":
+		{
+			"default": "",
+			"types": "autokey",
+			"format": "/.*$/i",
+			"formatDescription": "Remover must be an auto-generated key."
+		}		
+	};
+
+	this.defaultPlatform = {
+		"info": true,
+		"download":
+		{
+			"default": "",
+			"types": "uri",
+			"format": "/((((http|https):\/\/|(www\.|www\d\.))([^\-][a-zA-Z0-9\-]+)?(\.\w+)(\/\w+){0,}(\.\w+){0,}(\?\w+\=\w+){0,}(\&\w+\=\w+)?)|(^.{0}))/i",
+			"formatDescription": "Download must be a valid URI."
+		},
+		"modelFileFormat":
+		{
+			"default": "/.+$/i",
+			"types": "regex",
+			"format": "/.*$/i",
+			"formatDescription": "Model File Format must be a regular expression."
+		},
+		"modelPriority":
+		{
+			"default": "2",
+			"types": "integer",
+			"format": "/.*$/i",
+			"formatDescription": "Model Priority must be a an integer between 0 and 1024."
+		},
+		"modelTitleFormat":
+		{
+			"default": "/(?=[^\\/]*$).+$/i",
+			"types": "regex",
+			"format": "/.*$/i",
+			"formatDescription": "Model Title Format must be a regular expression."
+		},
+		"title":
+		{
+			"default": "",
+			"types": "string",
+			"format": "/^.{3,1024}$/i",
+			"formatDescription": "Title must be between 3 and 1024 characters."
+		},
+		"reference":
+		{
+			"default": "",
+			"types": "uri",
+			"format": "/((((http|https):\/\/|(www\.|www\d\.))([^\-][a-zA-Z0-9\-]+)?(\.\w+)(\/\w+){0,}(\.\w+){0,}(\?\w+\=\w+){0,}(\&\w+\=\w+)?)|(^.{0}))/i",
+			"formatDescription": "Reference must be a valid URI."
+		}
+	};
+
+	this.defaultType = {
+		"info": true,
+		"fileFormat":
+		{
+			"default": "/.+$/i",
+			"types": "regex",
+			"format": "/.*$/i",
+			"formatDescription": "File Format must be a regular expression."
+		},
+		"titleFormat":
+		{
+			"default": "/(?=[^\\/]*$).+$/i",
+			"types": "regex",
+			"format": "/.*$/i",
+			"formatDescription": "Title Format must be a regular expression."
+		},
+		"title":
+		{
+			"default": "",
+			"types": "string",
+			"format": "/^.{2,1024}$/i",
+			"formatDescription": "Title must be between 2 and 1024 characters."
+		},
+		"priority":
+		{
+			"default": "2",
+			"types": "integer",
+			"format": "/.*$/i",
+			"formatDescription": "Priority must be an integer between 0 and 1024."
+		}
+	};
+
+	this.defaultItem = {
+		"info": true,
+		"app":
+		{
+			"default": "",
+			"types": "autokey",
+			"format": "/.*$/i",
+			"formatDescription": "App must be an auto-generated key."
+		},
+		"description":
+		{
+			"default": "",
+			"types": "string",
+			"format": "/^.{0,1024}$/i",
+			"formatDescription": "Description must be between 0 and 1024 characters."
+		},
+		"download":
+		{
+			"default": "",
+			"types": "uri",
+			"format": "/((((http|https):\/\/|(www\.|www\d\.))([^\-][a-zA-Z0-9\-]+)?(\.\w+)(\/\w+){0,}(\.\w+){0,}(\?\w+\=\w+){0,}(\&\w+\=\w+)?)|(^.{0}))/i",
+			"formatDescription": "Download must be a valid URI."
+		},
+		"file":
+		{
+			"default": "",
+			"types": "uri|string",
+			"format": "/^.{3,1024}$/i",
+			"formatDescription": "File must be between 3 and 1024 characters."
+		},
+		"marquee":
+		{
+			"default": "",
+			"types": "uri|string",
+			"format": "/^.{0,1024}$/i",
+			"formatDescription": "Description must be between 0 and 1024 characters."
+		},
+		"model":
+		{
+			"default": "",
+			"types": "autokey",
+			"format": "/.*$/i",
+			"formatDescription": "Model must be an auto-generated key."
+		},
+		"preview":
+		{
+			"default": "",
+			"types": "uri|string",
+			"format": "/^.{0,1024}$/i",
+			"formatDescription": "Preview must be between 0 and 1024 characters."
+		},
+		"reference":
+		{
+			"default": "",
+			"types": "uri",
+			"format": "/((((http|https):\/\/|(www\.|www\d\.))([^\-][a-zA-Z0-9\-]+)?(\.\w+)(\/\w+){0,}(\.\w+){0,}(\?\w+\=\w+){0,}(\&\w+\=\w+)?)|(^.{0}))/i",
+			"formatDescription": "Reference must be a valid URI."
+		},
+		"screen":
+		{
+			"default": "",
+			"types": "uri|string",
+			"format": "/^.{0,1024}$/i",
+			"formatDescription": "Screen must be between 0 and 1024 characters."
+		},
+		"stream":
+		{
+			"default": "",
+			"types": "uri",
+			"format": "/((((http|https):\/\/|(www\.|www\d\.))([^\-][a-zA-Z0-9\-]+)?(\.\w+)(\/\w+){0,}(\.\w+){0,}(\?\w+\=\w+){0,}(\&\w+\=\w+)?)|(^.{0}))/i",
+			"formatDescription": "Stream must be a valid URI."
+		},
+		"title":
+		{
+			"default": "",
+			"types": "string",
+			"format": "/^.{2,1024}$/i",
+			"formatDescription": "Description must be between 2 and 1024 characters."
+		},
+		"type":
+		{
+			"default": "",
+			"types": "autokey",
+			"format": "/.+$/i",
+			"formatDescription": "Type must be an auto-generated key."
+		}
+	};
 
 	// NOTE: The regex's get encoded as strings to be compatible with JSON.
+	this.defaultPlatforms = [
+		{
+			"download": "http://store.steampowered.com/app/266430/",
+			"modelFileFormat": "/^(models\\/).+(.mdl)$/i",
+			"modelPriority": 2,
+			"modelTitleFormat": "/(?=[^\\/]*$).+$/i",
+			"reference": "http://www.anarchyarcade.com/",
+			"title": "AArcade: Source"
+		}
+	];
+
 	this.defaultTypes = [
 		{
 			"title": "youtube",
@@ -870,6 +1084,31 @@ Metaverse.prototype.findTwinType = function(original, callback)
 
 Metaverse.prototype.createType = function(data, callback)
 {
+	// Check data
+	var x;
+	for( x in this.defaultType )
+	{
+		if( x === "info" )
+			continue;
+
+		if( this.defaultType[x].types === "integer" )
+		{
+			if( (typeof data[x] === "number" && isNaN(data[x])) ||
+				(typeof data[x] !== "number" && parseInt(data[x], 10) + "" !== data[x] ) )
+			{
+				this.error = new Error(this.defaultType[x].formatDescription);
+				callback();
+				return;
+			}
+		}
+		else if( data[x].search(eval(this.defaultType[x].format)) === -1 )
+		{
+			this.error = new Error(this.defaultType[x].formatDescription);
+			callback();
+			return;
+		}
+	}
+
 	var ref = this.universeRef.child("library").child("types").push();
 	var key = ref.key();
 
