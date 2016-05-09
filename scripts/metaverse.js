@@ -79,7 +79,7 @@ function Metaverse()
 		{
 			"default": "",
 			"types": "uri",
-			"format": "/((((http|https):\/\/|(www\.|www\d\.))([^\-][a-zA-Z0-9\-]+)?(\.\w+)(\/\w+){0,}(\.\w+){0,}(\?\w+\=\w+){0,}(\&\w+\=\w+)?)|(^.{0}))/i",
+			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
 			"formatDescription": "Download must be a valid URI."
 		},
 		"modelFileFormat":
@@ -93,7 +93,7 @@ function Metaverse()
 		{
 			"default": "2",
 			"types": "integer",
-			"format": "/.*$/i",
+			"format": "/(^\\d+$)|(^$)/i",
 			"formatDescription": "Model Priority must be a an integer between 0 and 1024."
 		},
 		"modelTitleFormat":
@@ -114,7 +114,7 @@ function Metaverse()
 		{
 			"default": "",
 			"types": "uri",
-			"format": "/((((http|https):\/\/|(www\.|www\d\.))([^\-][a-zA-Z0-9\-]+)?(\.\w+)(\/\w+){0,}(\.\w+){0,}(\?\w+\=\w+){0,}(\&\w+\=\w+)?)|(^.{0}))/i",
+			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
 			"formatDescription": "Reference must be a valid URI."
 		}
 	};
@@ -171,7 +171,7 @@ function Metaverse()
 		{
 			"default": "",
 			"types": "uri",
-			"format": "/((((http|https):\/\/|(www\.|www\d\.))([^\-][a-zA-Z0-9\-]+)?(\.\w+)(\/\w+){0,}(\.\w+){0,}(\?\w+\=\w+){0,}(\&\w+\=\w+)?)|(^.{0}))/i",
+			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
 			"formatDescription": "Download must be a valid URI."
 		},
 		"file":
@@ -206,7 +206,7 @@ function Metaverse()
 		{
 			"default": "",
 			"types": "uri",
-			"format": "/((((http|https):\/\/|(www\.|www\d\.))([^\-][a-zA-Z0-9\-]+)?(\.\w+)(\/\w+){0,}(\.\w+){0,}(\?\w+\=\w+){0,}(\&\w+\=\w+)?)|(^.{0}))/i",
+			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
 			"formatDescription": "Reference must be a valid URI."
 		},
 		"screen":
@@ -220,7 +220,7 @@ function Metaverse()
 		{
 			"default": "",
 			"types": "uri",
-			"format": "/((((http|https):\/\/|(www\.|www\d\.))([^\-][a-zA-Z0-9\-]+)?(\.\w+)(\/\w+){0,}(\.\w+){0,}(\?\w+\=\w+){0,}(\&\w+\=\w+)?)|(^.{0}))/i",
+			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
 			"formatDescription": "Stream must be a valid URI."
 		},
 		"title":
@@ -228,7 +228,7 @@ function Metaverse()
 			"default": "",
 			"types": "string",
 			"format": "/^.{2,1024}$/i",
-			"formatDescription": "Description must be between 2 and 1024 characters."
+			"formatDescription": "Title must be between 2 and 1024 characters."
 		},
 		"type":
 		{
@@ -353,6 +353,9 @@ function Metaverse()
 
 Metaverse.prototype.updateItem = function(data, callback)
 {
+	if( !this.validateData(data, this.defaultItem, callback) )
+		return;
+
 	var rawItem = this.library.items[data.info.id];
 	var item = this.cookItem(rawItem);
 
@@ -383,18 +386,21 @@ Metaverse.prototype.updateItem = function(data, callback)
 			if( !!error )
 				callback("ERROR: Failed to update item.");
 			else
-				callback();
+				callback(data.info.id);
 		});
 
 		break;
 	}
 
 	if( needsCallback )
-		callback();
+		callback(data.info.id);
 };
 
 Metaverse.prototype.updateType = function(data, callback)
 {
+	if( !this.validateData(data, this.defaultType, callback) )
+		return;
+
 	var rawType = this.library.types[data.info.id];
 	var type = this.cookType(rawType);
 
@@ -425,18 +431,21 @@ Metaverse.prototype.updateType = function(data, callback)
 			if( !!error )
 				callback("ERROR: Failed to update type.");
 			else
-				callback();
+				callback(data.info.id);
 		});
 
 		break;
 	}
 
 	if( needsCallback )
-		callback();
+		callback(data.info.id);
 };
 
 Metaverse.prototype.updatePlatform = function(data, callback)
 {
+	if( !this.validateData(data, this.defaultPlatform, callback) )
+		return;
+
 	var rawPlatform = this.library.platforms[data.info.id];
 	var platform = this.cookPlatform(rawPlatform);
 
@@ -467,14 +476,14 @@ Metaverse.prototype.updatePlatform = function(data, callback)
 			if( !!error )
 				callback("ERROR: Failed to update platform.");
 			else
-				callback();
+				callback(data.info.id);
 		});
 
 		break;
 	}
 
 	if( needsCallback )
-		callback();
+		callback(data.info.id);
 };
 
 Metaverse.prototype.reset = function()
@@ -937,7 +946,7 @@ Metaverse.prototype.logIn = function(username, passcode, callback)
 					else
 						onOwnerResolved.call(this, false);
 
-					function onOwnerResolved(needsDefaultTypes)
+					function onOwnerResolved(needsDefaults)
 					{
 						this.localUserRef = this.usersRef.child(key);
 
@@ -981,22 +990,41 @@ Metaverse.prototype.logIn = function(username, passcode, callback)
 								{
 									needsCallback = false;
 
-									if( needsDefaultTypes )
+									if( needsDefaults )
 									{
-										// Now import all of the default types.
-										var numDefaultTypes = this.defaultTypes.length;
-										var resolvedIndex = -1;
-										createTypeHelper.call(this);
+										// Import all of the default platforms.
+										var numDefaultPlatforms = this.defaultPlatforms.length;
+										var resolvedPlatformIndex = -1;
+										createPlatformHelper.call(this);
 
-										function createTypeHelper(typeId)
+										function createPlatformHelper(platformId)
 										{
-											if( !!typeId )
-												resolvedIndex++;
+											if( !!platformId )
+												resolvedPlatformIndex++;
 
-											if( resolvedIndex+1 < numDefaultTypes )
-												this.createType(this.defaultTypes[resolvedIndex+1], arguments.callee.bind(this));
+											if( resolvedPlatformIndex+1 < numDefaultPlatforms )
+												this.createPlatform(this.defaultPlatforms[resolvedPlatformIndex+1], arguments.callee.bind(this));
 											else
-												onCallbackReady.call(this);
+												onPlatformsCreated.call(this);
+										}
+
+										function onPlatformsCreated()
+										{
+											// Now import all of the default types.
+											var numDefaultTypes = this.defaultTypes.length;
+											var resolvedIndex = -1;
+											createTypeHelper.call(this);
+
+											function createTypeHelper(typeId)
+											{
+												if( !!typeId )
+													resolvedIndex++;
+
+												if( resolvedIndex+1 < numDefaultTypes )
+													this.createType(this.defaultTypes[resolvedIndex+1], arguments.callee.bind(this));
+												else
+													onCallbackReady.call(this);
+											}
 										}
 									}
 									else
@@ -1082,32 +1110,49 @@ Metaverse.prototype.findTwinType = function(original, callback)
 	callback();
 };
 
-Metaverse.prototype.createType = function(data, callback)
+Metaverse.prototype.validateData = function(data, defaultData, callback)
 {
-	// Check data
 	var x;
-	for( x in this.defaultType )
+	for( x in defaultData )
 	{
 		if( x === "info" )
 			continue;
 
-		if( this.defaultType[x].types === "integer" )
+		if( defaultData[x].types === "integer" )
 		{
-			if( (typeof data[x] === "number" && isNaN(data[x])) ||
+			if( typeof data[x] === "string" && data[x] === "" )
+				data[x] = defaultData[x].default;
+			else if( (typeof data[x] === "number" && isNaN(data[x])) ||
 				(typeof data[x] !== "number" && parseInt(data[x], 10) + "" !== data[x] ) )
 			{
-				this.error = new Error(this.defaultType[x].formatDescription);
+				this.error = new Error(defaultData[x].formatDescription);
 				callback();
-				return;
+				return false;
 			}
 		}
-		else if( data[x].search(eval(this.defaultType[x].format)) === -1 )
+		else
 		{
-			this.error = new Error(this.defaultType[x].formatDescription);
-			callback();
-			return;
+			if( data[x].search(eval(defaultData[x].format)) === -1 )
+			{
+				this.error = new Error(defaultData[x].formatDescription);
+				callback();
+				return false;
+			}
+			else
+			{
+				if( data[x] === "" )
+					data[x] = defaultData[x].default;
+			}
 		}
 	}
+
+	return true;
+};
+
+Metaverse.prototype.createType = function(data, callback)
+{
+	if( !this.validateData(data, this.defaultType, callback) )
+		return;
 
 	var ref = this.universeRef.child("library").child("types").push();
 	var key = ref.key();
@@ -1150,6 +1195,43 @@ Metaverse.prototype.findTwinPlatform = function(original, callback)
 
 Metaverse.prototype.createPlatform = function(data, callback)
 {
+	if( !this.validateData(data, this.defaultPlatform, callback) )
+		return;
+
+	var ref = this.universeRef.child("library").child("platforms").push();
+	var key = ref.key();
+
+	var platformData = {
+		"info":
+		{
+			"id": key,
+			"created": Firebase.ServerValue.TIMESTAMP,
+			"owner": metaverse.localUser.id,
+			"removed": 0,
+			"remover": ""
+		}
+	};
+
+	var x;
+	for( x in data )
+	{
+		platformData[x] = {};
+
+		platformData[x][metaverse.localUser.id] = {
+			"value": data[x],
+			"timestamp": Firebase.ServerValue.TIMESTAMP
+		};
+	}
+
+	ref.set(platformData, function(error)
+	{
+		if( !!!error )
+			callback(key);
+		else
+			callback();
+	});
+
+/*
 	var ref = this.universeRef.child("library").child("platforms").push();
 	var key = ref.key();
 
@@ -1181,6 +1263,7 @@ Metaverse.prototype.createPlatform = function(data, callback)
 		else
 			callback();
 	});
+*/
 };
 
 Metaverse.prototype.findTwinItem = function(original, callback)
@@ -1191,6 +1274,9 @@ Metaverse.prototype.findTwinItem = function(original, callback)
 
 Metaverse.prototype.createItem = function(data, callback)
 {
+	if( !this.validateData(data, this.defaultItem, callback) )
+		return;
+
 	var ref = this.universeRef.child("library").child("items").push();
 	var key = ref.key();
 

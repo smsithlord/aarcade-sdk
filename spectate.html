@@ -682,24 +682,33 @@
 					"info":
 					{
 						"id": metaverseLibraryItemsEditItemId.value
-					}
+					},
+					"app": metaverseLibraryItemsEditItemApp.value,
+					"description": metaverseLibraryItemsEditItemDescription.value,
+					"file": metaverseLibraryItemsEditItemFile.value,
+					"marquee": metaverseLibraryItemsEditItemMarquee.value,
+					"model": metaverseLibraryItemsEditItemModel.value,
+					"preview": metaverseLibraryItemsEditItemPreview.value,
+					"reference": metaverseLibraryItemsEditItemReference.value,
+					"download": metaverseLibraryItemsEditItemDownload.value,
+					"stream": metaverseLibraryItemsEditItemStream.value,
+					"screen": metaverseLibraryItemsEditItemScreen.value,
+					"title": metaverseLibraryItemsEditItemTitle.value,
+					"type": metaverseLibraryItemsEditItemType.value
 				};
 
-				item.app = metaverseLibraryItemsEditItemApp.value;
-				item.description = metaverseLibraryItemsEditItemDescription.value;
-				item.file = metaverseLibraryItemsEditItemFile.value;
-				item.marquee = metaverseLibraryItemsEditItemMarquee.value;
-				item.model = metaverseLibraryItemsEditItemModel.value;
-				item.preview = metaverseLibraryItemsEditItemPreview.value;
-				item.reference = metaverseLibraryItemsEditItemReference.value;
-				item.download = metaverseLibraryItemsEditItemDownload.value;
-				item.stream = metaverseLibraryItemsEditItemStream.value;
-				item.screen = metaverseLibraryItemsEditItemScreen.value;
-				item.title = metaverseLibraryItemsEditItemTitle.value;
-				item.type = metaverseLibraryItemsEditItemType.value;
-
-				metaverse.updateItem(item, function(error)
+				metaverse.updateItem(item, function(itemId)
 				{
+					if( !!!itemId )
+					{
+						if( !!metaverse.error )
+						{
+							console.log(metaverse.error);
+							alert(metaverse.error);
+						}
+
+						return;
+					}
 					hideSlate(metaverseLibraryItemsEditItemElem);
 					showSlate(metaverseLibraryItemsElem);
 				});
@@ -714,18 +723,28 @@
 					"info":
 					{
 						"id": metaverseLibraryPlatformsEditPlatformId.value
-					}
+					},
+					"title": metaverseLibraryPlatformsEditPlatformTitle.value,
+					"reference": metaverseLibraryPlatformsEditPlatformReference.value,
+					"download": metaverseLibraryPlatformsEditPlatformDownload.value,
+					"modelPriority": metaverseLibraryPlatformsEditPlatformModelPriority.value,
+					"modelFileFormat": metaverseLibraryPlatformsEditPlatformModelFileFormat.value,
+					"modelTitleFormat": metaverseLibraryPlatformsEditPlatformModelTitleFormat.value
 				};
 
-				platform.title = metaverseLibraryPlatformsEditPlatformTitle.value;
-				platform.reference = metaverseLibraryPlatformsEditPlatformReference.value;
-				platform.download = metaverseLibraryPlatformsEditPlatformDownload.value;
-				platform.modelPriority = metaverseLibraryPlatformsEditPlatformModelPriority.value;
-				platform.modelFileFormat = metaverseLibraryPlatformsEditPlatformModelFileFormat.value;
-				platform.modelTitleFormat = metaverseLibraryPlatformsEditPlatformModelTitleFormat.value;
-
-				metaverse.updatePlatform(platform, function(error)
+				metaverse.updatePlatform(platform, function(platformId)
 				{
+					if( !!!platformId )
+					{
+						if( !!metaverse.error )
+						{
+							console.log(metaverse.error);
+							alert(metaverse.error);
+						}
+
+						return;
+					}
+
 					hideSlate(metaverseLibraryPlatformsEditPlatformElem);
 					showSlate(metaverseLibraryPlatformsElem);
 				});
@@ -1103,19 +1122,6 @@
 			{
 				e.preventDefault();
 
-				//var title = metaverseLibraryTypesCreateTitle.value;
-				/*
-				if( !!!title || title.length <= 2 )
-				{
-					error = "ERROR: Title must be at least 3 characters long.";
-					console.log(error);
-					alert(error);
-					return;
-				}
-				*/
-
-				//var priority = parseInt(metaverseLibraryTypesCreatePriority.value);
-
 				var type = {
 					"title": metaverseLibraryTypesCreateTitle.value,
 					"priority": metaverseLibraryTypesCreatePriority.value,
@@ -1127,7 +1133,6 @@
 				{
 					if( !!!typeId )
 					{
-						//error = "ERROR: Failed to create type.";
 						if( !!metaverse.error )
 						{
 							console.log(metaverse.error);
@@ -1178,15 +1183,26 @@
 					"info":
 					{
 						"id": metaverseLibraryTypesEditTypeId.value
-					}
+					},
+					"title": metaverseLibraryTypesEditTypeTitle.value,
+					"priority": metaverseLibraryTypesEditTypePriority.value,
+					"fileFormat": metaverseLibraryTypesEditTypeFileFormat.value,
+					"titleFormat": metaverseLibraryTypesEditTypeTitleFormat.value
 				};
 
-				type.title = metaverseLibraryTypesEditTypeTitle.value;
-				type.fileFormat = metaverseLibraryTypesEditTypeFileFormat.value;
-				type.titleFormat = metaverseLibraryTypesEditTypeTitleFormat.value;
-
-				metaverse.updateType(type, function(error)
+				metaverse.updateType(type, function(typeId)
 				{
+					if( !!!typeId )
+					{
+						if( !!metaverse.error )
+						{
+							console.log(metaverse.error);
+							alert(metaverse.error);
+						}
+
+						return;
+					}
+
 					hideSlate(metaverseLibraryTypesEditTypeElem);
 					showSlate(metaverseLibraryTypesElem);
 				});
@@ -1214,24 +1230,11 @@
 			{
 				e.preventDefault();
 
-				var title = metaverseLibraryPlatformsCreateTitle.value;
-				if( !!!title || title.length <= 2 )
-				{
-					error = "ERROR: Title must be at least 3 characters long.";
-					console.log(error);
-					alert(error);
-					return;
-				}
-
-				var modelPriority = parseInt(metaverseLibraryPlatformsCreateModelPriority.value);
-				if( isNaN(modelPriority) )
-					modelPriority = 2;
-
 				var platform = {
-					"title": title,
+					"title": metaverseLibraryPlatformsCreateTitle.value,
 					"reference": metaverseLibraryPlatformsCreateReference.value,
 					"download": metaverseLibraryPlatformsCreateDownload.value,
-					"modelPriority": modelPriority,
+					"modelPriority": metaverseLibraryPlatformsCreateModelPriority.value,
 					"modelFileFormat": metaverseLibraryPlatformsCreateModelFileFormat.value,
 					"modelTitleFormat": metaverseLibraryPlatformsCreateModelTitleFormat.value
 				};
@@ -1240,9 +1243,12 @@
 				{
 					if( !!!platformId )
 					{
-						error = "ERROR: Failed to create platform.";
-						console.log(error);
-						alert(error);
+						if( !!metaverse.error )
+						{
+							console.log(metaverse.error);
+							alert(metaverse.error);
+						}
+
 						return;
 					}
 
@@ -1319,8 +1325,18 @@
 					}
 
 					// Add the item.
-					metaverse.createItem(item, function(resultId)
+					metaverse.createItem(item, function(itemId)
 					{
+						if( !!!itemId )
+						{
+							if( !!metaverse.error )
+							{
+								console.log(metaverse.error);
+								alert(metaverse.error);
+							}
+
+							return;
+						}
 						hideSlate(metaverseLibraryItemsCreateElem);
 						showSlate(metaverseLibraryItemsElem);
 					});
