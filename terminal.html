@@ -38,7 +38,10 @@
 					var i;
 					var elems = form.querySelectorAll("input");
 					for( i = 0; i < elems.length; i++ )
-						elems[i].disabled = false;
+					{
+						if( !elems[i].locked )
+							elems[i].disabled = false;
+					}
 				}
 			}
 
@@ -163,6 +166,21 @@
 							else
 								inputElem.selectedIndex = 0;
 						}
+						else if( inputData.generateOptions === "libraryTypes" )
+						{
+							for( y in metaverse.library.types )
+							{
+								inputOption = document.createElement("option");
+								inputOption.value = y;
+								inputOption.text = metaverse.library.types[y].current.title;
+								inputElem.appendChild(inputOption);
+							}
+
+							if( inputElem.options.length === 0 )
+								needsSubmitDisable = true;
+							else
+								inputElem.selectedIndex = 0;
+						}
 
 						form.appendChild(inputElem);
 
@@ -171,6 +189,8 @@
 
 						formElems[x] = inputElem;
 					}
+
+					inputElem.locked = inputData.locked;
 
 					if( inputData.locked )
 						inputElem.disabled = true;

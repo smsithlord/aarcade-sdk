@@ -172,6 +172,7 @@ function Metaverse(eventHandler)
 		"info": true,
 		"fileFormat":
 		{
+			"label": "File Format",
 			"default": "/.+$/i",
 			"types": "regex",
 			"format": "/.*$/i",
@@ -179,6 +180,7 @@ function Metaverse(eventHandler)
 		},
 		"titleFormat":
 		{
+			"label": "Title Format",
 			"default": "/(?=[^\\/]*$).+$/i",
 			"types": "regex",
 			"format": "/.*$/i",
@@ -186,6 +188,7 @@ function Metaverse(eventHandler)
 		},
 		"title":
 		{
+			"label": "Title",
 			"default": "",
 			"types": "string",
 			"format": "/^.{2,1024}$/i",
@@ -193,6 +196,7 @@ function Metaverse(eventHandler)
 		},
 		"priority":
 		{
+			"label": "Priority",
 			"default": "2",
 			"types": "integer",
 			"format": "/.*$/i",
@@ -434,6 +438,10 @@ function Metaverse(eventHandler)
 		if( !!options && !!options.itemId )
 			item = this.library.items[options.itemId].current;
 
+		var type;
+		if( !!options && !!options.typeId )
+			type = this.library.types[options.typeId].current;
+
 		var menus = {
 			"metaverseMenu":
 			{
@@ -665,6 +673,12 @@ function Metaverse(eventHandler)
 					"value": "Items",
 					"action": "showLibraryItems"
 				},
+				"types":
+				{
+					"type": "button",
+					"value": "Types",
+					"action": "showLibraryTypes"
+				},
 				"cancel":
 				{
 					"type": "button",
@@ -806,13 +820,47 @@ function Metaverse(eventHandler)
 			"libraryItemsEdit":
 			{
 				"menuId": "libraryItemsEdit",
-				"menuHeader": "Dashboard / Library / Items / Edit"/*,
+				"menuHeader": "Dashboard / Library / Items / Edit"
+			},
+			"libraryTypes":
+			{
+				"menuId": "libraryTypes",
+				"menuHeader": "Dashboard / Library / Types",
+				"typeSelect":
+				{
+					"type": "select",
+					"generateOptions": "libraryTypes",
+					"focus": true,
+					"action": "libraryTypesSelectChange"
+				},
+				"editType":
+				{
+					"type": "submit",
+					"value": "Edit Type",
+					"action": "showEditType"
+				},
+				"newType":
+				{
+					"type": "button",
+					"value": "Create New Type",
+					"action": "showCreateType"
+				},
 				"cancel":
 				{
 					"type": "button",
 					"value": "Cancel",
-					"action": "cancelLibraryItemEdit"
-				}*/
+					"action": "cancelLibraryTypes"
+				}
+			},
+			"libraryTypesCreate":
+			{
+				"menuId": "libraryTypesCreate",
+				"menuHeader": "Dashboard / Library / Types / New",
+			},
+			"libraryTypesEdit":
+			{
+				"menuId": "libraryTypesEdit",
+				"menuHeader": "Dashboard / Library / Types / Edit",
 			}
 		};
 
@@ -836,22 +884,82 @@ function Metaverse(eventHandler)
 			if( x === "info" )
 				continue;
 
-			menus.libraryItemsEdit[x] = {
+			menus[menuId][x] = {
 				"label": this.defaultItem[x].label + ": ",
 				"type": "text",
 				"value": (!!item) ? item[x] : "",
 				"placeholder": this.defaultItem[x].types
 			};
 		}
-		menus.libraryItemsEdit["save"] = {
+		menus[menuId]["save"] = {
 			"type": "submit",
 			"value": "Save",
 			"action": "saveLibraryItemEdit"
 		};
-		menus.libraryItemsEdit["cancel"] = {
+		menus[menuId]["cancel"] = {
 			"type": "button",
 			"value": "Cancel",
 			"action": "cancelLibraryItemEdit"
+		};
+
+		// MENU
+		menuId = "libraryTypesCreate";
+		for( x in this.defaultType )
+		{
+			if( x === "info" )
+				continue;
+
+			menus[menuId][x] = {
+				"label": this.defaultType[x].label + ": ",
+				"type": "text",
+				"value": (!!item) ? item[x] : "",
+				"placeholder": this.defaultType[x].types
+			};
+		}
+		menus[menuId]["save"] = {
+			"type": "submit",
+			"value": "Save",
+			"action": "createLibraryType"
+		};
+		menus[menuId]["cancel"] = {
+			"type": "button",
+			"value": "Cancel",
+			"action": "cancelLibraryTypeCreate"
+		};
+
+		// MENU
+		menuId = "libraryTypesEdit";
+		if( !!type )
+		{
+			menus[menuId]["id"] = {
+				"label": "ID: ",
+				"type": "text",
+				"value": type.info.id,
+				"placeholder": "autokey",
+				"locked": true
+			};
+		}
+		for( x in this.defaultType )
+		{
+			if( x === "info" )
+				continue;
+
+			menus[menuId][x] = {
+				"label": this.defaultType[x].label + ": ",
+				"type": "text",
+				"value": (!!type) ? type[x] : "",
+				"placeholder": this.defaultType[x].types
+			};
+		}
+		menus[menuId]["save"] = {
+			"type": "submit",
+			"value": "Save",
+			"action": "updateLibraryType"
+		};
+		menus[menuId]["cancel"] = {
+			"type": "button",
+			"value": "Cancel",
+			"action": "cancelLibraryTypeEdit"
 		};
 
 		return menus;
@@ -1194,7 +1302,7 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 			}
 
 			// Add the item.
-			this.createLibraryObject("item", item, function(itemId)
+			this.createLibraryObject("Item", item, function(itemId)
 			{
 				if( !!!itemId )
 				{
@@ -1239,6 +1347,90 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 			}
 
 			this.showMenu("libraryItems");
+		}.bind(this));
+	}
+	else if( actionName === "showLibraryTypes" )
+	{
+		this.showMenu("libraryTypes");
+	}
+	else if( actionName === "cancelLibraryTypes" )
+	{
+		this.showMenu("libraryMenu");
+	}
+	else if( actionName === "showCreateType" )
+	{
+		this.showMenu("libraryTypesCreate");
+	}
+	else if( actionName === "cancelLibraryTypeCreate" )
+	{
+		this.showMenu("libraryTypes");
+	}
+	else if( actionName === "createLibraryType" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var data = {};
+		var x;
+		for( x in actionData )
+		{
+			if( actionData[x].type !== "button" && actionData[x].type !== "submit" )
+				data[x] = actionData[x].value;
+		}
+
+		this.createLibraryObject("Type", data, function(typeId)
+		{
+			if( !!!typeId )
+			{
+				if( !!this.error )
+				{
+					this.eventHandler("error", this.error);
+					this.eventHandler("unfreezeInputs");
+					return;
+				}
+
+				return;
+			}
+
+			this.showMenu("libraryTypes");
+		}.bind(this));
+	}
+	else if( actionName === "showEditType" )
+	{
+		this.showMenu("libraryTypesEdit", {"typeId": actionData["typeSelect"].options[actionData["typeSelect"].selectedIndex].value});
+	}
+	else if( actionName === "cancelLibraryTypeEdit" )
+	{
+		this.showMenu("libraryTypes");
+	}
+	else if( actionName === "updateLibraryType" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var data = {};
+		var x;
+		for( x in actionData )
+		{
+			if( actionData[x].type !== "button" && actionData[x].type !== "submit" && x !== "id" )
+				data[x] = actionData[x].value;
+		}
+
+		data.info = {"id": actionData["id"].value};
+
+		this.updateType(data, function(typeId)
+		{
+			if( !!!typeId )
+			{
+				if( !!this.error )
+				{
+					this.eventHandler("error", this.error);
+					this.eventHandler("unfreezeInputs");
+					return;
+				}
+
+				return;
+			}
+
+			this.showMenu("libraryTypes");
 		}.bind(this));
 	}
 };
@@ -1359,37 +1551,64 @@ Metaverse.prototype.updateType = function(data, callback)
 		return;
 
 	var rawType = this.library.types[data.info.id];
-	var type = this.cookType(rawType);
+	var currentType = rawType.current;
+
+	if( !!!rawType[this.localUser.id] )
+		rawType[this.localUser.id] = {};
 
 	// Detect which fields have actually changed.
 	var updateData = {};
 
-	var x, dataObject;
+	var isModified = false;
+	var x;
 	for( x in data )
 	{
 		if( x === "info" )
 			continue;
 
-		if( type[x] !== data[x] )
+		if( currentType[x] !== data[x] )
 		{
-			dataObject = {"timestamp": Firebase.ServerValue.TIMESTAMP, "value": data[x]};
-			rawType[x][metaverse.localUser.id] = dataObject;
-			
-			updateData[x + "/" + metaverse.localUser.id] = dataObject;
+			currentType[x] = data[x];
+			updateData["current/" + x] = data[x];
+			isModified = true;
 		}
 	}
+
+	if( isModified )
+	{
+		currentType.info.modified = Firebase.ServerValue.TIMESTAMP;
+		currentType.info.modifier = this.localUser.id;
+		updateData["current/info/modified"] = currentType.info.modified;//Firebase.ServerValue.TIMESTAMP;
+		updateData["current/info/modifier"] = currentType.info.modifier;//this.localUser.id;
+	}
+
+	rawType[this.localUser.id] = currentType;
 
 	var needsCallback = true;
 	for( x in updateData )
 	{
 		needsCallback = false;
-		this.libraryRef.child("types").child(data.info.id).update(updateData, function(error)
+		this.libraryRef.child("types").child(data.info.id).update(updateData, function(error1)
 		{
-			if( !!error )
-				callback("ERROR: Failed to update type.");
+			if( !!error1 )
+			{
+				this.error = new Error("Failed to update current type on metaverse.");
+				callback();
+			}
 			else
-				callback(data.info.id);
-		});
+			{
+				this.libraryRef.child("types").child(data.info.id).child(this.localUser.id).set(currentType, function(error2)
+				{
+					if( !!error2 )
+					{
+						this.error = new Error("Failed to update user type on metaverse.");
+						callback();
+					}
+					else
+						callback(data.info.id);
+				}.bind(this));
+			}
+		}.bind(this));
 
 		break;
 	}
@@ -1989,7 +2208,7 @@ Metaverse.prototype.logIn = function(username, passcode, callback)
 												resolvedPlatformIndex++;
 
 											if( resolvedPlatformIndex+1 < numDefaultPlatforms )
-												this.createLibraryObject("platform", this.defaultPlatforms[resolvedPlatformIndex+1], arguments.callee.bind(this));
+												this.createLibraryObject("Platform", this.defaultPlatforms[resolvedPlatformIndex+1], arguments.callee.bind(this));
 											else
 												onPlatformsCreated.call(this);
 										}
@@ -2007,7 +2226,7 @@ Metaverse.prototype.logIn = function(username, passcode, callback)
 													resolvedIndex++;
 
 												if( resolvedIndex+1 < numDefaultTypes )
-													this.createLibraryObject("type", this.defaultTypes[resolvedIndex+1], arguments.callee.bind(this));
+													this.createLibraryObject("Type", this.defaultTypes[resolvedIndex+1], arguments.callee.bind(this));
 												else
 													onCallbackReady.call(this);
 											}
@@ -2169,7 +2388,9 @@ Metaverse.prototype.createLibraryObject = function(type, data, callback)
 	if( !this.validateData(data, this["default" + type], callback) )
 		return;
 
-	var ref = this.universeRef.child("library").child(type + "s").push();
+	var lowerCaseType = type.toLowerCase();
+
+	var ref = this.universeRef.child("library").child(lowerCaseType + "s").push();
 	var key = ref.key();
 
 	data["info"] = {
