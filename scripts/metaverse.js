@@ -1,5 +1,7 @@
-function Metaverse()
+function Metaverse(eventHandler)
 {
+	this.quickJoinAddress = "https://metaverse.firebaseio.com/";
+	this.eventHandler = eventHandler;
 	this.error;
 	this.users = {};
 	this.library = {
@@ -17,7 +19,7 @@ function Metaverse()
 
 	this.root = null;
 	this.universe = null;
-	this.universeNames = {};
+	this.universeTitles = {};
 	this.local = {};
 	this.rootRef = null;
 	this.universeRef = null;
@@ -26,6 +28,9 @@ function Metaverse()
 	this.localUserRef = null;
 	this.connectedRef = null;
 	this.status = "Offline";
+
+	this.lastPushTime = 0;
+	this.lastRandChars = [];
 
 	this.listeners =
 	{
@@ -73,6 +78,43 @@ function Metaverse()
 		}		
 	};
 
+	this.defaultUniverse = {
+		"info":
+		{
+			"title":
+			{
+				"default": "",
+				"types": "string",
+				"format": "/^.{2,1024}$/i",
+				"formatDescription": "Title must be between 2 and 1024 characters."
+			}
+		}
+	};
+
+	this.defaultUser = {
+		"username":
+		{
+			"default": "",
+			"types": "string",
+			"format": "/^.{3,1024}$/i",
+			"formatDescription": "Username must be between 3 and 1024 characters."
+		},
+		"displayName":
+		{
+			"default": "",
+			"types": "string",
+			"format": "/^.{3,1024}$/i",
+			"formatDescription": "Display name must be between 3 and 1024 characters."
+		},
+		"passcode":
+		{
+			"default": "",
+			"types": "string",
+			"format": "/^.{5,1024}$/i",
+			"formatDescription": "Passcode must be between 5 and 1024 characters."
+		}
+	};
+
 	this.defaultPlatform = {
 		"info": true,
 		"download":
@@ -82,26 +124,33 @@ function Metaverse()
 			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
 			"formatDescription": "Download must be a valid URI."
 		},
-		"modelFileFormat":
-		{
-			"default": "/.+$/i",
-			"types": "regex",
-			"format": "/.*$/i",
-			"formatDescription": "Model File Format must be a regular expression."
-		},
-		"modelPriority":
+		"propsPriority":
 		{
 			"default": "2",
 			"types": "integer",
 			"format": "/(^\\d+$)|(^$)/i",
-			"formatDescription": "Model Priority must be a an integer between 0 and 1024."
+			"formatDescription": "Props Priority must be a an integer between 0 and 1024."
 		},
-		"modelTitleFormat":
+		"propsFileFormat":
 		{
-			"default": "/(?=[^\\/]*$).+$/i",
+			"default": "/.*$/i",
 			"types": "regex",
 			"format": "/.*$/i",
-			"formatDescription": "Model Title Format must be a regular expression."
+			"formatDescription": "Props File Format must be a regular expression."
+		},
+		"propsTitleFormat":
+		{
+			"default": "/.*$/i",
+			"types": "regex",
+			"format": "/.*$/i",
+			"formatDescription": "Props Title Format must be a regular expression."
+		},
+		"propsCustom":
+		{
+			"default": {},
+			"types": "JSON",
+			"format": "/.*$/i",
+			"formatDescription": "Props Custom must be a string that can be parsed into a JSON object."
 		},
 		"title":
 		{
@@ -155,6 +204,7 @@ function Metaverse()
 		"info": true,
 		"app":
 		{
+			"label": "App",
 			"default": "",
 			"types": "autokey",
 			"format": "/.*$/i",
@@ -162,6 +212,7 @@ function Metaverse()
 		},
 		"description":
 		{
+			"label": "Description",
 			"default": "",
 			"types": "string",
 			"format": "/^.{0,1024}$/i",
@@ -169,6 +220,7 @@ function Metaverse()
 		},
 		"download":
 		{
+			"label": "Download",
 			"default": "",
 			"types": "uri",
 			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
@@ -176,6 +228,7 @@ function Metaverse()
 		},
 		"file":
 		{
+			"label": "File",
 			"default": "",
 			"types": "uri|string",
 			"format": "/^.{3,1024}$/i",
@@ -183,20 +236,23 @@ function Metaverse()
 		},
 		"marquee":
 		{
+			"label": "Marquee",
 			"default": "",
 			"types": "uri|string",
 			"format": "/^.{0,1024}$/i",
 			"formatDescription": "Description must be between 0 and 1024 characters."
 		},
-		"model":
+		"cabinet":
 		{
+			"label": "Cabinet",
 			"default": "",
 			"types": "autokey",
 			"format": "/.*$/i",
-			"formatDescription": "Model must be an auto-generated key."
+			"formatDescription": "Cabinet must be an auto-generated key."
 		},
 		"preview":
 		{
+			"label": "Preview",
 			"default": "",
 			"types": "uri|string",
 			"format": "/^.{0,1024}$/i",
@@ -204,6 +260,7 @@ function Metaverse()
 		},
 		"reference":
 		{
+			"label": "Reference",
 			"default": "",
 			"types": "uri",
 			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
@@ -211,6 +268,7 @@ function Metaverse()
 		},
 		"screen":
 		{
+			"label": "Screen",
 			"default": "",
 			"types": "uri|string",
 			"format": "/^.{0,1024}$/i",
@@ -218,6 +276,7 @@ function Metaverse()
 		},
 		"stream":
 		{
+			"label": "Stream",
 			"default": "",
 			"types": "uri",
 			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
@@ -225,6 +284,7 @@ function Metaverse()
 		},
 		"title":
 		{
+			"label": "Title",
 			"default": "",
 			"types": "string",
 			"format": "/^.{2,1024}$/i",
@@ -232,6 +292,7 @@ function Metaverse()
 		},
 		"type":
 		{
+			"label": "Type",
 			"default": "",
 			"types": "autokey",
 			"format": "/.+$/i",
@@ -243,13 +304,30 @@ function Metaverse()
 	this.defaultPlatforms = [
 		{
 			"download": "http://store.steampowered.com/app/266430/",
-			"modelFileFormat": "/^(models\\/).+(.mdl)$/i",
-			"modelPriority": 2,
-			"modelTitleFormat": "/(?=[^\\/]*$).+$/i",
+			"propsPriority": 2,
+			"propsFileFormat": "/^(models\\/).+(.mdl)$/i",
+			"propsTitleFormat": "/(?=[^\\/]*$).+$/i",
+			"propsCustom": customHelper.call(this, {
+				title: "workshopIds",
+				default: "/.+$/i",
+				types: "regex",
+				format: "/.*$/i",
+				formatDescription: "Field must be a regular expression."
+			}),
 			"reference": "http://www.anarchyarcade.com/",
 			"title": "AArcade: Source"
 		}
 	];
+
+	function customHelper(object)
+	{
+		var pushId = this.generatePushId();
+
+		var dummy = {};
+		dummy[pushId] = object;
+
+		return JSON.stringify(dummy);
+	}
 
 	this.defaultTypes = [
 		{
@@ -349,7 +427,859 @@ function Metaverse()
 			"priority": 0
 		}
 	];
+
+	this.getMenus = function(options)
+	{
+		var item;
+		if( !!options && !!options.itemId )
+			item = this.library.items[options.itemId].current;
+
+		var menus = {
+			"metaverseMenu":
+			{
+				"menuId": "metaverseMenu",
+				"menuHeader": "Metaverse",
+				"quickJoin":
+				{
+					"type": "button",
+					"value": "Quick Join",
+					"action": "quickJoin"
+				},
+				"firebaseConnect":
+				{
+					"type": "button",
+					"value": "Connect to Firebase",
+					"action": "firebaseConnect"
+				},
+				"firebaseHost":
+				{
+					"type": "button",
+					"value": "Host Firebase",
+					"action": "firebaseHost"
+				},
+				"localLoad":
+				{
+					"type": "button",
+					"value": "Load Local Session",
+					"action": "localLoad"
+				},
+				"localNew":
+				{
+					"type": "button",
+					"value": "New Local Session",
+					"action": "localNew"
+				}
+			},
+			"firebaseConnectMenu":
+			{
+				"menuId": "firebaseConnectMenu",
+				"menuHeader": "Firebase",
+				"address":
+				{
+					"label": "Firebase Address: ",
+					"type": "text",
+					"value": this.quickJoinAddress,
+					"focus": true
+				},
+				"connect":
+				{
+					"type": "submit",
+					"value": "Connect",
+					"action": "connectToFirebase"
+				},
+				"cancel":
+				{
+					"type": "button",
+					"value": "Cancel",
+					"action": "cancelFirebaseConnect"
+				}
+			},
+			"universeMenu":
+			{
+				"menuId": "universeMenu",
+				"menuHeader": "Universe",
+				"universeSelect":
+				{
+					"type": "select",
+					"generateOptions": "universeTitles",
+					"focus": true,
+					"action": "universeSelectChange"
+				},
+				"joinUniverse":
+				{
+					"type": "submit",
+					"value": "Join Universe",
+					"action": "joinUniverse"
+				},
+				"newUniverse":
+				{
+					"type": "button",
+					"value": "New Universe",
+					"action": "newUniverse"
+				},
+				"cancel":
+				{
+					"type": "button",
+					"value": "Cancel",
+					"action": "cancelUniverse"
+				}
+			},
+			"newUniverseMenu":
+			{
+				"menuId": "newUniverseMenu",
+				"menuHeader": "Universe / New",
+				"title":
+				{
+					"label": "Universe Title: ",
+					"type": "text",
+					"value": "",
+					"placeholder": "string",
+					"focus": true
+				},
+				"createUniverse":
+				{
+					"type": "submit",
+					"value": "Create Universe",
+					"action": "createUniverse"
+				},
+				"cancel":
+				{
+					"type": "button",
+					"value": "Cancel",
+					"action": "cancelNewUniverse"
+				}
+			},
+			"signUpMenu":
+			{
+				"menuId": "signUpMenu",
+				"menuHeader": "Dashboard / Sign-Up",
+				"username":
+				{
+					"label": "Username: ",
+					"type": "text",
+					"value": this.defaultUser.username.default,
+					"placeholder": this.defaultUser.username.types,
+					"focus": true
+				},
+				"passcode":
+				{
+					"label": "<u>Public</u> Passcode: ",
+					"type": "password",
+					"value": this.defaultUser.passcode.default,
+					"placeholder": this.defaultUser.passcode.types
+				},
+				"displayName":
+				{
+					"label": "Display Name: ",
+					"type": "text",
+					"value": this.defaultUser.displayName.default,
+					"placeholder": this.defaultUser.displayName.types
+				},
+				"signUp":
+				{
+					"type": "submit",
+					"value": "Sign-Up",
+					"action": "doSignUp"
+				},
+				"cancel":
+				{
+					"type": "button",
+					"value": "Cancel",
+					"action": "cancelSignUp"
+				}
+			},
+			"logInMenu":
+			{
+				"menuId": "logInMenu",
+				"menuHeader": "Dashboard / Log-In",
+				"username":
+				{
+					"label": "Username: ",
+					"type": "text",
+					"value": this.defaultUser.username.default,
+					"placeholder": this.defaultUser.username.types,
+					"focus": true
+				},
+				"passcode":
+				{
+					"label": "<u>Public</u> Passcode: ",
+					"type": "password",
+					"value": this.defaultUser.passcode.default,
+					"placeholder": this.defaultUser.passcode.types
+				},
+				"logIn":
+				{
+					"type": "submit",
+					"value": "Log-In",
+					"action": "doLogIn"
+				},
+				"cancel":
+				{
+					"type": "button",
+					"value": "Cancel",
+					"action": "cancelLogIn"
+				}
+			},
+			"dashboardMenu":
+			{
+				"menuId": "dashboardMenu",
+				"menuHeader": "Dashboard",
+				"library":
+				{
+					"type": "button",
+					"value": "Library",
+					"action": "showLibrary"
+				},
+				"logIn":
+				{
+					"type": "button",
+					"value": "Log-In",
+					"action": "logIn"
+				},
+				"signUp":
+				{
+					"type": "button",
+					"value": "Sign-Up",
+					"action": "signUp"
+				},
+				"account":
+				{
+					"type": "button",
+					"value": "Account",
+					"action": "showAccount"
+				},
+				"disconnect":
+				{
+					"type": "button",
+					"value": "Disconnect",
+					"action": "disconnectMetaverse"
+				}
+			},
+			"libraryMenu":
+			{
+				"menuId": "libraryMenu",
+				"menuHeader": "Dashboard / Library",
+				"items":
+				{
+					"type": "button",
+					"value": "Items",
+					"action": "showLibraryItems"
+				},
+				"cancel":
+				{
+					"type": "button",
+					"value": "Cancel",
+					"action": "cancelLibrary"
+				}
+			},
+			"accountMenu":
+			{
+				"menuId": "accountMenu",
+				"menuHeader": "Dashboard / Account",
+				"metaverse":
+				{
+					"label": "Metaverse: ",
+					"type": "text",
+					"value": this.root,
+					"placeholder": "uri",
+					"locked": true
+				},
+				"universe":
+				{
+					"label": "Universe: ",
+					"type": "text",
+					"value": this.universe,
+					"placeholder": "string",
+					"locked": true
+				},
+				"username":
+				{
+					"label": "Username: ",
+					"type": "text",
+					"value": this.localUser.username,
+					"placeholder": "string",
+					"locked": true
+				},
+				"displayName":
+				{
+					"label": "Display Name: ",
+					"type": "text",
+					"value": this.localUser.displayName,
+					"placeholder": "string",
+					"focus": true
+				},
+				"oldPasscode":
+				{
+					"label": "Old <u>Public</u> Passcode: ",
+					"type": "password",
+					"value": "",
+					"placeholder": "string"
+				},
+				"newPasscode":
+				{
+					"label": "New <u>Public</u> Passcode: ",
+					"type": "password",
+					"value": "",
+					"placeholder": "string"
+				},
+				"newPasscodeAgain":
+				{
+					"label": "New Passcode Again: ",
+					"type": "password",
+					"value": "",
+					"placeholder": "string"
+				},
+				"changePasscode":
+				{
+					"type": "button",
+					"value": "Change Passcode",
+					"action": "changePasscode"
+				},
+				"save":
+				{
+					"type": "submit",
+					"value": "Save",
+					"action": "saveAccount"
+				},
+				"cancel":
+				{
+					"type": "button",
+					"value": "Cancel",
+					"action": "cancelAccount"
+				}
+			},
+			"libraryItems":
+			{
+				"menuId": "libraryItems",
+				"menuHeader": "Dashboard / Library / Items",
+				"itemSelect":
+				{
+					"type": "select",
+					"generateOptions": "libraryItems",
+					"focus": true,
+					"action": "libraryItemsSelectChange"
+				},
+				"editItem":
+				{
+					"type": "submit",
+					"value": "Edit Item",
+					"action": "showEditItem"
+				},
+				"newItem":
+				{
+					"type": "button",
+					"value": "Create New Item",
+					"action": "showCreateItem"
+				},
+				"cancel":
+				{
+					"type": "button",
+					"value": "Cancel",
+					"action": "cancelLibraryItems"
+				}
+			},
+			"libraryItemsCreate":
+			{
+				"menuId": "libraryItemsCreate",
+				"menuHeader": "Dashboard / Library / Items / New",
+				"shortcut":
+				{
+					"label": "Shortcut: ",
+					"type": "text",
+					"value": "",
+					"placeholder": "uri|string",
+					"focus": true
+				},
+				"create":
+				{
+					"type": "submit",
+					"value": "Create Item",
+					"action": "generateNewItem"
+				},
+				"cancel":
+				{
+					"type": "button",
+					"value": "Cancel",
+					"action": "cancelLibraryItemCreate"
+				}
+			},
+			"libraryItemsEdit":
+			{
+				"menuId": "libraryItemsEdit",
+				"menuHeader": "Dashboard / Library / Items / Edit"/*,
+				"cancel":
+				{
+					"type": "button",
+					"value": "Cancel",
+					"action": "cancelLibraryItemEdit"
+				}*/
+			}
+		};
+
+		var x;
+		var menuId;
+
+		// MENU
+		menuId = "libraryItemsEdit";
+		if( !!item )
+		{
+			menus[menuId]["id"] = {
+				"label": "ID: ",
+				"type": "text",
+				"value": item.info.id,
+				"placeholder": "autokey",
+				"locked": true
+			};
+		}
+		for( x in this.defaultItem )
+		{
+			if( x === "info" )
+				continue;
+
+			menus.libraryItemsEdit[x] = {
+				"label": this.defaultItem[x].label + ": ",
+				"type": "text",
+				"value": (!!item) ? item[x] : "",
+				"placeholder": this.defaultItem[x].types
+			};
+		}
+		menus.libraryItemsEdit["save"] = {
+			"type": "submit",
+			"value": "Save",
+			"action": "saveLibraryItemEdit"
+		};
+		menus.libraryItemsEdit["cancel"] = {
+			"type": "button",
+			"value": "Cancel",
+			"action": "cancelLibraryItemEdit"
+		};
+
+		return menus;
+	}.bind(this);
+
+	this.showMenu("metaverseMenu");
 }
+
+Metaverse.prototype.showMenu = function(menuId, options)
+{
+	this.eventHandler("showMenu", this.getMenus(options)[menuId]);
+};
+
+Metaverse.prototype.menuAction = function(actionName, actionData)
+{
+	if( actionName === "quickJoin" )
+	{
+		this.eventHandler("freezeInputs");
+		this.connect(this.quickJoinAddress, function(error)
+		{
+			if( !!error )
+			{
+				this.error = error;
+				this.eventHandler("error", this.error);
+				this.eventHandler("unfreezeInputs");
+				return;
+			}
+			else
+				this.showMenu("universeMenu");
+		}.bind(this));
+	}
+	else if( actionName === "cancelUniverse" )
+	{
+		this.reset();
+		this.showMenu("metaverseMenu");
+	}
+	else if( actionName === "firebaseConnect" )
+	{
+		this.showMenu("firebaseConnectMenu");
+	}
+	else if( actionName === "cancelFirebaseConnect" )
+	{
+		this.reset();
+		this.showMenu("metaverseMenu");
+	}
+	else if( actionName === "connectToFirebase" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var address = actionData["address"].value;
+		this.connect(address, function(error)
+		{
+			if( !!error )
+			{
+				this.error = error;
+				this.eventHandler("showError", this.error);
+				this.eventHandler("unfreezeInputs");
+				return;
+			}
+			else
+			{
+				this.showMenu("universeMenu");
+			}
+		}.bind(this));
+	}
+	else if( actionName === "joinUniverse" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var universeId = actionData["universeSelect"].options[actionData["universeSelect"].selectedIndex].value;
+		this.joinUniverse(universeId, function(error)
+		{
+			if( !!error )
+			{
+				this.error = error;
+				this.eventHandler("error", this.error);
+				this.eventHandler("unfreezeInputs");
+				return;
+			}
+
+			this.showMenu("dashboardMenu");
+		}.bind(this));
+	}
+	else if( actionName === "newUniverse" )
+	{
+		this.showMenu("newUniverseMenu");
+	}
+	else if( actionName === "createUniverse" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var title = actionData["title"].value;
+		this.createUniverse(title, function(universeId)
+		{
+			if( !!!universeId )
+			{
+				this.eventHandler("error", this.error);
+				this.eventHandler("unfreezeInputs");
+				return;
+			}
+			
+			this.joinUniverse(universeId, function(error)
+			{
+				if( !!error )
+				{
+					this.error = error;
+					this.eventHandler("error", this.error);
+					this.showMenu("universeMenu");
+					return;
+				}
+
+				this.showMenu("signUpMenu");
+			}.bind(this));
+		}.bind(this));
+	}
+	else if( actionName === "cancelNewUniverse" )
+	{
+		this.showMenu("universeMenu");
+	}
+	else if( actionName === "disconnectMetaverse" )
+	{
+		this.reset();
+		this.showMenu("metaverseMenu");
+	}
+	else if( actionName === "signUp" )
+	{
+		this.showMenu("signUpMenu");
+	}
+	else if( actionName === "cancelSignUp" )
+	{
+		this.showMenu("dashboardMenu");
+	}
+	else if( actionName === "doSignUp" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var userData = {};
+		var x;
+		for( x in actionData )
+		{
+			if( actionData[x].type !== "button" && actionData[x].type !== "submit" )
+				userData[x] = actionData[x].value;
+		}
+
+		this.createUser(userData, function(responseData)
+		{
+			if( !!!responseData )
+			{
+				this.eventHandler("error", this.error);
+				this.eventHandler("unfreezeInputs");
+				return;
+			}
+
+			this.logIn(responseData.username, actionData["passcode"].value, function(error)
+			{
+				if( !!error )
+				{
+					this.error = error;
+					this.eventHandler("error", this.error);
+					this.showMenu("logInMenu");
+					return;
+				}
+
+				this.showMenu("dashboardMenu");
+			}.bind(this));
+		}.bind(this));
+	}
+	else if( actionName === "logIn" )
+	{
+		this.showMenu("logInMenu");
+	}
+	else if( actionName === "doLogIn" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var username = actionData["username"].value;
+		var passcode = actionData["passcode"].value;
+		this.logIn(username, passcode, function(error)
+		{
+			if( !!error )
+			{
+				this.error = error;
+				this.eventHandler("error", this.error);
+				this.eventHandler("unfreezeInputs");
+				return;
+			}
+			
+			this.showMenu("dashboardMenu");
+		}.bind(this));
+	}
+	else if( actionName === "cancelLogIn" )
+	{
+		this.showMenu("dashboardMenu");
+	}
+	else if( actionName === "showLibrary" )
+	{
+		this.showMenu("libraryMenu");
+	}
+	else if( actionName === "cancelLibrary" )
+	{
+		this.showMenu("dashboardMenu");
+	}
+	else if( actionName === "showAccount" )
+	{
+		this.showMenu("accountMenu");
+	}
+	else if( actionName === "cancelAccount" )
+	{
+		this.showMenu("dashboardMenu");
+	}
+	else if( actionName === "changePasscode" )
+	{
+		actionData["changePasscode"].style.display = "none";
+		actionData["oldPasscode"].parentNode.style.display = "block";
+		actionData["newPasscode"].parentNode.style.display = "block";
+		actionData["newPasscodeAgain"].parentNode.style.display = "block";
+	}
+	else if( actionName === "saveAccount" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var data = {};
+		var x;
+		for( x in actionData )
+		{
+			if( actionData[x].type !== "button" && actionData[x].type !== "submit" && x !== "metaverse" && x !== "universe" && x !== "oldPasscode" && x !== "newPasscode" && x !== "newPasscodeAgain" )
+				data[x] = actionData[x].value;
+		}
+
+		if( actionData["oldPasscode"].parentNode.style.display !== "none" )
+		{
+			if( this.encodePasscode(actionData["oldPasscode"].value) !== this.localUser.passcode )
+			{
+				this.error = new Error("Incorrect public passcode.");
+				this.eventHandler("error", this.error);
+				this.eventHandler("unfreezeInputs");
+				return;
+			}
+
+			if( actionData["newPasscode"].value !== actionData["newPasscodeAgain"].value )
+			{
+				this.error = new Error("New public passcodes do not match.");
+				this.eventHandler("error", this.error);
+				this.eventHandler("unfreezeInputs");
+				return;
+			}
+
+			if( actionData["newPasscode"].value === "" || actionData["newPasscode"].value.length <= 5 )
+			{
+				this.error = new Error("Public passcodes must be at least 6 characters long.");
+				this.eventHandler("error", this.error);
+				this.eventHandler("unfreezeInputs");
+				return;
+			}
+
+			data.passcode = this.encodePasscode(actionData["newPasscode"].value);
+		}
+
+		if( !this.validateData(data, this.defaultUser) )
+		{
+			this.eventHandler("unfreezeInputs");
+			return;
+		}
+
+		this.updateLocalUser(data, function(error)
+		{
+			if( !!error )
+			{
+				this.error = error;
+				this.eventHandler("error", this.error);
+				this.eventHandler("unfreezeInputs");
+				return;
+			}
+
+			this.showMenu("dashboardMenu");
+		}.bind(this));
+	}
+	else if( actionName === "cancelLibraryItems" )
+	{
+		this.showMenu("libraryMenu");
+	}
+	else if( actionName === "showLibraryItems" )
+	{
+		this.showMenu("libraryItems");
+	}
+	else if( actionName === "showEditItem" )
+	{
+		this.showMenu("libraryItemsEdit", {"itemId": actionData["itemSelect"].options[actionData["itemSelect"].selectedIndex].value});
+	}
+	else if( actionName === "cancelLibraryItemEdit" )
+	{
+		this.showMenu("libraryItems");
+	}
+	else if( actionName === "showCreateItem" )
+	{
+		this.showMenu("libraryItemsCreate");
+	}
+	else if( actionName === "cancelLibraryItemCreate" )
+	{
+		this.showMenu("libraryItems");
+	}
+	else if( actionName === "generateNewItem" )
+	{
+		this.eventHandler("freezeInputs");
+
+		if( actionData["shortcut"].value.length <= 2 )
+		{
+			this.error = new Error("Shortcuts must be at least 3 characters long.");
+			this.eventHandler("error", this.error);
+			this.eventHandler("unfreezeInputs");
+			return;
+		}
+
+		// Generate the item.
+		var file = actionData["shortcut"].value;
+
+		var item = {};
+		item.type = this.generateType(file);
+		item.title = this.generateTitle(file, item.type);
+		item.file = file;
+		item.app = "";
+		item.description = "";
+		item.preview = "";
+		item.reference = "";
+		item.download = "";
+		item.stream = "";
+		item.cabinet = "";
+		item.marquee = "";
+		item.screen = "";
+
+		// Now that the item is constructed, let's check for an existing twin.
+		this.findTwinItem(item, function(twin)
+		{
+			if( !!twin )
+			{
+				this.error = new Error("A version of that item already exists!");
+				this.eventListener("error", this.error);
+				this.eventHandler("unfreezeInputs");
+				return;
+			}
+
+			// Add the item.
+			this.createLibraryObject("item", item, function(itemId)
+			{
+				if( !!!itemId )
+				{
+					if( !!this.error )
+					{
+						this.eventHandler("error", this.error);
+						this.eventHandler("unfreezeInputs");
+					}
+					return;
+				}
+
+				this.showMenu("libraryItems");
+			}.bind(this));
+		}.bind(this));
+	}
+	else if( actionName === "saveLibraryItemEdit" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var data = {};
+		var x;
+		for( x in actionData )
+		{
+			if( actionData[x].type !== "button" && actionData[x].type !== "submit" && x !== "id" )
+				data[x] = actionData[x].value;
+		}
+
+		data.info = {"id": actionData["id"].value};
+
+		this.updateItem(data, function(itemId)
+		{
+			if( !!!itemId )
+			{
+				if( !!this.error )
+				{
+					this.eventHandler("error", this.error);
+					this.eventHandler("unfreezeInputs");
+					return;
+				}
+
+				return;
+			}
+
+			this.showMenu("libraryItems");
+		}.bind(this));
+	}
+};
+
+// Based on: https://gist.github.com/mikelehen/3596a30bd69384624c11
+Metaverse.prototype.generatePushId = function()
+{
+	var PUSH_CHARS = '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
+
+	var now = new Date().getTime();
+	var duplicateTime = (now === this.lastPushTime);
+	this.lastPushTime = now;
+
+	var timeStampChars = new Array(8);
+	for (var i = 7; i >= 0; i--) {
+		timeStampChars[i] = PUSH_CHARS.charAt(now % 64);
+		// NOTE: Can't use << here because javascript will convert to int and lose the upper bits.
+		now = Math.floor(now / 64);
+	}
+	if (now !== 0) throw new Error('We should have converted the entire timestamp.');
+
+	var id = timeStampChars.join('');
+
+	if (!duplicateTime) {
+		for (i = 0; i < 12; i++) {
+			this.lastRandChars[i] = Math.floor(Math.random() * 64);
+		}
+	} else {
+		// If the timestamp hasn't changed since last push, use the same random number, except incremented by 1.
+		for (i = 11; i >= 0 && this.lastRandChars[i] === 63; i--) {
+			this.lastRandChars[i] = 0;
+		}
+		this.lastRandChars[i]++;
+	}
+	for (i = 0; i < 12; i++) {
+		id += PUSH_CHARS.charAt(this.lastRandChars[i]);
+	}
+	if(id.length != 20) throw new Error('Length should be 20.');
+
+	return id;
+};
 
 Metaverse.prototype.updateItem = function(data, callback)
 {
@@ -357,37 +1287,64 @@ Metaverse.prototype.updateItem = function(data, callback)
 		return;
 
 	var rawItem = this.library.items[data.info.id];
-	var item = this.cookItem(rawItem);
+	var currentItem = rawItem.current;
+
+	if( !!!rawItem[this.localUser.id] )
+		rawItem[this.localUser.id] = {};
 
 	// Detect which fields have actually changed.
 	var updateData = {};
 
-	var x, dataObject;
+	var isModified = false;
+	var x;
 	for( x in data )
 	{
 		if( x === "info" )
 			continue;
 
-		if( item[x] !== data[x] )
+		if( currentItem[x] !== data[x] )
 		{
-			dataObject = {"timestamp": Firebase.ServerValue.TIMESTAMP, "value": data[x]};
-			rawItem[x][metaverse.localUser.id] = dataObject;
-			
-			updateData[x + "/" + metaverse.localUser.id] = dataObject;
+			currentItem[x] = data[x];
+			updateData["current/" + x] = data[x];
+			isModified = true;
 		}
 	}
+
+	if( isModified )
+	{
+		currentItem.info.modified = Firebase.ServerValue.TIMESTAMP;
+		currentItem.info.modifier = this.localUser.id;
+		updateData["current/info/modified"] = currentItem.info.modified;//Firebase.ServerValue.TIMESTAMP;
+		updateData["current/info/modifier"] = currentItem.info.modifier;//this.localUser.id;
+	}
+
+	rawItem[this.localUser.id] = currentItem;
 
 	var needsCallback = true;
 	for( x in updateData )
 	{
 		needsCallback = false;
-		this.libraryRef.child("items").child(data.info.id).update(updateData, function(error)
+		this.libraryRef.child("items").child(data.info.id).update(updateData, function(error1)
 		{
-			if( !!error )
-				callback("ERROR: Failed to update item.");
+			if( !!error1 )
+			{
+				this.error = new Error("Failed to update current item on metaverse.");
+				callback();
+			}
 			else
-				callback(data.info.id);
-		});
+			{
+				this.libraryRef.child("items").child(data.info.id).child(this.localUser.id).set(currentItem, function(error2)
+				{
+					if( !!error2 )
+					{
+						this.error = new Error("Failed to update user item on metaverse.");
+						callback();
+					}
+					else
+						callback(data.info.id);
+				}.bind(this));
+			}
+		}.bind(this));
 
 		break;
 	}
@@ -489,13 +1446,25 @@ Metaverse.prototype.updatePlatform = function(data, callback)
 Metaverse.prototype.reset = function()
 {
 	// Unregister change listeners
-
 	var x;
-	for( x in this.library.items )
+
+	if( this.libraryRef )
+	{
 		this.libraryRef.child("items").off();
+		for( x in this.library.items )
+			this.libraryRef.child("items").child(this.library.items[x].current.info.id).child("current").off();
 	
-	for( x in this.library.maps )
 		this.libraryRef.child("types").off();
+		for( x in this.library.types )
+			this.libraryRef.child("types").child(this.library.types[x].current.info.id).child("current").off();
+
+		this.libraryRef.child("platforms").off();
+		for( x in this.library.platforms )
+			this.libraryRef.child("platforms").child(this.library.platforms[x].current.info.id).child("current").off();
+	}
+
+	if( this.usersRef )
+		this.usersRef.off();
 
 	if( this.connectedRef )
 		this.connectedRef.off();
@@ -521,7 +1490,7 @@ Metaverse.prototype.reset = function()
 
 	this.root = null;
 	this.universe = null;
-	this.universeNames = {};
+	this.universeTitles = {};
 	this.local = {};
 	this.rootRef = null;
 	this.universeRef = null;
@@ -558,10 +1527,9 @@ Metaverse.prototype.connect = function(server, callback)
 	if( this.root !== "local" )
 	{
 		this.rootRef = new Firebase(this.root);
-
 		this.setStatus("Connecting");
 
-		function getUniverseNames()
+		function getUniverseTitles()
 		{
 			var request = new XMLHttpRequest();
 			request.onreadystatechange = function()
@@ -581,7 +1549,7 @@ Metaverse.prototype.connect = function(server, callback)
 						if( len > 0 )
 						{
 							var count = 0;
-							this.rootRef.child(objectKeys[count]).child("info").child("name").once("value", function(snapshot)
+							this.rootRef.child(objectKeys[count]).child("info").child("title").once("value", function(snapshot)
 							{
 								count++;
 
@@ -592,19 +1560,19 @@ Metaverse.prototype.connect = function(server, callback)
 									universeKeys[objectKeys[count-1]] = val;
 
 									if( count < len )
-										this.rootRef.child(objectKeys[count]).child("info").child("name").once("value", arguments.callee.bind(this));
+										this.rootRef.child(objectKeys[count]).child("info").child("title").once("value", arguments.callee.bind(this));
 								}
 
 								if( count >= len )
-									onGotUniverseNames.call(this, universeKeys);
+									onGotUniverseTitles.call(this, universeKeys);
 							}.bind(this));
 						}
 						else
-							onGotUniverseNames.call(this, universeKeys);
+							onGotUniverseTitles.call(this, universeKeys);
 
-						function onGotUniverseNames(universeKeys)
+						function onGotUniverseTitles(universeKeys)
 						{
-							this.universeNames = universeKeys;
+							this.universeTitles = universeKeys;
 							this.setStatus("Select Universe");
 
 							callback();
@@ -623,8 +1591,8 @@ Metaverse.prototype.connect = function(server, callback)
 			request.send(null);
 		}
 
-		this.universeNames = {};
-		getUniverseNames.call(this);
+		this.universeTitles = {};
+		getUniverseTitles.call(this);
 	}
 	else
 	{
@@ -753,15 +1721,18 @@ Metaverse.prototype.cookItem = function(rawItem)
 	return item;
 };
 
-Metaverse.prototype.createUniverse = function(name, callback)
+Metaverse.prototype.createUniverse = function(title, callback)
 {
+	if( !this.validateData({"title": title}, this.defaultUniverse.info, callback) )
+		return;
+
 	var ref = this.rootRef.push();
 	var key = ref.key();
 	var data = {
 		"info":
 		{
 			"id": key,
-			"name": name,
+			"title": title,
 			"owner": "",
 			"admins": {},
 			"remover": "",
@@ -774,7 +1745,7 @@ Metaverse.prototype.createUniverse = function(name, callback)
 	{
 		if( !!!error )
 		{
-			this.universeNames[key] = data.info.name;
+			this.universeTitles[key] = data.info.name;
 			callback(key);
 		}
 	}.bind(this));
@@ -802,24 +1773,32 @@ Metaverse.prototype.joinUniverse = function(universeKey, callback)
 		"platforms": {}
 	};
 
-	this.libraryRef.child("items").on("child_changed", this.itemChanged.bind(this));
 	this.libraryRef.child("items").on("child_added", this.itemAdded.bind(this))
 	this.libraryRef.child("items").on("child_removed", this.itemRemoved.bind(this));
 
-	this.libraryRef.child("types").on("child_changed", this.typeChanged.bind(this));
 	this.libraryRef.child("types").on("child_added", this.typeAdded.bind(this))
 	this.libraryRef.child("types").on("child_removed", this.typeRemoved.bind(this));
 
-	this.libraryRef.child("platforms").on("child_changed", this.platformChanged.bind(this));
 	this.libraryRef.child("platforms").on("child_added", this.platformAdded.bind(this))
 	this.libraryRef.child("platforms").on("child_removed", this.platformRemoved.bind(this));
+
+	this.usersRef.on("child_added", this.userAdded.bind(this));
+	this.usersRef.on("child_removed", this.userRemoved.bind(this));
 
 	callback();
 };
 
-Metaverse.prototype.itemChanged = function(child, prevChildKey)
+Metaverse.prototype.userAdded = function(child, prevChildKey)
 {
-	this.library.items[child.key()] = child.val();
+	var key = child.key();
+	console.log("Downloaded metaverse information for user " + key);
+	this.users[key] = child.val();
+};
+
+Metaverse.prototype.userRemoved = function(child)
+{
+	console.log("User removed.");
+	delete this.users[child.key()];
 };
 
 Metaverse.prototype.itemAdded = function(child, prevChildKey)
@@ -827,6 +1806,7 @@ Metaverse.prototype.itemAdded = function(child, prevChildKey)
 	var key = child.key();
 	console.log("Downloaded metaverse information for item " + key);
 	this.library.items[key] = child.val();
+	this.libraryRef.child("items").child(key).child("current").on("value", this.itemChanged.bind(this));
 };
 
 Metaverse.prototype.itemRemoved = function(child)
@@ -837,7 +1817,8 @@ Metaverse.prototype.itemRemoved = function(child)
 
 Metaverse.prototype.itemChanged = function(child, prevChildKey)
 {
-	this.library.items[child.key()] = child.val();
+	var val = child.val();
+	this.library.items[val.info.id].current = val;
 };
 
 Metaverse.prototype.typeAdded = function(child, prevChildKey)
@@ -846,6 +1827,7 @@ Metaverse.prototype.typeAdded = function(child, prevChildKey)
 	console.log("Downloaded metaverse information for type " + key);
 
 	this.library.types[key] = child.val();
+	this.libraryRef.child("types").child(key).child("current").on("value", this.typeChanged.bind(this));
 };
 
 Metaverse.prototype.typeRemoved = function(child)
@@ -856,7 +1838,8 @@ Metaverse.prototype.typeRemoved = function(child)
 
 Metaverse.prototype.typeChanged = function(child, prevChildKey)
 {
-	this.library.types[child.key()] = child.val();
+	var val = child.val();
+	this.library.types[val.info.id].current = val;
 };
 
 Metaverse.prototype.platformAdded = function(child, prevChildKey)
@@ -865,6 +1848,7 @@ Metaverse.prototype.platformAdded = function(child, prevChildKey)
 	console.log("Downloaded metaverse information for platform " + key);
 
 	this.library.platforms[key] = child.val();
+	this.libraryRef.child("platforms").child(key).child("current").on("value", this.platformChanged.bind(this));
 };
 
 Metaverse.prototype.platformRemoved = function(child)
@@ -875,15 +1859,16 @@ Metaverse.prototype.platformRemoved = function(child)
 
 Metaverse.prototype.platformChanged = function(child, prevChildKey)
 {
-	this.library.platforms[child.key()] = child.val();
+	var val = child.val();
+	this.library.platforms[val.info.id].current = val;
 };
 
-Metaverse.prototype.getUniverseKey = function(universeName)
+Metaverse.prototype.getUniverseKey = function(universeTitle)
 {
 	var x;
-	for( x in this.universeNames)
+	for( x in this.universeTitles)
 	{
-		if( this.universeNames[x] === universeName )
+		if( this.universeTitles[x] === universeTitle )
 			return x;
 	}
 
@@ -892,7 +1877,7 @@ Metaverse.prototype.getUniverseKey = function(universeName)
 
 Metaverse.prototype.getUniverseName = function(universeKey)
 {
-	return this.universeNames[universeKey];
+	return this.universeTitles[universeKey];
 };
 
 Metaverse.prototype.encodePasscode = function(passcode)
@@ -932,8 +1917,9 @@ Metaverse.prototype.logIn = function(username, passcode, callback)
 							"id": key,
 							"privileges":
 							{
-								"undo": true,
 								"ban": true,
+								"purge": true,
+								"rollback": true,
 								"unban": true
 							}
 						};
@@ -964,8 +1950,8 @@ Metaverse.prototype.logIn = function(username, passcode, callback)
 									this.sessionRef = this.localUserRef.child("sessions").push();
 
 									this.sessionRef.onDisconnect().remove();
-									this.localUserRef.onDisconnect().update({"lastSeen": Firebase.ServerValue.TIMESTAMP});
-									this.sessionRef.set({"status": "Online", "mode": "Spectate", "timestamp": Firebase.ServerValue.TIMESTAMP}, function(error)
+									this.localUserRef.onDisconnect().update({"lastLogOut": Firebase.ServerValue.TIMESTAMP});
+									this.sessionRef.set({"status": "Online", "timestamp": Firebase.ServerValue.TIMESTAMP}, function(error)
 									{
 										// Monitor our own user for changes
 										needsCallback = true;
@@ -1003,7 +1989,7 @@ Metaverse.prototype.logIn = function(username, passcode, callback)
 												resolvedPlatformIndex++;
 
 											if( resolvedPlatformIndex+1 < numDefaultPlatforms )
-												this.createPlatform(this.defaultPlatforms[resolvedPlatformIndex+1], arguments.callee.bind(this));
+												this.createLibraryObject("platform", this.defaultPlatforms[resolvedPlatformIndex+1], arguments.callee.bind(this));
 											else
 												onPlatformsCreated.call(this);
 										}
@@ -1021,7 +2007,7 @@ Metaverse.prototype.logIn = function(username, passcode, callback)
 													resolvedIndex++;
 
 												if( resolvedIndex+1 < numDefaultTypes )
-													this.createType(this.defaultTypes[resolvedIndex+1], arguments.callee.bind(this));
+													this.createLibraryObject("type", this.defaultTypes[resolvedIndex+1], arguments.callee.bind(this));
 												else
 													onCallbackReady.call(this);
 											}
@@ -1042,20 +2028,38 @@ Metaverse.prototype.logIn = function(username, passcode, callback)
 				}.bind(this));
 			}
 			else
-				callback("ERROR: Invalid username or passcode.");
+				callback(new Error("Invalid username or passcode."));
 		}
 		else
-			callback("ERROR: Invalid username or passcode.");
+			callback(new Error("Invalid username or passcode."));
 	}.bind(this));
 }
 
 Metaverse.prototype.createUser = function(data, callback)
 {
+	var x;
+	for( x in this.users )
+	{
+		if( this.users[x].username === data.username )
+		{
+			this.error = new Error("Username already exists.");
+			callback();
+			return;
+		}
+	}
+
+	if( !this.validateData(data, this.defaultUser, callback) )
+		return;
+
 	var ref = this.usersRef.push();
 	data.id = ref.key();
 	data.passcode = this.encodePasscode(data.passcode);
+	data.lastLogOut = 0;
+	data.lastLogIn = Firebase.ServerValue.TIMESTAMP;
 	ref.set(data);
-	return data;
+
+	callback(data);
+	return;
 };
 
 Metaverse.prototype.updateLocalUser = function(data, callback)
@@ -1115,7 +2119,7 @@ Metaverse.prototype.validateData = function(data, defaultData, callback)
 	var x;
 	for( x in defaultData )
 	{
-		if( x === "info" )
+		if( x === "info" || !data.hasOwnProperty(x) )
 			continue;
 
 		if( defaultData[x].types === "integer" )
@@ -1126,7 +2130,10 @@ Metaverse.prototype.validateData = function(data, defaultData, callback)
 				(typeof data[x] !== "number" && parseInt(data[x], 10) + "" !== data[x] ) )
 			{
 				this.error = new Error(defaultData[x].formatDescription);
-				callback();
+				if( !!callback )
+					callback();
+				else
+					this.eventHandler("error", this.error);
 				return false;
 			}
 		}
@@ -1135,7 +2142,10 @@ Metaverse.prototype.validateData = function(data, defaultData, callback)
 			if( data[x].search(eval(defaultData[x].format)) === -1 )
 			{
 				this.error = new Error(defaultData[x].formatDescription);
-				callback();
+				if( !!callback )
+					callback();
+				else
+					this.eventHandler("error", this.error);
 				return false;
 			}
 			else
@@ -1149,121 +2159,40 @@ Metaverse.prototype.validateData = function(data, defaultData, callback)
 	return true;
 };
 
-Metaverse.prototype.createType = function(data, callback)
-{
-	if( !this.validateData(data, this.defaultType, callback) )
-		return;
-
-	var ref = this.universeRef.child("library").child("types").push();
-	var key = ref.key();
-
-	var typeData = {
-		"info":
-		{
-			"id": key,
-			"created": Firebase.ServerValue.TIMESTAMP,
-			"owner": metaverse.localUser.id,
-			"removed": 0,
-			"remover": ""
-		}
-	};
-
-	var x;
-	for( x in data )
-	{
-		typeData[x] = {};
-
-		typeData[x][metaverse.localUser.id] = {
-			"value": data[x],
-			"timestamp": Firebase.ServerValue.TIMESTAMP
-		};
-	}
-
-	ref.set(typeData, function(error)
-	{
-		if( !!!error )
-			callback(key);
-		else
-			callback();
-	});
-};
-
 Metaverse.prototype.findTwinPlatform = function(original, callback)
 {
 	callback();
 };
 
-Metaverse.prototype.createPlatform = function(data, callback)
+Metaverse.prototype.createLibraryObject = function(type, data, callback)
 {
-	if( !this.validateData(data, this.defaultPlatform, callback) )
+	if( !this.validateData(data, this["default" + type], callback) )
 		return;
 
-	var ref = this.universeRef.child("library").child("platforms").push();
+	var ref = this.universeRef.child("library").child(type + "s").push();
 	var key = ref.key();
 
-	var platformData = {
-		"info":
-		{
-			"id": key,
-			"created": Firebase.ServerValue.TIMESTAMP,
-			"owner": metaverse.localUser.id,
-			"removed": 0,
-			"remover": ""
-		}
+	data["info"] = {
+		"created": Firebase.ServerValue.TIMESTAMP,
+		"id": key,
+		"owner": this.localUser.id,
+		"modified": Firebase.ServerValue.TIMESTAMP,
+		"modifier": this.localUser.id,
+		"removed": 0,
+		"remover": ""
 	};
 
-	var x;
-	for( x in data )
-	{
-		platformData[x] = {};
-
-		platformData[x][metaverse.localUser.id] = {
-			"value": data[x],
-			"timestamp": Firebase.ServerValue.TIMESTAMP
-		};
-	}
-
-	ref.set(platformData, function(error)
+	var rawData = {};
+	rawData["current"] = data;
+	rawData[this.localUser.id] = data;
+	
+	ref.set(rawData, function(error)
 	{
 		if( !!!error )
 			callback(key);
 		else
 			callback();
 	});
-
-/*
-	var ref = this.universeRef.child("library").child("platforms").push();
-	var key = ref.key();
-
-	var platformData = {
-		"info":
-		{
-			"id": key,
-			"created": Firebase.ServerValue.TIMESTAMP,
-			"owner": metaverse.localUser.id,
-			"removed": 0,
-			"remover": ""
-		}
-	};
-
-	var x;
-	for( x in data )
-	{
-		platformData[x] = {};
-		platformData[x][metaverse.localUser.id] = {
-			"value": data[x],
-			"timestamp": Firebase.ServerValue.TIMESTAMP
-		};
-	}
-
-	ref.set(platformData, function(error)
-	{
-		if( !!!error )
-			callback(key);
-		else
-			callback();
-	});
-*/
 };
 
 Metaverse.prototype.findTwinItem = function(original, callback)
@@ -1280,28 +2209,20 @@ Metaverse.prototype.createItem = function(data, callback)
 	var ref = this.universeRef.child("library").child("items").push();
 	var key = ref.key();
 
-	var itemData = {
-		"info":
-		{
-			"id": key,
-			"created": Firebase.ServerValue.TIMESTAMP,
-			"owner": metaverse.localUser.id,
-			"removed": 0,
-			"remover": ""
-		}
+	data["info"] = {
+		"created": Firebase.ServerValue.TIMESTAMP,
+		"id": key,
+		"owner": this.localUser.id,
+		"modified": Firebase.ServerValue.TIMESTAMP,
+		"modifier": this.localUser.id,
+		"removed": 0,
+		"remover": ""
 	};
 
-	var x;
-	for( x in data )
-	{
-		itemData[x] = {};
-
-		itemData[x][metaverse.localUser.id] = {
-			"value": data[x],
-			"timestamp": Firebase.ServerValue.TIMESTAMP
-		};
-	}
-
+	var itemData = {};
+	itemData["current"] = data;
+	itemData[this.localUser.id] = data;
+	
 	ref.set(itemData, function(error)
 	{
 		if( !!!error )
@@ -1330,11 +2251,11 @@ Metaverse.prototype.generateHash = function(text)
 Metaverse.prototype.generateTitle = function(file, typeId)
 {
 	var title = file;
-	var cookedType = this.cookType(this.library.types[typeId]);
+	//var cookedType = this.cookType(this.library.types[typeId]);
 
-	if( cookedType.titleFormat !== "" )
+	if( this.library.types[typeId].current.titleFormat !== "" )
 	{
-		var regEx = eval(cookedType.titleFormat);
+		var regEx = eval(this.library.types[typeId].current.titleFormat);
 		var matches = regEx.exec(file);
 		if( matches )
 			title = matches[matches.length-1];
@@ -1353,9 +2274,9 @@ Metaverse.prototype.generateType = function(file)
 		// new RegExp
 		//var regEx = new RegExp(this.types[x].format);
 
-		cookedType = metaverse.cookType(this.library.types[x]);
-		if( file.search(eval(cookedType.fileFormat)) !== -1 )
-			typeMatches.push(cookedType);
+		//cookedType = metaverse.cookType(this.library.types[x]);
+		if( file.search(eval(this.library.types[x].current.fileFormat)) !== -1 )
+			typeMatches.push(this.library.types[x].current);
 	}
 
 	typeMatches.sort(function(a, b)

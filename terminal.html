@@ -1,0 +1,208 @@
+<html>
+	<head>
+		<title>AArcade Metaverse: Terminal</title>
+		<link rel="stylesheet" type="text/css" href="terminal.css" />
+		<script src="scripts/metaverse.js"></script>
+		<script src="scripts/md5.min.js"></script>
+		<script src="https://cdn.firebase.com/js/client/2.3.2/firebase.js"></script>
+	</head>
+	<body>
+		<div id="menuContainer"></div>
+
+		<script>
+			var menuContainer = document.getElementById("menuContainer");
+			var metaverse = new Metaverse(eventHandler);
+
+			function eventHandler(eventName, eventData)
+			{
+				if( eventName === "error" )
+				{
+					console.log(eventData);
+					alert(eventData);
+				}
+				else if( eventName === "showMenu" )
+					showMenu(eventData);
+				else if( eventName === "freezeInputs" )
+				{
+					var form = document.getElementById("menuContainer").querySelector("form");
+
+					var i;
+					var elems = form.querySelectorAll("input");
+					for( i = 0; i < elems.length; i++ )
+						elems[i].disabled = true;
+				}
+				else if( eventName === "unfreezeInputs" )
+				{
+					var form = document.getElementById("menuContainer").querySelector("form");
+					
+					var i;
+					var elems = form.querySelectorAll("input");
+					for( i = 0; i < elems.length; i++ )
+						elems[i].disabled = false;
+				}
+			}
+
+			function showMenu(data)
+			{
+				var menu = document.createElement("div");
+				var menuId = data.menuId;
+
+				var menuHeader = document.createElement("h1");
+				menuHeader.innerHTML = data.menuHeader;
+				menu.appendChild(menuHeader);
+
+				var form = document.createElement("form");
+				var formElems = {};
+				menu.appendChild(form);
+
+				var x, inputData, inputElem, inputLabelElem, inputLabelTextElem, focusElem, needsSubmitDisable;
+				for( x in data )
+				{
+					if( x === "menuId" || x === "menuHeader" )
+						continue;
+
+					inputData = data[x];
+					if( inputData.type === "button" )
+					{
+						inputElem = document.createElement("input");
+						inputElem.type = "button";
+						inputElem.value = inputData.value;
+						inputElem.action = inputData.action;
+
+						inputElem.addEventListener("click", function(e)
+						{
+							metaverse.menuAction(e.srcElement.action, formElems);
+						});
+
+						form.appendChild(inputElem);
+						formElems[x] = inputElem;
+					}
+					else if( inputData.type === "submit" )
+					{
+						inputElem = document.createElement("input");
+						inputElem.type = "submit";
+						inputElem.value = inputData.value;
+						form.formAction = inputData.action;
+
+						form.addEventListener("submit", function(e)
+						{
+							e.preventDefault();
+
+							metaverse.menuAction(e.srcElement.formAction, formElems);
+						});
+
+						form.appendChild(inputElem);
+						formElems[x] = inputElem;
+					}
+					else if( inputData.type === "text" || inputData.type === "password")
+					{
+						inputLabelTextElem = document.createElement("div");
+						inputLabelTextElem.className = "labelText";
+						inputLabelTextElem.innerHTML = inputData.label;
+
+						inputLabelElem = document.createElement("label");
+						inputLabelElem.appendChild(inputLabelTextElem);
+
+						inputElem = document.createElement("input");
+						inputElem.type =  inputData.type;
+						inputElem.value = inputData.value;
+
+						if( !!inputData.placeholder && inputData.placeholder !== "" )
+							inputElem.placeholder = inputData.placeholder;
+
+						inputLabelElem.appendChild(inputElem);
+						form.appendChild(inputLabelElem);
+
+						if( inputData.focus )
+							focusElem = inputElem;
+
+						formElems[x] = inputElem;
+					}
+					else if( inputData.type === "select" )
+					{
+						inputElem = document.createElement("select");
+						inputElem.type = "select";
+						inputElem.size = 4;
+						inputElem.action = inputData.action;
+
+						inputElem.addEventListener("change", function(e)
+						{
+							e.preventDefault();
+
+							metaverse.menuAction(e.srcElement.action, formElems);
+						});
+
+						var y, inputOption;
+						if( inputData.generateOptions === "universeTitles" )
+						{
+							for( y in metaverse[inputData.generateOptions] )
+							{
+								inputOption = document.createElement("option");
+								inputOption.value = y;
+								inputOption.text = metaverse[inputData.generateOptions][y];
+								inputElem.appendChild(inputOption);
+							}
+
+							if( inputElem.options.length === 0 )
+								needsSubmitDisable = true;
+							else
+								inputElem.selectedIndex = 0;
+						}
+						else if( inputData.generateOptions === "libraryItems" )
+						{
+							for( y in metaverse.library.items )
+							{
+								inputOption = document.createElement("option");
+								inputOption.value = y;
+								inputOption.text = metaverse.library.items[y].current.title;
+								inputElem.appendChild(inputOption);
+							}
+
+							if( inputElem.options.length === 0 )
+								needsSubmitDisable = true;
+							else
+								inputElem.selectedIndex = 0;
+						}
+
+						form.appendChild(inputElem);
+
+						if( inputData.focus )
+							focusElem = inputElem;
+
+						formElems[x] = inputElem;
+					}
+
+					if( inputData.locked )
+						inputElem.disabled = true;
+				}
+
+				menuContainer.innerHTML = "";
+				menuContainer.appendChild(menu);
+
+				if( !!focusElem )
+					focusElem.focus();
+
+				var formSubmitButton = form.querySelector("input[type='submit']");
+				if( needsSubmitDisable && !!formSubmitButton )
+					formSubmitButton.disabled = true;
+
+				if( menuId === "dashboardMenu" )
+				{
+					if( metaverse.localUser.id !== "annon" )
+					{
+						formElems["logIn"].style.display = "none";
+						formElems["signUp"].style.display = "none";
+					}
+					else
+						formElems["account"].style.display = "none";
+				}
+				else if( menuId === "accountMenu" )
+				{
+					formElems["oldPasscode"].parentNode.style.display = "none";
+					formElems["newPasscode"].parentNode.style.display = "none";
+					formElems["newPasscodeAgain"].parentNode.style.display = "none";
+				}
+			}
+		</script>
+	</body>
+</html>
