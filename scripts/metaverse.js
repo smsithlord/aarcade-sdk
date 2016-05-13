@@ -117,54 +117,101 @@ function Metaverse(eventHandler)
 
 	this.defaultPlatform = {
 		"info": true,
+		"title":
+		{
+			"label": "Title",
+			"default": "",
+			"types": "string",
+			"format": "/^.{2,1024}$/i",
+			"formatDescription": "Title must be between 2 and 1024 characters."
+		},
+		"reference":
+		{
+			"label": "Reference",
+			"default": "",
+			"types": "uri",
+			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
+			"formatDescription": "Reference must be a valid URI."
+		},
 		"download":
 		{
+			"label": "Download",
 			"default": "",
 			"types": "uri",
 			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
 			"formatDescription": "Download must be a valid URI."
 		},
-		"propsPriority":
+		"cabinetsFileFormat":
 		{
-			"default": "2",
-			"types": "integer",
-			"format": "/(^\\d+$)|(^$)/i",
-			"formatDescription": "Props Priority must be a an integer between 0 and 1024."
+			"label": "Cabinet File Format",
+			"default": "/.+$/i",
+			"types": "regex",
+			"format": "/.*$/i",
+			"formatDescription": "Cabinet File Format must be a regular expression."
+		},
+		"cabinetsTitleFormat":
+		{
+			"label": "Cabinet Title Format",
+			"default": "/(?=[^\\/]*$).+$/i",
+			"types": "regex",
+			"format": "/.*$/i",
+			"formatDescription": "Cabinet Title Format must be a regular expression."
+		},
+		"cabinetCustomFields":
+		{
+			"label": "Cabinet Custom Fields",
+			"default": "",
+			"types": "string",
+			"format": "/.*$/i",
+			"formatDescription": "Cabinet Custom Fields must be a string of fieldID's, separated by the & symbol."
+		},
+		"mapsFileFormat":
+		{
+			"label": "Map File Format",
+			"default": "/.+$/i",
+			"types": "regex",
+			"format": "/.*$/i",
+			"formatDescription": "Map File Format must be a regular expression."
+		},
+		"mapsTitleFormat":
+		{
+			"label": "Map Title Format",
+			"default": "/(?=[^\\/]*$).+$/i",
+			"types": "regex",
+			"format": "/.*$/i",
+			"formatDescription": "Map Title Format must be a regular expression."
+		},
+		"mapCustomFields":
+		{
+			"label": "Map Custom Fields",
+			"default": "",
+			"types": "string",
+			"format": "/.*$/i",
+			"formatDescription": "Map Custom Fields must be a string of fieldID's, separated by the & symbol."
 		},
 		"propsFileFormat":
 		{
-			"default": "/.*$/i",
+			"label": "Prop File Format",
+			"default": "/.+$/i",
 			"types": "regex",
 			"format": "/.*$/i",
-			"formatDescription": "Props File Format must be a regular expression."
+			"formatDescription": "Prop File Format must be a regular expression."
 		},
 		"propsTitleFormat":
 		{
-			"default": "/.*$/i",
+			"label": "Prop Title Format",
+			"default": "/(?=[^\\/]*$).+$/i",
 			"types": "regex",
 			"format": "/.*$/i",
-			"formatDescription": "Props Title Format must be a regular expression."
+			"formatDescription": "Prop Title Format must be a regular expression."
 		},
-		"propsCustom":
+		"propCustomFields":
 		{
-			"default": {},
-			"types": "JSON",
-			"format": "/.*$/i",
-			"formatDescription": "Props Custom must be a string that can be parsed into a JSON object."
-		},
-		"title":
-		{
+			"label": "Prop Custom Fields",
 			"default": "",
 			"types": "string",
-			"format": "/^.{3,1024}$/i",
-			"formatDescription": "Title must be between 3 and 1024 characters."
-		},
-		"reference":
-		{
-			"default": "",
-			"types": "uri",
-			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
-			"formatDescription": "Reference must be a valid URI."
+			"format": "/.*$/i",
+			"formatDescription": "Prop Custom Fields must be a string of fieldID's, separated by the & symbol."
 		}
 	};
 
@@ -307,17 +354,16 @@ function Metaverse(eventHandler)
 	// NOTE: The regex's get encoded as strings to be compatible with JSON.
 	this.defaultPlatforms = [
 		{
+			"cabinetCustomFields": "workshopIds",
+			"cabinetsFileFormat": "/^(models\\/).+(.mdl)$/i",
+			"cabinetsTitleFormat": "/(?=[^\\/]*$).+$/i",
 			"download": "http://store.steampowered.com/app/266430/",
-			"propsPriority": 2,
+			"mapCustomFields": "workshopIds&mountIds",
+			"mapsFileFormat": "/^(maps\\/).+(.bsp)$/i",
+			"mapsTitleFormat": "/(?=[^\\/]*$).+$/i",
+			"propCustomFields": "workshopIds&mountIds",
 			"propsFileFormat": "/^(models\\/).+(.mdl)$/i",
 			"propsTitleFormat": "/(?=[^\\/]*$).+$/i",
-			"propsCustom": customHelper.call(this, {
-				title: "workshopIds",
-				default: "/.+$/i",
-				types: "regex",
-				format: "/.*$/i",
-				formatDescription: "Field must be a regular expression."
-			}),
 			"reference": "http://www.anarchyarcade.com/",
 			"title": "AArcade: Source"
 		}
@@ -441,6 +487,10 @@ function Metaverse(eventHandler)
 		var type;
 		if( !!options && !!options.typeId )
 			type = this.library.types[options.typeId].current;
+
+		var platform;
+		if( !!options && !!options.platformId )
+			platform = this.library.platforms[options.platformId].current;
 
 		var menus = {
 			"metaverseMenu":
@@ -679,6 +729,12 @@ function Metaverse(eventHandler)
 					"value": "Types",
 					"action": "showLibraryTypes"
 				},
+				"platforms":
+				{
+					"type": "button",
+					"value": "Platforms",
+					"action": "showLibraryPlatforms"
+				},
 				"cancel":
 				{
 					"type": "button",
@@ -861,6 +917,46 @@ function Metaverse(eventHandler)
 			{
 				"menuId": "libraryTypesEdit",
 				"menuHeader": "Dashboard / Library / Types / Edit",
+			},
+			"libraryPlatforms":
+			{
+				"menuId": "libraryPlatforms",
+				"menuHeader": "Dashboard / Library / Platforms",
+				"platformSelect":
+				{
+					"type": "select",
+					"generateOptions": "libraryPlatforms",
+					"focus": true,
+					"action": "libraryPlatformsSelectChange"
+				},
+				"editPlatform":
+				{
+					"type": "submit",
+					"value": "Edit Platform",
+					"action": "showEditPlatform"
+				},
+				"newPlatform":
+				{
+					"type": "button",
+					"value": "Create New Platform",
+					"action": "showCreatePlatform"
+				},
+				"cancel":
+				{
+					"type": "button",
+					"value": "Cancel",
+					"action": "cancelLibraryPlatforms"
+				}
+			},
+			"libraryPlatformsCreate":
+			{
+				"menuId": "libraryPlatformsCreate",
+				"menuHeader": "Dashboard / Library / Platforms / New",
+			},
+			"libraryPlatformsEdit":
+			{
+				"menuId": "libraryPlatformsEdit",
+				"menuHeader": "Dashboard / Library / Platforms / Edit",	
 			}
 		};
 
@@ -960,6 +1056,104 @@ function Metaverse(eventHandler)
 			"type": "button",
 			"value": "Cancel",
 			"action": "cancelLibraryTypeEdit"
+		};
+
+		// MENU
+		menuId = "libraryPlatformsCreate";
+		if( !!platform )
+		{
+			menus[menuId]["id"] = {
+				"label": "ID: ",
+				"type": "text",
+				"value": platform.info.id,
+				"placeholder": "autokey",
+				"locked": true
+			};
+		}
+		for( x in this.defaultPlatform )
+		{
+			if( x === "info" )
+				continue;
+/*
+			if( this.defaultPlatform[x] === true )
+			{
+				menus[menuId][x] = {
+					"label": this.defaultPlatform[x].label + ": ",
+					"type": "child",
+					"value": (!!platform) ? platform[x] : "",
+					"placeholder": this.defaultPlatform[x].types
+				};
+				//menus[menuId][x] = this.defaultPlatform;
+				//console.log(this.defaultPlatform[x]);
+				continue;
+			}
+*/
+			menus[menuId][x] = {
+				"label": this.defaultPlatform[x].label + ": ",
+				"type": "text",
+				"value": (!!platform) ? platform[x] : "",
+				"placeholder": this.defaultPlatform[x].types
+			};
+		}
+		menus[menuId]["save"] = {
+			"type": "submit",
+			"value": "Save",
+			"action": "createLibraryPlatform"
+		};
+		menus[menuId]["cancel"] = {
+			"type": "button",
+			"value": "Cancel",
+			"action": "cancelLibraryPlatformCreate"
+		};
+
+		// MENU
+		menuId = "libraryPlatformsEdit";
+		if( !!platform )
+		{
+			menus[menuId]["id"] = {
+				"label": "ID: ",
+				"type": "text",
+				"value": platform.info.id,
+				"placeholder": "autokey",
+				"locked": true
+			};
+		}
+		for( x in this.defaultPlatform )
+		{
+			if( x === "info" )
+				continue;
+
+/*
+			if( this.defaultPlatform[x].types === "child" )
+			{
+				//console.log((!!platform) ? platform[x] : "");
+				menus[menuId][x] = {
+					"label": this.defaultPlatform[x].label + ": ",
+					"type": "child",
+					"value": (!!platform) ? platform[x] : {},
+					"placeholder": this.defaultPlatform[x].types
+				};
+				//menus[menuId][x] = this.defaultPlatform;
+				//console.log(this.defaultPlatform[x]);
+				continue;
+			}
+*/
+			menus[menuId][x] = {
+				"label": this.defaultPlatform[x].label + ": ",
+				"type": "text",
+				"value": (!!platform) ? platform[x] : "",
+				"placeholder": this.defaultPlatform[x].types
+			};
+		}
+		menus[menuId]["save"] = {
+			"type": "submit",
+			"value": "Save",
+			"action": "updateLibraryPlatform"
+		};
+		menus[menuId]["cancel"] = {
+			"type": "button",
+			"value": "Cancel",
+			"action": "cancelLibraryPlatformEdit"
 		};
 
 		return menus;
@@ -1332,7 +1526,7 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 
 		data.info = {"id": actionData["id"].value};
 
-		this.updateItem(data, function(itemId)
+		this.updateLibraryObject("Item", data, function(itemId)
 		{
 			if( !!!itemId )
 			{
@@ -1416,7 +1610,7 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 
 		data.info = {"id": actionData["id"].value};
 
-		this.updateType(data, function(typeId)
+		this.updateLibraryObject("Type", data, function(typeId)
 		{
 			if( !!!typeId )
 			{
@@ -1431,6 +1625,61 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 			}
 
 			this.showMenu("libraryTypes");
+		}.bind(this));
+	}
+	else if( actionName === "showLibraryPlatforms" )
+	{
+		this.showMenu("libraryPlatforms");
+	}
+	else if( actionName === "cancelLibraryPlatforms" )
+	{
+		this.showMenu("libraryMenu");
+	}
+	else if( actionName === "cancelLibraryPlatformCreate" )
+	{
+		this.showMenu("libraryPlatforms");
+	}
+	else if( actionName === "cancelLibraryPlatformEdit" )
+	{
+		this.showMenu("libraryPlatforms");
+	}
+	else if( actionName === "showCreatePlatform" )
+	{
+		this.showMenu("libraryPlatformsCreate");
+	}
+	else if( actionName === "showEditPlatform" )
+	{
+		this.showMenu("libraryPlatformsEdit", {"platformId": actionData["platformSelect"].options[actionData["platformSelect"].selectedIndex].value});
+	}
+	else if( actionName === "updateLibraryPlatform" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var data = {};
+		var x;
+		for( x in actionData )
+		{
+			if( actionData[x].type !== "button" && actionData[x].type !== "submit" && x !== "id" )
+				data[x] = actionData[x].value;
+		}
+
+		data.info = {"id": actionData["id"].value};
+
+		this.updateLibraryObject("Platform", data, function(platformId)
+		{
+			if( !!!platformId )
+			{
+				if( !!this.error )
+				{
+					this.eventHandler("error", this.error);
+					this.eventHandler("unfreezeInputs");
+					return;
+				}
+
+				return;
+			}
+
+			this.showMenu("libraryPlatforms");
 		}.bind(this));
 	}
 };
@@ -2335,10 +2584,11 @@ Metaverse.prototype.findTwinType = function(original, callback)
 
 Metaverse.prototype.validateData = function(data, defaultData, callback)
 {
-	var x;
+	var x, y, z;
 	for( x in defaultData )
 	{
-		if( x === "info" || !data.hasOwnProperty(x) )
+		//if( x === "info" || !data.hasOwnProperty(x) )
+		if( defaultData[x] === true || !data.hasOwnProperty(x) )
 			continue;
 
 		if( defaultData[x].types === "integer" )
@@ -2356,22 +2606,43 @@ Metaverse.prototype.validateData = function(data, defaultData, callback)
 				return false;
 			}
 		}
+		else if( typeof data[x] === "object" )
+		{
+			for( y in data[x] )
+			{
+				//console.log(data[x][y]);
+				//console.log(defaultData[x]);
+				//console.log("vs");
+				//console.log(data[x][y]);
+				/*
+				if( data[x][y].search(eval(defaultData[x].format)) === -1 )
+				{
+					this.error = new Error(defaultData[x].formatDescription);
+					if( !!callback )
+						callback();
+					else
+						this.eventHandler("error", this.error);
+					return false;
+				}
+				*/
+			}
+				// This is a custom platform property.
+//				console.log(x);
+//				console.log(data[x]);
+		}
+		else if( data[x].search(eval(defaultData[x].format)) === -1 )
+		{
+			this.error = new Error(defaultData[x].formatDescription);
+			if( !!callback )
+				callback();
+			else
+				this.eventHandler("error", this.error);
+			return false;
+		}
 		else
 		{
-			if( data[x].search(eval(defaultData[x].format)) === -1 )
-			{
-				this.error = new Error(defaultData[x].formatDescription);
-				if( !!callback )
-					callback();
-				else
-					this.eventHandler("error", this.error);
-				return false;
-			}
-			else
-			{
-				if( data[x] === "" )
-					data[x] = defaultData[x].default;
-			}
+			if( data[x] === "" )
+				data[x] = defaultData[x].default;
 		}
 	}
 
@@ -2381,6 +2652,80 @@ Metaverse.prototype.validateData = function(data, defaultData, callback)
 Metaverse.prototype.findTwinPlatform = function(original, callback)
 {
 	callback();
+};
+
+Metaverse.prototype.updateLibraryObject = function(type, data, callback)
+{
+	if( !this.validateData(data, this["default" + type], callback) )
+		return;
+
+	var lowerCaseType = type.toLowerCase();
+
+	var rawData = this.library[lowerCaseType + "s"][data.info.id];
+	var currentData = rawData.current;
+
+	if( !!!rawData[this.localUser.id] )
+		rawData[this.localUser.id] = {};
+
+	// Detect which fields have actually changed.
+	var updateData = {};
+
+	var isModified = false;
+	var x;
+	for( x in data )
+	{
+		if( x === "info" )
+			continue;
+
+		if( currentData[x] !== data[x] )
+		{
+			currentData[x] = data[x];
+			updateData["current/" + x] = data[x];
+			isModified = true;
+		}
+	}
+
+	if( isModified )
+	{
+		currentData.info.modified = Firebase.ServerValue.TIMESTAMP;
+		currentData.info.modifier = this.localUser.id;
+		updateData["current/info/modified"] = currentData.info.modified;//Firebase.ServerValue.TIMESTAMP;
+		updateData["current/info/modifier"] = currentData.info.modifier;//this.localUser.id;
+	}
+
+	rawData[this.localUser.id] = currentData;
+
+	var needsCallback = true;
+	for( x in updateData )
+	{
+		needsCallback = false;
+		this.libraryRef.child(lowerCaseType + "s").child(data.info.id).update(updateData, function(error1)
+		{
+			if( !!error1 )
+			{
+				this.error = new Error("Failed to update current data on metaverse.");
+				callback();
+			}
+			else
+			{
+				this.libraryRef.child(lowerCaseType + "s").child(data.info.id).child(this.localUser.id).set(currentData, function(error2)
+				{
+					if( !!error2 )
+					{
+						this.error = new Error("Failed to update user data on metaverse.");
+						callback();
+					}
+					else
+						callback(data.info.id);
+				}.bind(this));
+			}
+		}.bind(this));
+
+		break;
+	}
+
+	if( needsCallback )
+		callback(data.info.id);
 };
 
 Metaverse.prototype.createLibraryObject = function(type, data, callback)
