@@ -1651,6 +1651,35 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	{
 		this.showMenu("libraryPlatformsEdit", {"platformId": actionData["platformSelect"].options[actionData["platformSelect"].selectedIndex].value});
 	}
+	else if( actionName === "createLibraryPlatform" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var data = {};
+		var x;
+		for( x in actionData )
+		{
+			if( actionData[x].type !== "button" && actionData[x].type !== "submit" )
+				data[x] = actionData[x].value;
+		}
+
+		this.createLibraryObject("Platform", data, function(platformId)
+		{
+			if( !!!platformId )
+			{
+				if( !!this.error )
+				{
+					this.eventHandler("error", this.error);
+					this.eventHandler("unfreezeInputs");
+					return;
+				}
+
+				return;
+			}
+
+			this.showMenu("libraryPlatforms");
+		}.bind(this));
+	}
 	else if( actionName === "updateLibraryPlatform" )
 	{
 		this.eventHandler("freezeInputs");
