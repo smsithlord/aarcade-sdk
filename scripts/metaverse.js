@@ -7,6 +7,7 @@ function Metaverse(eventHandler)
 	this.library = {
 		"items": {},
 		"types": {},
+		"apps": {},
 		"platforms": {}
 	};
 
@@ -251,6 +252,85 @@ function Metaverse(eventHandler)
 		}
 	};
 
+	this.defaultApp = {
+		"info": true,
+		"title":
+		{
+			"label": "Title",
+			"default": "",
+			"types": "string",
+			"format": "/^.{2,1024}$/i",
+			"formatDescription": "Title must be between 2 and 1024 characters."
+		},
+		"file":
+		{
+			"label": "Executable",
+			"default": "",
+			"types": "string",
+			"format": "/^.{2,1024}$/i",
+			"formatDescription": "Executable must be a valid local file."
+		},
+		"commandFormat":
+		{
+			"label": "Command Format",
+			"default": "",
+			"types": "string",
+			"format": "/^.{2,1024}$/i",
+			"formatDescription": "Command Format must be a valid metaverse command format."
+		},
+		"download":
+		{
+			"label": "Download",
+			"default": "",
+			"types": "uri",
+			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
+			"formatDescription": "Download must be a valid URI."
+		},
+		"reference":
+		{
+			"label": "Reference",
+			"default": "",
+			"types": "uri",
+			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
+			"formatDescription": "Reference must be a valid URI."
+		},
+		"filePaths":
+		{
+			"label": "File Paths",
+			"id":
+			{
+				"label": "ID",
+				"default": "",
+				"types": "autokey",
+				"format": "/.+$/i",
+				"formatDescription": "ID must be an auto-generated key."
+			},
+			"path":
+			{
+				"label": "Path",
+				"default": "",
+				"types": "string",
+				"format": "/^.{2,1024}$/i",
+				"formatDescription": "Executable must be a valid local file."
+			},
+			"type":
+			{
+				"label": "Type",
+				"default": "",
+				"types": "autokey",
+				"format": "/.+$/i",
+				"formatDescription": "Type must be an auto-generated key."
+			}
+			/*
+			"label": "File Paths",
+			"default": "",
+			"types": "child",
+			"format": "/.*$/i",
+			"formatDescription": "File Paths must be a valid object."
+			*/
+		}
+	};
+
 	this.defaultItem = {
 		"info": true,
 		"app":
@@ -477,6 +557,34 @@ function Metaverse(eventHandler)
 			"priority": 0
 		}
 	];
+
+	this.defaultApps = [
+		{
+			"title": "Steam",
+			"file": "",
+			"commandFormat": "",
+			"download": "http://store.steampowered.com/about/",
+			"reference": "https://en.wikipedia.org/wiki/Steam_(software)",
+			"filePaths": {}
+		},
+		{
+			"title": "Windows",
+			"file": "",
+			"commandFormat": "",
+			"download": "http://www.microsoft.com/Windows10",
+			"reference": "https://en.wikipedia.org/wiki/Microsoft_Windows",
+			"filePaths": {}
+		}
+	];
+
+//	var defaultOtherType = this.defaultTypes[this.defaultTypes.length-1];
+//	var key = this.generatePushId();
+//	this.defaultApps[0].filePaths[key] = {
+//		"id": key,
+//		"path": "",
+//		"type": defaultOtherType,
+//							}
+//	};
 
 	this.getMenus = function(options)
 	{
@@ -729,6 +837,12 @@ function Metaverse(eventHandler)
 					"value": "Types",
 					"action": "showLibraryTypes"
 				},
+				"apps":
+				{
+					"type": "button",
+					"value": "Apps",
+					"action": "showLibraryApps"
+				},
 				"platforms":
 				{
 					"type": "button",
@@ -908,10 +1022,45 @@ function Metaverse(eventHandler)
 					"action": "cancelLibraryTypes"
 				}
 			},
+			"libraryApps":
+			{
+				"menuId": "libraryApps",
+				"menuHeader": "Dashboard / Library / Apps",
+				"appSelect":
+				{
+					"type": "select",
+					"generateOptions": "libraryApps",
+					"focus": true,
+					"action": "libraryAppsSelectChange"
+				},
+				"editApp":
+				{
+					"type": "submit",
+					"value": "Edit App",
+					"action": "showEditApp"
+				},
+				"newApp":
+				{
+					"type": "button",
+					"value": "Create New App",
+					"action": "showCreateApp"
+				},
+				"cancel":
+				{
+					"type": "button",
+					"value": "Cancel",
+					"action": "cancelLibraryApps"
+				}
+			},
 			"libraryTypesCreate":
 			{
 				"menuId": "libraryTypesCreate",
 				"menuHeader": "Dashboard / Library / Types / New",
+			},
+			"libraryAppsCreate":
+			{
+				"menuId": "libraryAppsCreate",
+				"menuHeader": "Dashboard / Library / Apps / New",
 			},
 			"libraryTypesEdit":
 			{
@@ -1023,6 +1172,77 @@ function Metaverse(eventHandler)
 			"action": "cancelLibraryTypeCreate"
 		};
 
+/*
+				"path":
+				{
+					"label": "Path",
+					"default": "",
+					"types": "string",
+					"format": "/^.{2,1024}$/i",
+					"formatDescription": "Executable must be a valid local file."
+				},
+				"type":
+				{
+					"label": "Type",
+					"default": "",
+					"types": "autokey",
+					"format": "/.+$/i",
+					"formatDescription": "Type must be an auto-generated key."
+				}
+*/
+
+		// MENU
+		menuId = "libraryAppsCreate";
+		for( x in this.defaultApp )
+		{
+			if( x === "info" )
+				continue;
+
+			if( !this.defaultApp[x].hasOwnProperty("default") )
+			{
+//			if( this.defaultApp[x].types === "child" )
+//			{
+				menus[menuId][x] = {
+					"label": this.defaultApp[x].label
+				};
+
+				var y;
+				for( y in this.defaultApp[x] )
+				{
+					if( y === "label" )
+						continue;
+					
+					menus[menuId][x][y] = {
+						"label": this.defaultApp[x][y].label + ": ",
+						"type": "text",
+						"value": "",
+						"placeholder": this.defaultApp[x][y].types
+					};
+				}
+
+				//console.log(menus[menuId][x]);
+			}
+			else
+			{
+				menus[menuId][x] = {
+					"label": this.defaultApp[x].label + ": ",
+					"type": "text",
+					"value": (!!item) ? item[x] : "",
+					"placeholder": this.defaultApp[x].types
+				};
+			}
+		}
+		menus[menuId]["save"] = {
+			"type": "submit",
+			"value": "Save",
+			"action": "createLibraryApp"
+		};
+		menus[menuId]["cancel"] = {
+			"type": "button",
+			"value": "Cancel",
+			"action": "cancelLibraryAppCreate"
+		};
+
 		// MENU
 		menuId = "libraryTypesEdit";
 		if( !!type )
@@ -1074,20 +1294,7 @@ function Metaverse(eventHandler)
 		{
 			if( x === "info" )
 				continue;
-/*
-			if( this.defaultPlatform[x] === true )
-			{
-				menus[menuId][x] = {
-					"label": this.defaultPlatform[x].label + ": ",
-					"type": "child",
-					"value": (!!platform) ? platform[x] : "",
-					"placeholder": this.defaultPlatform[x].types
-				};
-				//menus[menuId][x] = this.defaultPlatform;
-				//console.log(this.defaultPlatform[x]);
-				continue;
-			}
-*/
+
 			menus[menuId][x] = {
 				"label": this.defaultPlatform[x].label + ": ",
 				"type": "text",
@@ -1123,21 +1330,6 @@ function Metaverse(eventHandler)
 			if( x === "info" )
 				continue;
 
-/*
-			if( this.defaultPlatform[x].types === "child" )
-			{
-				//console.log((!!platform) ? platform[x] : "");
-				menus[menuId][x] = {
-					"label": this.defaultPlatform[x].label + ": ",
-					"type": "child",
-					"value": (!!platform) ? platform[x] : {},
-					"placeholder": this.defaultPlatform[x].types
-				};
-				//menus[menuId][x] = this.defaultPlatform;
-				//console.log(this.defaultPlatform[x]);
-				continue;
-			}
-*/
 			menus[menuId][x] = {
 				"label": this.defaultPlatform[x].label + ": ",
 				"type": "text",
@@ -1485,7 +1677,7 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 		item.screen = "";
 
 		// Now that the item is constructed, let's check for an existing twin.
-		this.findTwinItem(item, function(twin)
+		this.findTwinLibraryObject("Item", item, function(twin)
 		{
 			if( !!twin )
 			{
@@ -1547,7 +1739,15 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	{
 		this.showMenu("libraryTypes");
 	}
+	else if( actionName === "showLibraryApps" )
+	{
+		this.showMenu("libraryApps");
+	}
 	else if( actionName === "cancelLibraryTypes" )
+	{
+		this.showMenu("libraryMenu");
+	}
+	else if( actionName === "cancelLibraryApps" )
 	{
 		this.showMenu("libraryMenu");
 	}
@@ -1555,9 +1755,17 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	{
 		this.showMenu("libraryTypesCreate");
 	}
+	else if( actionName === "showCreateApp" )
+	{
+		this.showMenu("libraryAppsCreate");
+	}
 	else if( actionName === "cancelLibraryTypeCreate" )
 	{
 		this.showMenu("libraryTypes");
+	}
+	else if( actionName === "cancelLibraryAppCreate" )
+	{
+		this.showMenu("libraryApps");
 	}
 	else if( actionName === "createLibraryType" )
 	{
@@ -1751,195 +1959,6 @@ Metaverse.prototype.generatePushId = function()
 	return id;
 };
 
-Metaverse.prototype.updateItem = function(data, callback)
-{
-	if( !this.validateData(data, this.defaultItem, callback) )
-		return;
-
-	var rawItem = this.library.items[data.info.id];
-	var currentItem = rawItem.current;
-
-	if( !!!rawItem[this.localUser.id] )
-		rawItem[this.localUser.id] = {};
-
-	// Detect which fields have actually changed.
-	var updateData = {};
-
-	var isModified = false;
-	var x;
-	for( x in data )
-	{
-		if( x === "info" )
-			continue;
-
-		if( currentItem[x] !== data[x] )
-		{
-			currentItem[x] = data[x];
-			updateData["current/" + x] = data[x];
-			isModified = true;
-		}
-	}
-
-	if( isModified )
-	{
-		currentItem.info.modified = Firebase.ServerValue.TIMESTAMP;
-		currentItem.info.modifier = this.localUser.id;
-		updateData["current/info/modified"] = currentItem.info.modified;//Firebase.ServerValue.TIMESTAMP;
-		updateData["current/info/modifier"] = currentItem.info.modifier;//this.localUser.id;
-	}
-
-	rawItem[this.localUser.id] = currentItem;
-
-	var needsCallback = true;
-	for( x in updateData )
-	{
-		needsCallback = false;
-		this.libraryRef.child("items").child(data.info.id).update(updateData, function(error1)
-		{
-			if( !!error1 )
-			{
-				this.error = new Error("Failed to update current item on metaverse.");
-				callback();
-			}
-			else
-			{
-				this.libraryRef.child("items").child(data.info.id).child(this.localUser.id).set(currentItem, function(error2)
-				{
-					if( !!error2 )
-					{
-						this.error = new Error("Failed to update user item on metaverse.");
-						callback();
-					}
-					else
-						callback(data.info.id);
-				}.bind(this));
-			}
-		}.bind(this));
-
-		break;
-	}
-
-	if( needsCallback )
-		callback(data.info.id);
-};
-
-Metaverse.prototype.updateType = function(data, callback)
-{
-	if( !this.validateData(data, this.defaultType, callback) )
-		return;
-
-	var rawType = this.library.types[data.info.id];
-	var currentType = rawType.current;
-
-	if( !!!rawType[this.localUser.id] )
-		rawType[this.localUser.id] = {};
-
-	// Detect which fields have actually changed.
-	var updateData = {};
-
-	var isModified = false;
-	var x;
-	for( x in data )
-	{
-		if( x === "info" )
-			continue;
-
-		if( currentType[x] !== data[x] )
-		{
-			currentType[x] = data[x];
-			updateData["current/" + x] = data[x];
-			isModified = true;
-		}
-	}
-
-	if( isModified )
-	{
-		currentType.info.modified = Firebase.ServerValue.TIMESTAMP;
-		currentType.info.modifier = this.localUser.id;
-		updateData["current/info/modified"] = currentType.info.modified;//Firebase.ServerValue.TIMESTAMP;
-		updateData["current/info/modifier"] = currentType.info.modifier;//this.localUser.id;
-	}
-
-	rawType[this.localUser.id] = currentType;
-
-	var needsCallback = true;
-	for( x in updateData )
-	{
-		needsCallback = false;
-		this.libraryRef.child("types").child(data.info.id).update(updateData, function(error1)
-		{
-			if( !!error1 )
-			{
-				this.error = new Error("Failed to update current type on metaverse.");
-				callback();
-			}
-			else
-			{
-				this.libraryRef.child("types").child(data.info.id).child(this.localUser.id).set(currentType, function(error2)
-				{
-					if( !!error2 )
-					{
-						this.error = new Error("Failed to update user type on metaverse.");
-						callback();
-					}
-					else
-						callback(data.info.id);
-				}.bind(this));
-			}
-		}.bind(this));
-
-		break;
-	}
-
-	if( needsCallback )
-		callback(data.info.id);
-};
-
-Metaverse.prototype.updatePlatform = function(data, callback)
-{
-	if( !this.validateData(data, this.defaultPlatform, callback) )
-		return;
-
-	var rawPlatform = this.library.platforms[data.info.id];
-	var platform = this.cookPlatform(rawPlatform);
-
-	// Detect which fields have actually changed.
-	var updateData = {};
-
-	var x, dataObject;
-	for( x in data )
-	{
-		if( x === "info" )
-			continue;
-
-		if( platform[x] !== data[x] )
-		{
-			dataObject = {"timestamp": Firebase.ServerValue.TIMESTAMP, "value": data[x]};
-			rawPlatform[x][metaverse.localUser.id] = dataObject;
-			
-			updateData[x + "/" + metaverse.localUser.id] = dataObject;
-		}
-	}
-
-	var needsCallback = true;
-	for( x in updateData )
-	{
-		needsCallback = false;
-		this.libraryRef.child("platforms").child(data.info.id).update(updateData, function(error)
-		{
-			if( !!error )
-				callback("ERROR: Failed to update platform.");
-			else
-				callback(data.info.id);
-		});
-
-		break;
-	}
-
-	if( needsCallback )
-		callback(data.info.id);
-};
-
 Metaverse.prototype.reset = function()
 {
 	// Unregister change listeners
@@ -1975,6 +1994,7 @@ Metaverse.prototype.reset = function()
 	this.library = {
 		"items": {},
 		"types": {},
+		"apps": {},
 		"platforms": {}
 	};
 
@@ -2119,105 +2139,6 @@ Metaverse.prototype.connect = function(server, callback)
 	}
 };
 
-Metaverse.prototype.cookType = function(rawType)
-{
-	var type = {
-		"info": rawType.info
-	};
-
-	var x, y, mostRecent, value, timestamp;
-	for( x in rawType )
-	{
-		if( x === "info" )
-			continue;
-
-		// Find the most recent entry.
-		mostRecentTimestamp = 0;
-		mostRecentKey = null;
-
-		for( y in rawType[x] )
-		{
-			timestamp = rawType[x][y].timestamp;
-			if( timestamp > mostRecentTimestamp )
-			{
-				mostRecentTimestamp = timestamp;
-				mostRecentKey = y;
-			}
-		}
-
-		if( mostRecentKey )
-			type[x] = rawType[x][mostRecentKey].value;
-	}
-
-	return type;
-};
-
-Metaverse.prototype.cookPlatform = function(rawPlatform)
-{
-	var platform = {
-		"info": rawPlatform.info
-	};
-
-	var x, y, mostRecent, value, timestamp;
-	for( x in rawPlatform )
-	{
-		if( x === "info" )
-			continue;
-
-		// Find the most recent entry.
-		mostRecentTimestamp = 0;
-		mostRecentKey = null;
-
-		for( y in rawPlatform[x] )
-		{
-			timestamp = rawPlatform[x][y].timestamp;
-			if( timestamp > mostRecentTimestamp )
-			{
-				mostRecentTimestamp = timestamp;
-				mostRecentKey = y;
-			}
-		}
-
-		if( mostRecentKey )
-			platform[x] = rawPlatform[x][mostRecentKey].value;
-	}
-
-	return platform;
-};
-
-Metaverse.prototype.cookItem = function(rawItem)
-{
-	var item = {
-		"info": rawItem.info
-	};
-
-	var x, y, mostRecent, value, timestamp;
-	for( x in rawItem )
-	{
-		if( x === "info" )
-			continue;
-
-		// Find the most recent entry.
-		mostRecentTimestamp = 0;
-		mostRecentKey = null;
-
-		for( y in rawItem[x] )
-		{
-			timestamp = rawItem[x][y].timestamp;
-			if( timestamp > mostRecentTimestamp )
-			{
-				mostRecentTimestamp = timestamp;
-				mostRecentKey = y;
-			}
-		}
-
-		if( mostRecentKey )
-			item[x] = rawItem[x][mostRecentKey].value;
-	}
-
-	return item;
-};
-
 Metaverse.prototype.createUniverse = function(title, callback)
 {
 	if( !this.validateData({"title": title}, this.defaultUniverse.info, callback) )
@@ -2267,6 +2188,7 @@ Metaverse.prototype.joinUniverse = function(universeKey, callback)
 	this.library = {
 		"items": {},
 		"types": {},
+		"apps": {},
 		"platforms": {}
 	};
 
@@ -2506,12 +2428,34 @@ Metaverse.prototype.logIn = function(username, passcode, callback)
 												if( resolvedIndex+1 < numDefaultTypes )
 													this.createLibraryObject("Type", this.defaultTypes[resolvedIndex+1], arguments.callee.bind(this));
 												else
-													onCallbackReady.call(this);
+													onTypesCreated.call(this);
 											}
 										}
 									}
 									else
 										onCallbackReady.call(this);
+
+									function onTypesCreated()
+									{
+										onCallbackReady.call(this);
+										/*
+										// Now import all of the default apps.
+										var numDefaultApps = this.defaultApps.length;
+										var resolvedIndex = -1;
+										createAppHelper.call(this);
+
+										function createAppHelper(appId)
+										{
+											if( !!appId )
+												resolvedIndex++;
+
+											if( resolvedIndex+1 < numDefaultApps )
+												this.createLibraryObject("App", this.defaultApps[resolvedIndex+1], arguments.callee.bind(this));
+											else
+												onCallbackReady.call(this);
+										}
+										*/
+									}
 
 									function onCallbackReady()
 									{
@@ -2606,11 +2550,6 @@ Metaverse.prototype.removeEventListener = function(eventType, handler)
 	}
 };
 
-Metaverse.prototype.findTwinType = function(original, callback)
-{
-	callback();
-};
-
 Metaverse.prototype.validateData = function(data, defaultData, callback)
 {
 	var x, y, z;
@@ -2637,27 +2576,7 @@ Metaverse.prototype.validateData = function(data, defaultData, callback)
 		}
 		else if( typeof data[x] === "object" )
 		{
-			for( y in data[x] )
-			{
-				//console.log(data[x][y]);
-				//console.log(defaultData[x]);
-				//console.log("vs");
-				//console.log(data[x][y]);
-				/*
-				if( data[x][y].search(eval(defaultData[x].format)) === -1 )
-				{
-					this.error = new Error(defaultData[x].formatDescription);
-					if( !!callback )
-						callback();
-					else
-						this.eventHandler("error", this.error);
-					return false;
-				}
-				*/
-			}
-				// This is a custom platform property.
-//				console.log(x);
-//				console.log(data[x]);
+			console.log("data object, no validation protocol defined.")
 		}
 		else if( data[x].search(eval(defaultData[x].format)) === -1 )
 		{
@@ -2790,41 +2709,9 @@ Metaverse.prototype.createLibraryObject = function(type, data, callback)
 	});
 };
 
-Metaverse.prototype.findTwinItem = function(original, callback)
+Metaverse.prototype.findTwinLibraryObject = function(type, original, callback)
 {
-	//this.items
 	callback();
-};
-
-Metaverse.prototype.createItem = function(data, callback)
-{
-	if( !this.validateData(data, this.defaultItem, callback) )
-		return;
-
-	var ref = this.universeRef.child("library").child("items").push();
-	var key = ref.key();
-
-	data["info"] = {
-		"created": Firebase.ServerValue.TIMESTAMP,
-		"id": key,
-		"owner": this.localUser.id,
-		"modified": Firebase.ServerValue.TIMESTAMP,
-		"modifier": this.localUser.id,
-		"removed": 0,
-		"remover": ""
-	};
-
-	var itemData = {};
-	itemData["current"] = data;
-	itemData[this.localUser.id] = data;
-	
-	ref.set(itemData, function(error)
-	{
-		if( !!!error )
-			callback(key);
-		else
-			callback();
-	});
 };
 
 Metaverse.prototype.generateHash = function(text)
