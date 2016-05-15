@@ -299,6 +299,21 @@
 							else
 								inputElem.selectedIndex = 0;
 						}
+						else if( inputData.generateOptions === "libraryApps" )
+						{
+							for( y in metaverse.library.apps )
+							{
+								inputOption = document.createElement("option");
+								inputOption.value = y;
+								inputOption.text = metaverse.library.apps[y].current.title;
+								inputElem.appendChild(inputOption);
+							}
+
+							if( inputElem.options.length === 0 )
+								needsSubmitDisable = true;
+							else
+								inputElem.selectedIndex = 0;
+						}
 
 						form.appendChild(inputElem);
 

@@ -311,7 +311,7 @@ function Metaverse(eventHandler)
 				"default": "",
 				"types": "string",
 				"format": "/^.{2,1024}$/i",
-				"formatDescription": "Executable must be a valid local file."
+				"formatDescription": "Path must be a valid directory."
 			},
 			"type":
 			{
@@ -1767,6 +1767,49 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	{
 		this.showMenu("libraryApps");
 	}
+	else if( actionName === "createLibraryApp" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var data = {};
+		var x;
+		for( x in actionData )
+		{
+			if( !(actionData[x] instanceof HTMLElement) )
+			{
+				data[x] = {};
+
+				var y;
+				for( y in actionData[x] )
+				{
+					data[x][y] = {};
+
+					var z;
+					for( z in actionData[x][y] )
+						data[x][y][z] = actionData[x][y][z].value;
+				}
+			}
+			else if( actionData[x].type !== "button" && actionData[x].type !== "submit" )
+				data[x] = actionData[x].value;
+		}
+
+		this.createLibraryObject("App", data, function(appId)
+		{
+			if( !!!appId )
+			{
+				if( !!this.error )
+				{
+					this.eventHandler("error", this.error);
+					this.eventHandler("unfreezeInputs");
+					return;
+				}
+
+				return;
+			}
+
+			this.showMenu("libraryApps");
+		}.bind(this));
+	}
 	else if( actionName === "createLibraryType" )
 	{
 		this.eventHandler("freezeInputs");
@@ -2201,6 +2244,9 @@ Metaverse.prototype.joinUniverse = function(universeKey, callback)
 	this.libraryRef.child("platforms").on("child_added", this.platformAdded.bind(this))
 	this.libraryRef.child("platforms").on("child_removed", this.platformRemoved.bind(this));
 
+	this.libraryRef.child("apps").on("child_added", this.appAdded.bind(this))
+	this.libraryRef.child("apps").on("child_removed", this.appRemoved.bind(this));
+
 	this.usersRef.on("child_added", this.userAdded.bind(this));
 	this.usersRef.on("child_removed", this.userRemoved.bind(this));
 
@@ -2253,6 +2299,27 @@ Metaverse.prototype.typeRemoved = function(child)
 {
 	console.log("Type removed.");
 	delete this.library.types[child.key()];
+};
+
+Metaverse.prototype.appAdded = function(child, prevChildKey)
+{
+	var key = child.key();
+	console.log("Downloaded metaverse information for app " + key);
+
+	this.library.apps[key] = child.val();
+	this.libraryRef.child("apps").child(key).child("current").on("value", this.appChanged.bind(this));
+};
+
+Metaverse.prototype.appRemoved = function(child)
+{
+	console.log("App removed.");
+	delete this.library.apps[child.key()];
+};
+
+Metaverse.prototype.appChanged = function(child, prevChildKey)
+{
+	var val = child.val();
+	this.library.apps[val.info.id].current = val;
 };
 
 Metaverse.prototype.typeChanged = function(child, prevChildKey)
@@ -2576,7 +2643,26 @@ Metaverse.prototype.validateData = function(data, defaultData, callback)
 		}
 		else if( typeof data[x] === "object" )
 		{
-			console.log("data object, no validation protocol defined.")
+			//console.log("data object, no validation protocol defined.")
+			var r;
+			for( r in data[x] )
+			{
+				for( s in data[x][r] )
+				{
+					//console.log(defaultData[x][s].format);
+					//console.log(data[x][r][s]);
+					if( data[x][r][s].search(eval(defaultData[x][s].format)) === -1 )
+					{
+						this.error = new Error(defaultData[x][s].formatDescription);
+
+						if( !!callback )
+							callback();
+						else
+							this.eventHandler("error", this.error);
+						return false;
+					}
+				}
+			}
 		}
 		else if( data[x].search(eval(defaultData[x].format)) === -1 )
 		{
