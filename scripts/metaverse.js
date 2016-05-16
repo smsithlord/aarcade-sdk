@@ -600,6 +600,10 @@ function Metaverse(eventHandler)
 		if( !!options && !!options.platformId )
 			platform = this.library.platforms[options.platformId].current;
 
+		var app;
+		if( !!options && !!options.appId )
+			app = this.library.apps[options.appId].current;
+
 		var menus = {
 			"metaverseMenu":
 			{
@@ -1067,6 +1071,11 @@ function Metaverse(eventHandler)
 				"menuId": "libraryTypesEdit",
 				"menuHeader": "Dashboard / Library / Types / Edit",
 			},
+			"libraryAppsEdit":
+			{
+				"menuId": "libraryAppsEdit",
+				"menuHeader": "Dashboard / Library / Apps / Edit",
+			},
 			"libraryPlatforms":
 			{
 				"menuId": "libraryPlatforms",
@@ -1276,6 +1285,54 @@ function Metaverse(eventHandler)
 			"type": "button",
 			"value": "Cancel",
 			"action": "cancelLibraryTypeEdit"
+		};
+
+		// MENU
+		menuId = "libraryAppsEdit";
+		if( !!app )
+		{
+			menus[menuId]["id"] = {
+				"label": "ID: ",
+				"type": "text",
+				"value": app.info.id,
+				"placeholder": "autokey",
+				"locked": true
+			};
+		}
+		for( x in this.defaultApp )
+		{
+			if( x === "info" )
+				continue;
+
+			if( !!app && typeof app[x] === "object" )
+			{
+				//console.log(app[x]);
+				menus[menuId][x] = {
+					"label": this.defaultApp[x].label + ": ",
+					"type": "child",
+					"value": (!!app) ? app[x] : "",
+					"placeholder": this.defaultApp[x]
+				};
+			}
+			else
+			{
+				menus[menuId][x] = {
+					"label": this.defaultApp[x].label + ": ",
+					"type": "text",
+					"value": (!!app) ? app[x] : "",
+					"placeholder": this.defaultApp[x].types
+				};
+			}
+		}
+		menus[menuId]["save"] = {
+			"type": "submit",
+			"value": "Save",
+			"action": "updateLibraryApp"
+		};
+		menus[menuId]["cancel"] = {
+			"type": "button",
+			"value": "Cancel",
+			"action": "cancelLibraryAppEdit"
 		};
 
 		// MENU
@@ -1843,9 +1900,17 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	{
 		this.showMenu("libraryTypesEdit", {"typeId": actionData["typeSelect"].options[actionData["typeSelect"].selectedIndex].value});
 	}
+	else if( actionName === "showEditApp" )
+	{
+		this.showMenu("libraryAppsEdit", {"appId": actionData["appSelect"].options[actionData["appSelect"].selectedIndex].value});
+	}
 	else if( actionName === "cancelLibraryTypeEdit" )
 	{
 		this.showMenu("libraryTypes");
+	}
+	else if( actionName === "cancelLibraryAppEdit" )
+	{
+		this.showMenu("libraryApps");
 	}
 	else if( actionName === "updateLibraryType" )
 	{
