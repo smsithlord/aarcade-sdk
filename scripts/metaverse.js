@@ -278,6 +278,14 @@ function Metaverse(eventHandler)
 			"format": "/^.{2,1024}$/i",
 			"formatDescription": "Command Format must be a valid metaverse command format."
 		},
+		"type":
+		{
+			"label": "Type",
+			"default": "",
+			"types": "autokey",
+			"format": "/.+$/i",
+			"formatDescription": "Type must be an auto-generated key."
+		},
 		"download":
 		{
 			"label": "Download",
@@ -312,7 +320,7 @@ function Metaverse(eventHandler)
 				"types": "string",
 				"format": "/^.{2,1024}$/i",
 				"formatDescription": "Path must be a valid directory."
-			},
+			}/*,
 			"type":
 			{
 				"label": "Type",
@@ -320,7 +328,7 @@ function Metaverse(eventHandler)
 				"types": "autokey",
 				"format": "/.+$/i",
 				"formatDescription": "Type must be an auto-generated key."
-			}
+			}*/
 			/*
 			"label": "File Paths",
 			"default": "",
@@ -1850,6 +1858,10 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 				data[x] = actionData[x].value;
 		}
 
+		// data MUST have filePaths object
+		if( !data.hasOwnProperty("filePaths") )
+			data.filePaths = {};
+
 		this.createLibraryObject("App", data, function(appId)
 		{
 			if( !!!appId )
@@ -1911,6 +1923,57 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	else if( actionName === "cancelLibraryAppEdit" )
 	{
 		this.showMenu("libraryApps");
+	}
+	else if( actionName === "updateLibraryApp" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var data = {};
+		var x;
+		for( x in actionData )
+		{
+			if( actionData[x].type !== "button" && actionData[x].type !== "submit" && x !== "id" )
+			{
+				if( actionData[x].type === undefined )
+				{
+					data[x] = {};
+
+					var y;
+					for( y in actionData[x] )
+					{
+						data[x][y] = {};
+						var z;
+						for( z in actionData[x][y] )
+							data[x][y][z] = actionData[x][y][z].value;
+					}
+				}
+				else
+					data[x] = actionData[x].value;
+			}
+		}
+
+		data.info = {"id": actionData["id"].value};
+
+		// data MUST have filePaths object
+//		if( !data.hasOwnProperty("filePaths") )
+//			data.filePaths = {};
+
+		this.updateLibraryObject("App", data, function(appId)
+		{
+			if( !!!appId )
+			{
+				if( !!this.error )
+				{
+					this.eventHandler("error", this.error);
+					this.eventHandler("unfreezeInputs");
+					return;
+				}
+
+				return;
+			}
+
+			this.showMenu("libraryApps");
+		}.bind(this));
 	}
 	else if( actionName === "updateLibraryType" )
 	{
@@ -2371,7 +2434,19 @@ Metaverse.prototype.appAdded = function(child, prevChildKey)
 	var key = child.key();
 	console.log("Downloaded metaverse information for app " + key);
 
-	this.library.apps[key] = child.val();
+	// Make sure the app has all required fields.
+	var val = child.val();
+	var x;
+	for( x in this.defaultApp )
+	{
+		if( !val.current.hasOwnProperty(x) )
+		{
+			// Assume it is an empty container object.
+			val.current[x] = {};
+		}
+	}
+
+	this.library.apps[key] = val;
 	this.libraryRef.child("apps").child(key).child("current").on("value", this.appChanged.bind(this));
 };
 
@@ -2384,6 +2459,18 @@ Metaverse.prototype.appRemoved = function(child)
 Metaverse.prototype.appChanged = function(child, prevChildKey)
 {
 	var val = child.val();
+
+	// Make sure the app has all required fields.
+	var x;
+	for( x in this.defaultApp )
+	{
+		if( !val.hasOwnProperty(x) )
+		{
+			// Assume it is an empty container object.
+			val[x] = {};
+		}
+	}
+
 	this.library.apps[val.info.id].current = val;
 };
 
@@ -2688,9 +2775,10 @@ Metaverse.prototype.validateData = function(data, defaultData, callback)
 	for( x in defaultData )
 	{
 		//if( x === "info" || !data.hasOwnProperty(x) )
-		if( defaultData[x] === true || !data.hasOwnProperty(x) )
+		if( defaultData[x] === true || !data.hasOwnProperty(x) || data[x] === undefined )
 			continue;
-
+//		console.log(x);
+//console.log(data[x]);
 		if( defaultData[x].types === "integer" )
 		{
 			if( typeof data[x] === "string" && data[x] === "" )

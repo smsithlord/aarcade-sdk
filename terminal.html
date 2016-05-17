@@ -203,7 +203,6 @@
 					}
 					else if( inputData.type === "child" )
 					{
-						//console.log(inputData.value);
 						// THIS IS EDIT APP
 						inputLabelTextElem = document.createElement("div");
 						inputLabelTextElem.className = "labelText";
@@ -231,14 +230,12 @@
 						plusButton.inputData = inputData;
 						plusButton.addEventListener("click", function(e)
 						{
-							//addFilePath(e.srcElement);
 							addNewFilePath(e.srcElement.orphanage, e.srcElement.x, e.srcElement.inputData);
 						});
 
 						var y;
 						for( y in inputData.value )
 						{
-							//console.log(inputData.value[y]);
 							addFilePath(orphanageElem, x, inputData.value[y], inputData.placeholder);
 						}
 
@@ -278,7 +275,6 @@
 
 							var childInputLabelTextElem, childInputLabelElem;
 
-							//var thisElem = e.srcElement;
 							formElems[key][childContainer.pushId] = {};
 
 							var y;
