@@ -341,13 +341,13 @@ function Metaverse(eventHandler)
 
 	this.defaultItem = {
 		"info": true,
-		"app":
+		"title":
 		{
-			"label": "App",
+			"label": "Title",
 			"default": "",
-			"types": "autokey",
-			"format": "/.*$/i",
-			"formatDescription": "App must be an auto-generated key."
+			"types": "string",
+			"format": "/^.{2,1024}$/i",
+			"formatDescription": "Title must be between 2 and 1024 characters."
 		},
 		"description":
 		{
@@ -357,6 +357,46 @@ function Metaverse(eventHandler)
 			"format": "/^.{0,1024}$/i",
 			"formatDescription": "Description must be between 0 and 1024 characters."
 		},
+		"file":
+		{
+			"label": "File",
+			"default": "",
+			"types": "uri|string",
+			"format": "/^.{3,1024}$/i",
+			"formatDescription": "File must be between 3 and 1024 characters."
+		},
+		"type":
+		{
+			"label": "Type",
+			"default": "",
+			"types": "autokey",
+			"format": "/.+$/i",
+			"formatDescription": "Type must be an auto-generated key."
+		},
+		"app":
+		{
+			"label": "App",
+			"default": "",
+			"types": "autokey",
+			"format": "/.*$/i",
+			"formatDescription": "App must be an auto-generated key."
+		},
+		"reference":
+		{
+			"label": "Reference",
+			"default": "",
+			"types": "uri",
+			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
+			"formatDescription": "Reference must be a valid URI."
+		},
+		"preview":
+		{
+			"label": "Preview",
+			"default": "",
+			"types": "uri|string",
+			"format": "/^.{0,1024}$/i",
+			"formatDescription": "Preview must be between 0 and 1024 characters."
+		},
 		"download":
 		{
 			"label": "Download",
@@ -365,13 +405,21 @@ function Metaverse(eventHandler)
 			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
 			"formatDescription": "Download must be a valid URI."
 		},
-		"file":
+		"stream":
 		{
-			"label": "File",
+			"label": "Stream",
+			"default": "",
+			"types": "uri",
+			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
+			"formatDescription": "Stream must be a valid URI."
+		},
+		"screen":
+		{
+			"label": "Screen",
 			"default": "",
 			"types": "uri|string",
-			"format": "/^.{3,1024}$/i",
-			"formatDescription": "File must be between 3 and 1024 characters."
+			"format": "/^.{0,1024}$/i",
+			"formatDescription": "Screen must be between 0 and 1024 characters."
 		},
 		"marquee":
 		{
@@ -388,54 +436,6 @@ function Metaverse(eventHandler)
 			"types": "autokey",
 			"format": "/.*$/i",
 			"formatDescription": "Cabinet must be an auto-generated key."
-		},
-		"preview":
-		{
-			"label": "Preview",
-			"default": "",
-			"types": "uri|string",
-			"format": "/^.{0,1024}$/i",
-			"formatDescription": "Preview must be between 0 and 1024 characters."
-		},
-		"reference":
-		{
-			"label": "Reference",
-			"default": "",
-			"types": "uri",
-			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
-			"formatDescription": "Reference must be a valid URI."
-		},
-		"screen":
-		{
-			"label": "Screen",
-			"default": "",
-			"types": "uri|string",
-			"format": "/^.{0,1024}$/i",
-			"formatDescription": "Screen must be between 0 and 1024 characters."
-		},
-		"stream":
-		{
-			"label": "Stream",
-			"default": "",
-			"types": "uri",
-			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
-			"formatDescription": "Stream must be a valid URI."
-		},
-		"title":
-		{
-			"label": "Title",
-			"default": "",
-			"types": "string",
-			"format": "/^.{2,1024}$/i",
-			"formatDescription": "Title must be between 2 and 1024 characters."
-		},
-		"type":
-		{
-			"label": "Type",
-			"default": "",
-			"types": "autokey",
-			"format": "/.+$/i",
-			"formatDescription": "Type must be an auto-generated key."
 		}
 	};
 

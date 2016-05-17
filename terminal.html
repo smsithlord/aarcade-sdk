@@ -421,6 +421,92 @@
 							orphanage.appendChild(childContainer);
 						}
 					}
+					else if( false && inputData.placeholder === "autokey" && !inputData.hasOwnProperty("locked") )
+					{
+						inputLabelTextElem = document.createElement("div");
+						inputLabelTextElem.className = "labelText";
+						inputLabelTextElem.innerHTML = inputData.label;
+
+						inputLabelElem = document.createElement("label");
+						inputLabelElem.appendChild(inputLabelTextElem);
+
+						inputElem = document.createElement("select");
+						inputElem.style.verticalAlign = "top";
+						inputElem.type = "select";
+						inputElem.size = 4;
+						/*
+						inputElem.action = inputData.action;
+
+						inputElem.addEventListener("change", function(e)
+						{
+							e.preventDefault();
+
+							metaverse.menuAction(e.srcElement.action, formElems);
+						});
+*/
+						var y, inputOption;
+						if( x === "type" )
+						{
+							for( y in metaverse.library.types )
+							{
+								inputOption = document.createElement("option");
+								inputOption.value = y;
+								inputOption.text = metaverse.library.types[y].current.title;
+								inputElem.appendChild(inputOption);
+							}
+
+							inputElem.value = inputData.value;
+
+							if( inputElem.options.length === 0 )
+								needsSubmitDisable = true;
+						}
+						else if( x === "app" )
+						{
+							for( y in metaverse.library.apps )
+							{
+								inputOption = document.createElement("option");
+								inputOption.value = y;
+								inputOption.text = metaverse.library.apps[y].current.title;
+								inputElem.appendChild(inputOption);
+							}
+
+							inputElem.value = inputData.value;
+
+							if( inputElem.options.length === 0 )
+								needsSubmitDisable = true;
+						}
+
+						inputLabelElem.appendChild(inputElem);
+						form.appendChild(inputLabelElem);//inputElem);
+
+						if( inputData.focus )
+							focusElem = inputElem;
+
+						formElems[x] = inputElem;
+						/*
+						inputLabelTextElem = document.createElement("div");
+						inputLabelTextElem.className = "labelText";
+						inputLabelTextElem.innerHTML = inputData.label;
+
+						inputLabelElem = document.createElement("label");
+						inputLabelElem.appendChild(inputLabelTextElem);
+
+						inputElem = document.createElement("input");
+						inputElem.type =  inputData.type;
+						inputElem.value = inputData.value;
+
+						if( !!inputData.placeholder && inputData.placeholder !== "" )
+							inputElem.placeholder = inputData.placeholder;
+
+						inputLabelElem.appendChild(inputElem);
+						form.appendChild(inputLabelElem);
+
+						if( inputData.focus )
+							focusElem = inputElem;
+
+						formElems[x] = inputElem;
+						*/
+					}
 					else if( inputData.type === "text" || inputData.type === "password")
 					{
 						inputLabelTextElem = document.createElement("div");
