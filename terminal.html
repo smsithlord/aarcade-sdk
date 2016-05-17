@@ -67,6 +67,7 @@
 					inputData = data[x];
 					if( !inputData.hasOwnProperty("type") || typeof inputData.type !== "string" )
 					{
+						// THIS IS NEW APP
 						inputLabelTextElem = document.createElement("div");
 						inputLabelTextElem.className = "labelText";
 						inputLabelTextElem.innerHTML = inputData.label + ": ";
@@ -202,6 +203,8 @@
 					}
 					else if( inputData.type === "child" )
 					{
+						//console.log(inputData.value);
+						// THIS IS EDIT APP
 						inputLabelTextElem = document.createElement("div");
 						inputLabelTextElem.className = "labelText";
 						inputLabelTextElem.innerHTML = inputData.label;
@@ -228,82 +231,16 @@
 						plusButton.inputData = inputData;
 						plusButton.addEventListener("click", function(e)
 						{
-							var childContainer = document.createElement("div");
-							childContainer.style.cssText = "display: block;";
-							childContainer.pushId = metaverse.generatePushId();
-
-							var hr = document.createElement("hr");
-							childContainer.appendChild(hr);
-
-							var childInputLabelTextElem, childInputLabelElem;
-
-							var thisElem = e.srcElement;
-							formElems[thisElem.x][childContainer.pushId] = {};
-
-							var y;
-							for( y in thisElem.inputData.placeholder )
-							{
-								if( y === "label" )
-									continue;
-
-								childInputLabelTextElem = document.createElement("div");
-								childInputLabelTextElem.className = "labelText";
-								childInputLabelTextElem.innerHTML = thisElem.inputData.placeholder[y].label + ": ";
-
-								childInputLabelElem = document.createElement("label");
-								childInputLabelElem.appendChild(childInputLabelTextElem);
-
-								childInputElem = document.createElement("input");
-								childInputElem.type =  "text";
-								childInputElem.value = thisElem.inputData.placeholder[y].default;
-
-								if( !!thisElem.inputData.placeholder[y].placeholder && thisElem.inputData.placeholder[y].placeholder !== "" )
-									childInputElem.placeholder = thisElem.inputData.placeholder[y].placeholder;
-								else
-									childInputElem.placeholder = thisElem.inputData.placeholder[y].types;
-
-								childInputLabelElem.appendChild(childInputElem);
-								childContainer.appendChild(childInputLabelElem);
-
-								if( thisElem.inputData.placeholder[y].focus )
-									focusElem = childInputElem;
-
-								//formElems[plusButton.x][y] = childInputElem;
-								if( y === "id" )
-								{
-									childInputElem.value = childContainer.pushId;
-									childInputElem.locked = true;
-									childInputElem.disabled = true;
-								}
-
-								formElems[thisElem.x][childContainer.pushId][y] = childInputElem;
-							}
-
-							childInputLabelTextElem = document.createElement("div");
-							childInputLabelTextElem.className = "labelText";
-							childInputLabelTextElem.innerHTML = "";
-
-							childInputLabelElem = document.createElement("label");
-							childInputLabelElem.appendChild(childInputLabelTextElem);
-
-							var minusButton = document.createElement("input");
-							minusButton.type = "button";
-							minusButton.value = " - Remove";
-							minusButton.style.cssText = "width: 250px; height: 14px; font-size: 8px; font-weight: 900; display: inline;";
-							minusButton.x = thisElem.x;
-							minusButton.parentContainer = childContainer;
-							minusButton.addEventListener("click", function(e)
-							{
-								var minusElem = e.srcElement;
-								minusElem.parentContainer.parentNode.removeChild(minusElem.parentContainer);
-
-								delete formElems[minusElem.x][minusElem.parentContainer.pushId];
-							}, true);
-
-							childInputLabelElem.appendChild(minusButton);
-							childContainer.appendChild(childInputLabelElem);
-							thisElem.orphanage.appendChild(childContainer);
+							//addFilePath(e.srcElement);
+							addNewFilePath(e.srcElement.orphanage, e.srcElement.x, e.srcElement.inputData);
 						});
+
+						var y;
+						for( y in inputData.value )
+						{
+							//console.log(inputData.value[y]);
+							addFilePath(orphanageElem, x, inputData.value[y], inputData.placeholder);
+						}
 
 						/*
 						inputLabelTextElem = document.createElement("div");
@@ -328,6 +265,165 @@
 
 						formElems[x] = inputElem;
 						*/
+
+						//function addFilePath(thisElem)
+						function addNewFilePath(orphanage, key, inputData)
+						{
+							var childContainer = document.createElement("div");
+							childContainer.style.cssText = "display: block;";
+							childContainer.pushId = metaverse.generatePushId();
+
+							var hr = document.createElement("hr");
+							childContainer.appendChild(hr);
+
+							var childInputLabelTextElem, childInputLabelElem;
+
+							//var thisElem = e.srcElement;
+							formElems[key][childContainer.pushId] = {};
+
+							var y;
+							for( y in inputData.placeholder )
+							{
+								if( y === "label" )
+									continue;
+
+								childInputLabelTextElem = document.createElement("div");
+								childInputLabelTextElem.className = "labelText";
+								childInputLabelTextElem.innerHTML = inputData.placeholder[y].label + ": ";
+
+								childInputLabelElem = document.createElement("label");
+								childInputLabelElem.appendChild(childInputLabelTextElem);
+
+								childInputElem = document.createElement("input");
+								childInputElem.type =  "text";
+								childInputElem.value = inputData.placeholder[y].default;
+
+								if( !!inputData.placeholder[y].placeholder && inputData.placeholder[y].placeholder !== "" )
+									childInputElem.placeholder = inputData.placeholder[y].placeholder;
+								else
+									childInputElem.placeholder = inputData.placeholder[y].types;
+
+								childInputLabelElem.appendChild(childInputElem);
+								childContainer.appendChild(childInputLabelElem);
+
+								if( inputData.placeholder[y].focus )
+									focusElem = childInputElem;
+
+								//formElems[plusButton.x][y] = childInputElem;
+								if( y === "id" )
+								{
+									childInputElem.value = childContainer.pushId;
+									childInputElem.locked = true;
+									childInputElem.disabled = true;
+								}
+
+								formElems[key][childContainer.pushId][y] = childInputElem;
+							}
+
+							childInputLabelTextElem = document.createElement("div");
+							childInputLabelTextElem.className = "labelText";
+							childInputLabelTextElem.innerHTML = "";
+
+							childInputLabelElem = document.createElement("label");
+							childInputLabelElem.appendChild(childInputLabelTextElem);
+
+							var minusButton = document.createElement("input");
+							minusButton.type = "button";
+							minusButton.value = " - Remove";
+							minusButton.style.cssText = "width: 250px; height: 14px; font-size: 8px; font-weight: 900; display: inline;";
+							minusButton.x = key;
+							minusButton.parentContainer = childContainer;
+							minusButton.addEventListener("click", function(e)
+							{
+								var minusElem = e.srcElement;
+								minusElem.parentContainer.parentNode.removeChild(minusElem.parentContainer);
+
+								delete formElems[minusElem.x][minusElem.parentContainer.pushId];
+							}, true);
+
+							childInputLabelElem.appendChild(minusButton);
+							childContainer.appendChild(childInputLabelElem);
+							orphanage.appendChild(childContainer);
+						}
+
+						function addFilePath(orphanage, key, inputData, placeholder)
+						{
+							var childContainer = document.createElement("div");
+							childContainer.style.cssText = "display: block;";
+							childContainer.pushId = inputData.id;//metaverse.generatePushId();
+
+							var hr = document.createElement("hr");
+							childContainer.appendChild(hr);
+
+							var childInputLabelTextElem, childInputLabelElem;
+
+							//var thisElem = e.srcElement;
+							formElems[key][childContainer.pushId] = {};
+
+							var y;
+							for( y in placeholder )
+							{
+								if( y === "label" )
+									continue;
+
+								childInputLabelTextElem = document.createElement("div");
+								childInputLabelTextElem.className = "labelText";
+								childInputLabelTextElem.innerHTML = placeholder[y].label + ": ";
+
+								childInputLabelElem = document.createElement("label");
+								childInputLabelElem.appendChild(childInputLabelTextElem);
+
+								childInputElem = document.createElement("input");
+								childInputElem.type =  "text";
+								childInputElem.value = inputData[y];//placeholder[y].default;
+
+								if( !!placeholder[y].placeholder && placeholder[y].placeholder !== "" )
+									childInputElem.placeholder = placeholder[y].placeholder;
+								else
+									childInputElem.placeholder = placeholder[y].types;
+
+								childInputLabelElem.appendChild(childInputElem);
+								childContainer.appendChild(childInputLabelElem);
+
+								if( placeholder[y].focus )
+									focusElem = childInputElem;
+
+								//formElems[plusButton.x][y] = childInputElem;
+								if( y === "id" )
+								{
+									childInputElem.value = childContainer.pushId;
+									childInputElem.locked = true;
+									childInputElem.disabled = true;
+								}
+
+								formElems[key][childContainer.pushId][y] = childInputElem;
+							}
+
+							childInputLabelTextElem = document.createElement("div");
+							childInputLabelTextElem.className = "labelText";
+							childInputLabelTextElem.innerHTML = "";
+
+							childInputLabelElem = document.createElement("label");
+							childInputLabelElem.appendChild(childInputLabelTextElem);
+
+							var minusButton = document.createElement("input");
+							minusButton.type = "button";
+							minusButton.value = " - Remove";
+							minusButton.style.cssText = "width: 250px; height: 14px; font-size: 8px; font-weight: 900; display: inline;";
+							minusButton.x = key;
+							minusButton.parentContainer = childContainer;
+							minusButton.addEventListener("click", function(e)
+							{
+								var minusElem = e.srcElement;
+								minusElem.parentContainer.parentNode.removeChild(minusElem.parentContainer);
+
+								delete formElems[minusElem.x][minusElem.parentContainer.pushId];
+							}, true);
+
+							childInputLabelElem.appendChild(minusButton);
+							childContainer.appendChild(childInputLabelElem);
+							orphanage.appendChild(childContainer);
+						}
 					}
 					else if( inputData.type === "text" || inputData.type === "password")
 					{
