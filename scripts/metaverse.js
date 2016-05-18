@@ -6,6 +6,7 @@ function Metaverse(eventHandler)
 	this.users = {};
 	this.library = {
 		"items": {},
+		"models": {},
 		"types": {},
 		"apps": {},
 		"platforms": {}
@@ -142,45 +143,13 @@ function Metaverse(eventHandler)
 			"format": "/((((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)|(^$))/i",
 			"formatDescription": "Download must be a valid URI."
 		},
-		"cabinetsFileFormat":
+		"modelCustomFields":
 		{
-			"label": "Cabinet File Format",
-			"default": "/.+$/i",
-			"types": "regex",
-			"format": "/.*$/i",
-			"formatDescription": "Cabinet File Format must be a regular expression."
-		},
-		"cabinetsTitleFormat":
-		{
-			"label": "Cabinet Title Format",
-			"default": "/(?=[^\\/]*$).+$/i",
-			"types": "regex",
-			"format": "/.*$/i",
-			"formatDescription": "Cabinet Title Format must be a regular expression."
-		},
-		"cabinetCustomFields":
-		{
-			"label": "Cabinet Custom Fields",
+			"label": "Model Custom Fields",
 			"default": "",
 			"types": "string",
 			"format": "/.*$/i",
-			"formatDescription": "Cabinet Custom Fields must be a string of fieldID's, separated by the & symbol."
-		},
-		"mapsFileFormat":
-		{
-			"label": "Map File Format",
-			"default": "/.+$/i",
-			"types": "regex",
-			"format": "/.*$/i",
-			"formatDescription": "Map File Format must be a regular expression."
-		},
-		"mapsTitleFormat":
-		{
-			"label": "Map Title Format",
-			"default": "/(?=[^\\/]*$).+$/i",
-			"types": "regex",
-			"format": "/.*$/i",
-			"formatDescription": "Map Title Format must be a regular expression."
+			"formatDescription": "Model Custom Fields must be comma separated fieldIDs longer than 2 characters each and under 1024 characters total."
 		},
 		"mapCustomFields":
 		{
@@ -188,31 +157,7 @@ function Metaverse(eventHandler)
 			"default": "",
 			"types": "string",
 			"format": "/.*$/i",
-			"formatDescription": "Map Custom Fields must be a string of fieldID's, separated by the & symbol."
-		},
-		"propsFileFormat":
-		{
-			"label": "Prop File Format",
-			"default": "/.+$/i",
-			"types": "regex",
-			"format": "/.*$/i",
-			"formatDescription": "Prop File Format must be a regular expression."
-		},
-		"propsTitleFormat":
-		{
-			"label": "Prop Title Format",
-			"default": "/(?=[^\\/]*$).+$/i",
-			"types": "regex",
-			"format": "/.*$/i",
-			"formatDescription": "Prop Title Format must be a regular expression."
-		},
-		"propCustomFields":
-		{
-			"label": "Prop Custom Fields",
-			"default": "",
-			"types": "string",
-			"format": "/.*$/i",
-			"formatDescription": "Prop Custom Fields must be a string of fieldID's, separated by the & symbol."
+			"formatDescription": "Map Custom Fields must be comma separated fieldIDs longer than 2 characters each and under 1024 characters total."
 		}
 	};
 
@@ -320,22 +265,7 @@ function Metaverse(eventHandler)
 				"types": "string",
 				"format": "/^.{2,1024}$/i",
 				"formatDescription": "Path must be a valid directory."
-			}/*,
-			"type":
-			{
-				"label": "Type",
-				"default": "",
-				"types": "autokey",
-				"format": "/.+$/i",
-				"formatDescription": "Type must be an auto-generated key."
-			}*/
-			/*
-			"label": "File Paths",
-			"default": "",
-			"types": "child",
-			"format": "/.*$/i",
-			"formatDescription": "File Paths must be a valid object."
-			*/
+			}
 		}
 	};
 
@@ -429,31 +359,72 @@ function Metaverse(eventHandler)
 			"format": "/^.{0,1024}$/i",
 			"formatDescription": "Description must be between 0 and 1024 characters."
 		},
-		"cabinet":
+		"model":
 		{
-			"label": "Cabinet",
+			"label": "Model",
 			"default": "",
 			"types": "autokey",
 			"format": "/.*$/i",
-			"formatDescription": "Cabinet must be an auto-generated key."
+			"formatDescription": "Model must be an auto-generated key."
+		}
+	};
+
+	this.defaultModel = {
+		"info": true,
+		"title":
+		{
+			"label": "Title",
+			"default": "",
+			"types": "string",
+			"format": "/^.{2,1024}$/i",
+			"formatDescription": "Title must be between 2 and 1024 characters."
+		},
+		"keywords":
+		{
+			"label": "Keywords",
+			"default": "",
+			"types": "string",
+			"format": "/.*$/i",
+			"formatDescription": "Keywords must be comma separated strings longer than 2 characters each and under 1024 characters total."
+		},
+		"dynamic":
+		{
+			"label": "Dynamic",
+			"default": 0,
+			"types": "integer",
+			"format": "/(0|1)$/i",
+			"formatDescription": "Dynamic must be 0 or 1."
+		},
+		"platforms":
+		{
+			"label": "Platforms",
+			"id":
+			{
+				"label": "ID",
+				"default": "",
+				"types": "autokey",
+				"format": "/.+$/i",
+				"formatDescription": "ID must be an auto-generated key."
+			},
+			"file":
+			{
+				"label": "File",
+				"default": "",
+				"types": "string",
+				"format": "/^.{2,1024}$/i",
+				"formatDescription": "File must be between 0 and 1024 characters."
+			}
 		}
 	};
 
 	// NOTE: The regex's get encoded as strings to be compatible with JSON.
 	this.defaultPlatforms = [
 		{
-			"cabinetCustomFields": "workshopIds",
-			"cabinetsFileFormat": "/^(models\\/).+(.mdl)$/i",
-			"cabinetsTitleFormat": "/(?=[^\\/]*$).+$/i",
-			"download": "http://store.steampowered.com/app/266430/",
-			"mapCustomFields": "workshopIds&mountIds",
-			"mapsFileFormat": "/^(maps\\/).+(.bsp)$/i",
-			"mapsTitleFormat": "/(?=[^\\/]*$).+$/i",
-			"propCustomFields": "workshopIds&mountIds",
-			"propsFileFormat": "/^(models\\/).+(.mdl)$/i",
-			"propsTitleFormat": "/(?=[^\\/]*$).+$/i",
+			"title": "AArcade: Source",
 			"reference": "http://www.anarchyarcade.com/",
-			"title": "AArcade: Source"
+			"download": "http://store.steampowered.com/app/266430/",
+			"modelCustomFields": "workshopIds, mountIds",
+			"mapCustomFields": "workshopIds, mountIds"
 		}
 	];
 
@@ -843,6 +814,12 @@ function Metaverse(eventHandler)
 					"value": "Items",
 					"action": "showLibraryItems"
 				},
+				"models":
+				{
+					"type": "button",
+					"value": "Models",
+					"action": "showLibraryModels"
+				},
 				"types":
 				{
 					"type": "button",
@@ -974,6 +951,36 @@ function Metaverse(eventHandler)
 					"action": "cancelLibraryItems"
 				}
 			},
+			"libraryModels":
+			{
+				"menuId": "libraryItems",
+				"menuHeader": "Dashboard / Library / Models",
+				"modelSelect":
+				{
+					"type": "select",
+					"generateOptions": "libraryModel",
+					"focus": true,
+					"action": "libraryModelSelectChange"
+				},
+				"editModel":
+				{
+					"type": "submit",
+					"value": "Edit Model",
+					"action": "showEditModel"
+				},
+				"newModel":
+				{
+					"type": "button",
+					"value": "Create New Model",
+					"action": "showCreateModel"
+				},
+				"cancel":
+				{
+					"type": "button",
+					"value": "Cancel",
+					"action": "cancelLibraryModels"
+				}
+			},
 			"libraryItemsCreate":
 			{
 				"menuId": "libraryItemsCreate",
@@ -998,6 +1005,11 @@ function Metaverse(eventHandler)
 					"value": "Cancel",
 					"action": "cancelLibraryItemCreate"
 				}
+			},
+			"libraryModelsCreate":
+			{
+				"menuId": "libraryModelsCreate",
+				"menuHeader": "Dashboard / Library / Models / New",
 			},
 			"libraryItemsEdit":
 			{
@@ -1165,6 +1177,54 @@ function Metaverse(eventHandler)
 		};
 
 		// MENU
+		menuId = "libraryModelsCreate";
+		for( x in this.defaultModel )
+		{
+			if( x === "info" )
+				continue;
+
+			if( !this.defaultModel[x].hasOwnProperty("default") )
+			{
+				menus[menuId][x] = {
+					"label": this.defaultModel[x].label
+				};
+
+				var y;
+				for( y in this.defaultModel[x] )
+				{
+					if( y === "label" )
+						continue;
+					
+					menus[menuId][x][y] = {
+						"label": this.defaultModel[x][y].label + ": ",
+						"type": "text",
+						"value": "",
+						"placeholder": this.defaultModel[x][y].types
+					};
+				}
+			}
+			else
+			{
+				menus[menuId][x] = {
+					"label": this.defaultModel[x].label + ": ",
+					"type": "text",
+					"value": (!!item) ? item[x] : "",
+					"placeholder": this.defaultModel[x].types
+				};
+			}
+		}
+		menus[menuId]["save"] = {
+			"type": "submit",
+			"value": "Save",
+			"action": "createLibraryModel"
+		};
+		menus[menuId]["cancel"] = {
+			"type": "button",
+			"value": "Cancel",
+			"action": "cancelLibraryModelCreate"
+		};
+
+		// MENU
 		menuId = "libraryTypesCreate";
 		for( x in this.defaultType )
 		{
@@ -1217,8 +1277,6 @@ function Metaverse(eventHandler)
 
 			if( !this.defaultApp[x].hasOwnProperty("default") )
 			{
-//			if( this.defaultApp[x].types === "child" )
-//			{
 				menus[menuId][x] = {
 					"label": this.defaultApp[x].label
 				};
@@ -1236,8 +1294,6 @@ function Metaverse(eventHandler)
 						"placeholder": this.defaultApp[x][y].types
 					};
 				}
-
-				//console.log(menus[menuId][x]);
 			}
 			else
 			{
@@ -1418,6 +1474,12 @@ function Metaverse(eventHandler)
 
 	this.showMenu("metaverseMenu");
 }
+
+Metaverse.prototype.tokenize = function(string)
+{
+	//return string.match(/\S+/g);
+	return string.split(/,\s*/g);
+};
 
 Metaverse.prototype.showMenu = function(menuId, options)
 {
@@ -1692,9 +1754,17 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	{
 		this.showMenu("libraryMenu");
 	}
+	else if( actionName === "cancelLibraryModels" )
+	{
+		this.showMenu("libraryMenu");
+	}
 	else if( actionName === "showLibraryItems" )
 	{
 		this.showMenu("libraryItems");
+	}
+	else if( actionName === "showLibraryModels" )
+	{
+		this.showMenu("libraryModels");
 	}
 	else if( actionName === "showEditItem" )
 	{
@@ -1708,9 +1778,17 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	{
 		this.showMenu("libraryItemsCreate");
 	}
+	else if( actionName === "showCreateModel" )
+	{
+		this.showMenu("libraryModelsCreate");
+	}
 	else if( actionName === "cancelLibraryItemCreate" )
 	{
 		this.showMenu("libraryItems");
+	}
+	else if( actionName === "cancelLibraryModelCreate" )
+	{
+		this.showMenu("libraryModels");
 	}
 	else if( actionName === "generateNewItem" )
 	{
@@ -1737,7 +1815,7 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 		item.reference = "";
 		item.download = "";
 		item.stream = "";
-		item.cabinet = "";
+		item.model = "";
 		item.marquee = "";
 		item.screen = "";
 
@@ -2140,6 +2218,10 @@ Metaverse.prototype.reset = function()
 		this.libraryRef.child("items").off();
 		for( x in this.library.items )
 			this.libraryRef.child("items").child(this.library.items[x].current.info.id).child("current").off();
+
+		this.libraryRef.child("models").off();
+		for( x in this.library.models )
+			this.libraryRef.child("models").child(this.library.models[x].current.info.id).child("current").off();
 	
 		this.libraryRef.child("types").off();
 		for( x in this.library.types )
@@ -2164,6 +2246,7 @@ Metaverse.prototype.reset = function()
 	this.users = {};
 	this.library = {
 		"items": {},
+		"models": {},
 		"types": {},
 		"apps": {},
 		"platforms": {}
@@ -2358,6 +2441,7 @@ Metaverse.prototype.joinUniverse = function(universeKey, callback)
 
 	this.library = {
 		"items": {},
+		"models": {},
 		"types": {},
 		"apps": {},
 		"platforms": {}
@@ -2365,6 +2449,9 @@ Metaverse.prototype.joinUniverse = function(universeKey, callback)
 
 	this.libraryRef.child("items").on("child_added", this.itemAdded.bind(this))
 	this.libraryRef.child("items").on("child_removed", this.itemRemoved.bind(this));
+
+	this.libraryRef.child("models").on("child_added", this.modelAdded.bind(this))
+	this.libraryRef.child("models").on("child_removed", this.modelRemoved.bind(this));
 
 	this.libraryRef.child("types").on("child_added", this.typeAdded.bind(this))
 	this.libraryRef.child("types").on("child_removed", this.typeRemoved.bind(this));
@@ -2412,6 +2499,26 @@ Metaverse.prototype.itemChanged = function(child, prevChildKey)
 {
 	var val = child.val();
 	this.library.items[val.info.id].current = val;
+};
+
+Metaverse.prototype.modelAdded = function(child, prevChildKey)
+{
+	var key = child.key();
+	console.log("Downloaded metaverse information for model " + key);
+	this.library.models[key] = child.val();
+	this.libraryRef.child("models").child(key).child("current").on("value", this.modelChanged.bind(this));
+};
+
+Metaverse.prototype.modelRemoved = function(child)
+{
+	console.log("Model removed.");
+	delete this.library.models[child.key()];
+};
+
+Metaverse.prototype.modelChanged = function(child, prevChildKey)
+{
+	var val = child.val();
+	this.library.models[val.info.id].current = val;
 };
 
 Metaverse.prototype.typeAdded = function(child, prevChildKey)
