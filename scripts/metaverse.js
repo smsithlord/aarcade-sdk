@@ -9,6 +9,7 @@ function Metaverse(eventHandler)
 		"models": {},
 		"types": {},
 		"apps": {},
+		"databases": {},
 		"platforms": {}
 	};
 
@@ -114,6 +115,46 @@ function Metaverse(eventHandler)
 			"types": "string",
 			"format": "/^.{5,1024}$/i",
 			"formatDescription": "Passcode must be between 5 and 1024 characters."
+		}
+	};
+
+	this.defaultDatabase = {
+		"info": true,
+		"title":
+		{
+			"label": "Title",
+			"default": "",
+			"types": "string",
+			"format": "/^.{2,1024}$/i",
+			"formatDescription": "Title must be between 2 and 1024 characters."
+		},
+		"singleQueryUri":
+		{
+			"label": "Single Query Handler",
+			"default": "",
+			"types": "uri",
+			"format": "/(((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)/i",
+			"formatDescription": "Single Query must be a valid URI to a PHP handler."
+		},
+		"typeAliases":
+		{
+			"label": "Type Aliases",
+			"id":
+			{
+				"label": "ID",
+				"default": "",
+				"types": "autokey",
+				"format": "/.+$/i",
+				"formatDescription": "ID must be an auto-generated key."
+			},
+			"alias":
+			{
+				"label": "Alias",
+				"default": "",
+				"types": "string",
+				"format": "/^.{2,1024}$/i",
+				"formatDescription": "Alias must be between 0 and 1024 characters."
+			}
 		}
 	};
 
@@ -582,6 +623,10 @@ Metaverse.prototype.getMenus = function(options)
 	if( !!options && !!options.typeId )
 		type = this.library.types[options.typeId].current;
 
+	var database;
+	if( !!options && !!options.databaseId )
+		database = this.library.databases[options.databaseId].current;
+
 	var platform;
 	if( !!options && !!options.platformId )
 		platform = this.library.platforms[options.platformId].current;
@@ -843,6 +888,12 @@ Metaverse.prototype.getMenus = function(options)
 				"value": "Apps",
 				"action": "showLibraryApps"
 			},
+			"databases":
+			{
+				"type": "button",
+				"value": "Databases",
+				"action": "showLibraryDatabases"
+			},
 			"platforms":
 			{
 				"type": "button",
@@ -1057,6 +1108,36 @@ Metaverse.prototype.getMenus = function(options)
 				"action": "cancelLibraryTypes"
 			}
 		},
+		"libraryDatabases":
+		{
+			"menuId": "libraryDatabases",
+			"menuHeader": "Dashboard / Library / Databases",
+			"databaseSelect":
+			{
+				"type": "select",
+				"generateOptions": "libraryDatabases",
+				"focus": true,
+				"action": "libraryDatabasesSelectChange"
+			},
+			"editDatabase":
+			{
+				"type": "submit",
+				"value": "Edit Database",
+				"action": "showEditDatabase"
+			},
+			"newDatabase":
+			{
+				"type": "button",
+				"value": "Create New Database",
+				"action": "showCreateDatabase"
+			},
+			"cancel":
+			{
+				"type": "button",
+				"value": "Cancel",
+				"action": "cancelLibraryDatabases"
+			}
+		},
 		"libraryApps":
 		{
 			"menuId": "libraryApps",
@@ -1141,6 +1222,16 @@ Metaverse.prototype.getMenus = function(options)
 				"value": "Cancel",
 				"action": "cancelLibraryPlatforms"
 			}
+		},
+		"libraryDatabasesCreate":
+		{
+			"menuId": "libraryDatabasesCreate",
+			"menuHeader": "Dashboard / Library / Databases / New",
+		},
+		"libraryDatabasesEdit":
+		{
+			"menuId": "libraryDatabasesEdit",
+			"menuHeader": "Dashboard / Library / Databases / Edit",	
 		},
 		"libraryPlatformsCreate":
 		{
@@ -1461,6 +1552,54 @@ Metaverse.prototype.getMenus = function(options)
 		"type": "button",
 		"value": "Cancel",
 		"action": "cancelLibraryAppEdit"
+	};
+
+	// MENU
+	menuId = "libraryDatabasesCreate";
+	for( x in this.defaultDatabase )
+	{
+		if( x === "info" )
+			continue;
+
+		if( !this.defaultDatabase[x].hasOwnProperty("default") )
+		{
+			menus[menuId][x] = {
+				"label": this.defaultDatabase[x].label
+			};
+
+			var y;
+			for( y in this.defaultDatabase[x] )
+			{
+				if( y === "label" )
+					continue;
+				
+				menus[menuId][x][y] = {
+					"label": this.defaultDatabase[x][y].label + ": ",
+					"type": "text",
+					"value": "",
+					"placeholder": this.defaultDatabase[x][y].types
+				};
+			}
+		}
+		else
+		{
+			menus[menuId][x] = {
+				"label": this.defaultDatabase[x].label + ": ",
+				"type": "text",
+				"value": (!!item) ? item[x] : "",
+				"placeholder": this.defaultDatabase[x].types
+			};
+		}
+	}
+	menus[menuId]["save"] = {
+		"type": "submit",
+		"value": "Save",
+		"action": "createLibraryDatabase"
+	};
+	menus[menuId]["cancel"] = {
+		"type": "button",
+		"value": "Cancel",
+		"action": "cancelLibraryDatabaseCreate"
 	};
 
 	// MENU
@@ -1990,11 +2129,19 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	{
 		this.showMenu("libraryTypes");
 	}
+	else if( actionName === "showLibraryDatabases" )
+	{
+		this.showMenu("libraryDatabases");
+	}
 	else if( actionName === "showLibraryApps" )
 	{
 		this.showMenu("libraryApps");
 	}
 	else if( actionName === "cancelLibraryTypes" )
+	{
+		this.showMenu("libraryMenu");
+	}
+	else if( actionName === "cancelLibraryDatabases" )
 	{
 		this.showMenu("libraryMenu");
 	}
@@ -2306,6 +2453,10 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	{
 		this.showMenu("libraryMenu");
 	}
+	else if( actionName === "cancelLibraryDatabaseCreate" )
+	{
+		this.showMenu("libraryDatabases");
+	}
 	else if( actionName === "cancelLibraryPlatformCreate" )
 	{
 		this.showMenu("libraryPlatforms");
@@ -2314,6 +2465,10 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	{
 		this.showMenu("libraryPlatforms");
 	}
+	else if( actionName === "showCreateDatabase" )
+	{
+		this.showMenu("libraryDatabasesCreate");
+	}
 	else if( actionName === "showCreatePlatform" )
 	{
 		this.showMenu("libraryPlatformsCreate");
@@ -2321,6 +2476,49 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	else if( actionName === "showEditPlatform" )
 	{
 		this.showMenu("libraryPlatformsEdit", {"platformId": actionData["platformSelect"].options[actionData["platformSelect"].selectedIndex].value});
+	}
+	else if( actionName === "createLibraryDatabase" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var data = {};
+		var x;
+		for( x in actionData )
+		{
+			if( !(actionData[x] instanceof HTMLElement) )
+			{
+				data[x] = {};
+
+				var y;
+				for( y in actionData[x] )
+				{
+					data[x][y] = {};
+
+					var z;
+					for( z in actionData[x][y] )
+						data[x][y][z] = actionData[x][y][z].value;
+				}
+			}
+			else if( actionData[x].type !== "button" && actionData[x].type !== "submit" )
+				data[x] = actionData[x].value;
+		}
+
+		this.createLibraryObject("Database", data, function(databaseId)
+		{
+			if( !!!databaseId )
+			{
+				if( !!this.error )
+				{
+					this.eventHandler("error", this.error);
+					this.eventHandler("unfreezeInputs");
+					return;
+				}
+
+				return;
+			}
+
+			this.showMenu("libraryDatabases");
+		}.bind(this));
 	}
 	else if( actionName === "createLibraryPlatform" )
 	{
@@ -2441,6 +2639,10 @@ Metaverse.prototype.reset = function()
 		for( x in this.library.types )
 			this.libraryRef.child("types").child(this.library.types[x].current.info.id).child("current").off();
 
+		this.libraryRef.child("databases").off();
+		for( x in this.library.databases )
+			this.libraryRef.child("databases").child(this.library.databases[x].current.info.id).child("current").off();
+
 		this.libraryRef.child("platforms").off();
 		for( x in this.library.platforms )
 			this.libraryRef.child("platforms").child(this.library.platforms[x].current.info.id).child("current").off();
@@ -2463,6 +2665,7 @@ Metaverse.prototype.reset = function()
 		"models": {},
 		"types": {},
 		"apps": {},
+		"databases": {},
 		"platforms": {}
 	};
 
@@ -2658,6 +2861,7 @@ Metaverse.prototype.joinUniverse = function(universeKey, callback)
 		"models": {},
 		"types": {},
 		"apps": {},
+		"databases": {},
 		"platforms": {}
 	};
 
@@ -2669,6 +2873,9 @@ Metaverse.prototype.joinUniverse = function(universeKey, callback)
 
 	this.libraryRef.child("types").on("child_added", this.typeAdded.bind(this))
 	this.libraryRef.child("types").on("child_removed", this.typeRemoved.bind(this));
+
+	this.libraryRef.child("databases").on("child_added", this.databaseAdded.bind(this))
+	this.libraryRef.child("databases").on("child_removed", this.databaseRemoved.bind(this));
 
 	this.libraryRef.child("platforms").on("child_added", this.platformAdded.bind(this))
 	this.libraryRef.child("platforms").on("child_removed", this.platformRemoved.bind(this));
@@ -2824,6 +3031,51 @@ Metaverse.prototype.typeChanged = function(child, prevChildKey)
 {
 	var val = child.val();
 	this.library.types[val.info.id].current = val;
+};
+
+Metaverse.prototype.databaseAdded = function(child, prevChildKey)
+{
+	var key = child.key();
+	console.log("Downloaded metaverse information for database " + key);
+
+	// Make sure the database has all required fields.
+	var val = child.val();
+	var x;
+	for( x in this.defaultDatabase )
+	{
+		if( !val.current.hasOwnProperty(x) )
+		{
+			// Assume it is an empty container object.
+			val.current[x] = {};
+		}
+	}
+
+	this.library.databases[key] = val;
+	this.libraryRef.child("databases").child(key).child("current").on("value", this.databaseChanged.bind(this));
+};
+
+Metaverse.prototype.databaseRemoved = function(child)
+{
+	console.log("Database removed.");
+	delete this.library.databases[child.key()];
+};
+
+Metaverse.prototype.databaseChanged = function(child, prevChildKey)
+{
+	var val = child.val();
+
+	// Make sure the database has all required fields.
+	var x;
+	for( x in this.defaultDatabase )
+	{
+		if( !val.hasOwnProperty(x) )
+		{
+			// Assume it is an empty container object.
+			val[x] = {};
+		}
+	}
+	
+	this.library.databases[val.info.id].current = val;
 };
 
 Metaverse.prototype.platformAdded = function(child, prevChildKey)
