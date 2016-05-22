@@ -29,7 +29,10 @@
 					var i;
 					var elems = form.querySelectorAll("input");
 					for( i = 0; i < elems.length; i++ )
+					{
+						elems[i].frozenState = !!elems[i].disabled;
 						elems[i].disabled = true;
+					}
 				}
 				else if( eventName === "unfreezeInputs" )
 				{
@@ -40,7 +43,8 @@
 					for( i = 0; i < elems.length; i++ )
 					{
 						if( !elems[i].locked )
-							elems[i].disabled = false;
+							elems[i].disabled = elems[i].frozenState;
+							//elems[i].disabled = false;
 					}
 				}
 			}
@@ -173,7 +177,7 @@
 						}
 						else if( x === "platforms" )
 						{
-							// THIS IS NEW PLATFORM
+							// THIS IS PLATFORM
 							inputLabelTextElem = document.createElement("div");
 							inputLabelTextElem.className = "labelText";
 							inputLabelTextElem.innerHTML = inputData.label + ": ";
@@ -194,6 +198,7 @@
 							plusButton.value = " + Add";
 							plusButton.style.cssText = "width: 250px; height: 14px; font-size: 8px; font-weight: 900; display: inline;";
 							plusButton.disabled = true;
+							//plusButton.locked = true;
 							//inputLabelElem.appendChild(plusButton);
 
 							var limitListContainerElem = document.createElement("div");
@@ -254,6 +259,461 @@
 							plusButton.inputData = inputData;
 							plusButton.select = inputSelectElem;
 							plusButton.addEventListener("click", function(e)
+							{
+								var thisElem = e.srcElement;
+								var selectedValue = thisElem.select.options[thisElem.select.selectedIndex].value;
+
+								thisElem.select.options[thisElem.select.selectedIndex].parentNode.removeChild(thisElem.select.options[thisElem.select.selectedIndex]);
+
+								thisElem.select.selectedIndex = -1;
+								thisElem.disabled = true;
+
+								var childContainer = document.createElement("div");
+								childContainer.style.cssText = "display: block;";
+								childContainer.pushId = selectedValue;//metaverse.generatePushId();
+
+								var hr = document.createElement("hr");
+								childContainer.appendChild(hr);
+
+								var childInputLabelTextElem, childInputLabelElem;
+
+								formElems[thisElem.x][childContainer.pushId] = {};
+
+								var y;
+								for( y in thisElem.inputData )
+								{
+									helper(y, thisElem.inputData[y]);
+								}
+
+								// Add stuff in addition to id and file to the list.
+								var customFields;
+								if( menuId === "libraryModelsCreate" )
+									customFields = metaverse.tokenize(metaverse.library.platforms[childContainer.pushId].current.modelCustomFields);
+
+								var z;
+								for( z in customFields )
+								{
+									helper(z, {
+										"label": customFields[z],
+										"placeholder": "string",
+										"type": "text",
+										"value": ""
+									});
+								}
+
+								function helper(y, helperData)
+								{
+									if( y === "label" )
+										return;
+
+									childInputLabelTextElem = document.createElement("div");
+									childInputLabelTextElem.className = "labelText";
+									childInputLabelTextElem.innerHTML = helperData.label;
+
+									childInputLabelElem = document.createElement("label");
+									childInputLabelElem.appendChild(childInputLabelTextElem);
+
+									childInputElem = document.createElement("input");
+									childInputElem.type =  helperData.type;
+									childInputElem.value = helperData.value;
+
+									if( !!helperData.placeholder && helperData.placeholder !== "" )
+										childInputElem.placeholder = helperData.placeholder;
+
+									childInputLabelElem.appendChild(childInputElem);
+									childContainer.appendChild(childInputLabelElem);
+
+									if( helperData.focus )
+										focusElem = childInputElem;
+
+									//formElems[plusButton.x][y] = childInputElem;
+									if( y === "id" )
+									{
+										childInputElem.value = childContainer.pushId;
+										childInputElem.locked = true;
+										childInputElem.disabled = true;
+									}
+
+									formElems[thisElem.x][childContainer.pushId][y] = childInputElem;
+								}
+
+								childInputLabelTextElem = document.createElement("div");
+								childInputLabelTextElem.className = "labelText";
+								childInputLabelTextElem.innerHTML = "";
+
+								childInputLabelElem = document.createElement("label");
+								childInputLabelElem.appendChild(childInputLabelTextElem);
+
+								var minusButton = document.createElement("input");
+								minusButton.type = "button";
+								minusButton.value = " - Remove";
+								minusButton.style.cssText = "width: 250px; height: 14px; font-size: 8px; font-weight: 900; display: inline;";
+								minusButton.x = thisElem.x;
+								minusButton.parentContainer = childContainer;
+								minusButton.select = thisElem.select;
+								minusButton.inputData = thisElem.inputData;
+								minusButton.addEventListener("click", function(e)
+								{
+									var minusElem = e.srcElement;
+									minusElem.parentContainer.parentNode.removeChild(minusElem.parentContainer);
+
+									delete formElems[minusElem.x][minusElem.parentContainer.pushId];
+									populatePlatforms(minusElem.select, minusElem.inputData);
+								}, true);
+
+								childInputLabelElem.appendChild(minusButton);
+								childContainer.appendChild(childInputLabelElem);
+								thisElem.orphanage.appendChild(childContainer);
+							});
+						}
+					}
+					else if( inputData.type === "button" )
+					{
+						inputElem = document.createElement("input");
+						inputElem.type = "button";
+						inputElem.value = inputData.value;
+						inputElem.action = inputData.action;
+
+						inputElem.addEventListener("click", function(e)
+						{
+							metaverse.menuAction(e.srcElement.action, formElems);
+						});
+
+						form.appendChild(inputElem);
+						formElems[x] = inputElem;
+					}
+					else if( inputData.type === "submit" )
+					{
+						inputElem = document.createElement("input");
+						inputElem.type = "submit";
+						inputElem.value = inputData.value;
+						form.formAction = inputData.action;
+
+						form.addEventListener("submit", function(e)
+						{
+							e.preventDefault();
+
+							metaverse.menuAction(e.srcElement.formAction, formElems);
+						});
+
+						form.appendChild(inputElem);
+						formElems[x] = inputElem;
+					}
+					else if( inputData.type === "child" )
+					{
+						if( menuId === "libraryAppsEdit" )
+						{
+							// THIS IS EDIT APP
+							inputLabelTextElem = document.createElement("div");
+							inputLabelTextElem.className = "labelText";
+							inputLabelTextElem.innerHTML = inputData.label;
+
+							inputLabelElem = document.createElement("label");
+							inputLabelElem.appendChild(inputLabelTextElem);
+
+							var plusButton = document.createElement("input");
+							plusButton.type = "button";
+							plusButton.value = " + Add";
+							plusButton.style.cssText = "width: 250px; height: 14px; font-size: 8px; font-weight: 900; display: inline;";
+							inputLabelElem.appendChild(plusButton);
+
+							form.appendChild(inputLabelElem);
+							formElems[x] = {};
+
+							var orphanageElem = document.createElement("div");
+							form.appendChild(orphanageElem);
+							var hr = document.createElement("hr");
+							form.appendChild(hr);
+
+							plusButton.x = x;
+							plusButton.orphanage = orphanageElem;
+							plusButton.inputData = inputData;
+							plusButton.addEventListener("click", function(e)
+							{
+								addNewFilePath(e.srcElement.orphanage, e.srcElement.x, e.srcElement.inputData);
+							});
+
+							var y;
+							for( y in inputData.value )
+							{
+								addFilePath(orphanageElem, x, inputData.value[y], inputData.placeholder);
+							}
+
+							/*
+							inputLabelTextElem = document.createElement("div");
+							inputLabelTextElem.className = "labelText";
+							inputLabelTextElem.innerHTML = inputData.label;
+
+							inputLabelElem = document.createElement("label");
+							inputLabelElem.appendChild(inputLabelTextElem);
+
+							inputElem = document.createElement("input");
+							inputElem.type =  inputData.type;
+							inputElem.value = inputData.value;
+
+							if( !!inputData.placeholder && inputData.placeholder !== "" )
+								inputElem.placeholder = inputData.placeholder;
+
+							inputLabelElem.appendChild(inputElem);
+							form.appendChild(inputLabelElem);
+
+							if( inputData.focus )
+								focusElem = inputElem;
+
+							formElems[x] = inputElem;
+							*/
+
+							//function addFilePath(thisElem)
+							function addNewFilePath(orphanage, key, inputData)
+							{
+								var childContainer = document.createElement("div");
+								childContainer.style.cssText = "display: block;";
+								childContainer.pushId = metaverse.generatePushId();
+
+								var hr = document.createElement("hr");
+								childContainer.appendChild(hr);
+
+								var childInputLabelTextElem, childInputLabelElem;
+
+								formElems[key][childContainer.pushId] = {};
+
+								var y;
+								for( y in inputData.placeholder )
+								{
+									if( y === "label" )
+										continue;
+
+									childInputLabelTextElem = document.createElement("div");
+									childInputLabelTextElem.className = "labelText";
+									childInputLabelTextElem.innerHTML = inputData.placeholder[y].label + ": ";
+
+									childInputLabelElem = document.createElement("label");
+									childInputLabelElem.appendChild(childInputLabelTextElem);
+
+									childInputElem = document.createElement("input");
+									childInputElem.type =  "text";
+									childInputElem.value = inputData.placeholder[y].default;
+
+									if( !!inputData.placeholder[y].placeholder && inputData.placeholder[y].placeholder !== "" )
+										childInputElem.placeholder = inputData.placeholder[y].placeholder;
+									else
+										childInputElem.placeholder = inputData.placeholder[y].types;
+
+									childInputLabelElem.appendChild(childInputElem);
+									childContainer.appendChild(childInputLabelElem);
+
+									if( inputData.placeholder[y].focus )
+										focusElem = childInputElem;
+
+									//formElems[plusButton.x][y] = childInputElem;
+									if( y === "id" )
+									{
+										childInputElem.value = childContainer.pushId;
+										childInputElem.locked = true;
+										childInputElem.disabled = true;
+									}
+
+									formElems[key][childContainer.pushId][y] = childInputElem;
+								}
+
+								childInputLabelTextElem = document.createElement("div");
+								childInputLabelTextElem.className = "labelText";
+								childInputLabelTextElem.innerHTML = "";
+
+								childInputLabelElem = document.createElement("label");
+								childInputLabelElem.appendChild(childInputLabelTextElem);
+
+								var minusButton = document.createElement("input");
+								minusButton.type = "button";
+								minusButton.value = " - Remove";
+								minusButton.style.cssText = "width: 250px; height: 14px; font-size: 8px; font-weight: 900; display: inline;";
+								minusButton.x = key;
+								minusButton.parentContainer = childContainer;
+								minusButton.addEventListener("click", function(e)
+								{
+									var minusElem = e.srcElement;
+									minusElem.parentContainer.parentNode.removeChild(minusElem.parentContainer);
+
+									delete formElems[minusElem.x][minusElem.parentContainer.pushId];
+								}, true);
+
+								childInputLabelElem.appendChild(minusButton);
+								childContainer.appendChild(childInputLabelElem);
+								orphanage.appendChild(childContainer);
+							}
+
+							function addFilePath(orphanage, key, inputData, placeholder)
+							{
+								var childContainer = document.createElement("div");
+								childContainer.style.cssText = "display: block;";
+								childContainer.pushId = inputData.id;//metaverse.generatePushId();
+
+								var hr = document.createElement("hr");
+								childContainer.appendChild(hr);
+
+								var childInputLabelTextElem, childInputLabelElem;
+
+								//var thisElem = e.srcElement;
+								formElems[key][childContainer.pushId] = {};
+
+								var y;
+								for( y in placeholder )
+								{
+									if( y === "label" )
+										continue;
+
+									childInputLabelTextElem = document.createElement("div");
+									childInputLabelTextElem.className = "labelText";
+									childInputLabelTextElem.innerHTML = placeholder[y].label + ": ";
+
+									childInputLabelElem = document.createElement("label");
+									childInputLabelElem.appendChild(childInputLabelTextElem);
+
+									childInputElem = document.createElement("input");
+									childInputElem.type =  "text";
+									childInputElem.value = inputData[y];//placeholder[y].default;
+
+									if( !!placeholder[y].placeholder && placeholder[y].placeholder !== "" )
+										childInputElem.placeholder = placeholder[y].placeholder;
+									else
+										childInputElem.placeholder = placeholder[y].types;
+
+									childInputLabelElem.appendChild(childInputElem);
+									childContainer.appendChild(childInputLabelElem);
+
+									if( placeholder[y].focus )
+										focusElem = childInputElem;
+
+									//formElems[plusButton.x][y] = childInputElem;
+									if( y === "id" )
+									{
+										childInputElem.value = childContainer.pushId;
+										childInputElem.locked = true;
+										childInputElem.disabled = true;
+									}
+
+									formElems[key][childContainer.pushId][y] = childInputElem;
+								}
+
+								childInputLabelTextElem = document.createElement("div");
+								childInputLabelTextElem.className = "labelText";
+								childInputLabelTextElem.innerHTML = "";
+
+								childInputLabelElem = document.createElement("label");
+								childInputLabelElem.appendChild(childInputLabelTextElem);
+
+								var minusButton = document.createElement("input");
+								minusButton.type = "button";
+								minusButton.value = " - Remove";
+								minusButton.style.cssText = "width: 250px; height: 14px; font-size: 8px; font-weight: 900; display: inline;";
+								minusButton.x = key;
+								minusButton.parentContainer = childContainer;
+								minusButton.addEventListener("click", function(e)
+								{
+									var minusElem = e.srcElement;
+									minusElem.parentContainer.parentNode.removeChild(minusElem.parentContainer);
+
+									delete formElems[minusElem.x][minusElem.parentContainer.pushId];
+								}, true);
+
+								childInputLabelElem.appendChild(minusButton);
+								childContainer.appendChild(childInputLabelElem);
+								orphanage.appendChild(childContainer);
+							}
+						}
+						else if( menuId === "libraryModelsEdit" )
+						{
+							//console.log(inputData);
+// THIS IS PLATFORM
+							inputLabelTextElem = document.createElement("div");
+							inputLabelTextElem.className = "labelText";
+							inputLabelTextElem.innerHTML = inputData.label + ": ";
+
+							inputLabelElem = document.createElement("label");
+							inputLabelElem.appendChild(inputLabelTextElem);
+
+							inputLabelElem.appendChild(inputLabelTextElem);
+							//form.appendChild(inputLabelElem);//inputElem);
+
+							if( inputData.focus )
+								focusElem = inputElem;
+
+							formElems[x] = inputElem;
+
+							var plusButton = document.createElement("input");
+							plusButton.type = "button";
+							plusButton.value = " + Add";
+							plusButton.style.cssText = "width: 250px; height: 14px; font-size: 8px; font-weight: 900; display: inline;";
+							plusButton.disabled = true;
+							//plusButton.locked = true;
+							//inputLabelElem.appendChild(plusButton);
+
+							var limitListContainerElem = document.createElement("div");
+							limitListContainerElem.style.display = "inline-block";
+							limitListContainerElem.style.verticalAlign = "top";
+
+							inputSelectElem = document.createElement("select");
+							inputSelectElem.style.verticalAlign = "top";
+							inputSelectElem.style.display = "block";
+							inputSelectElem.type = "select";
+							inputSelectElem.size = 4;
+
+//							inputSelectElem.action = inputData.action;
+
+							inputSelectElem.plusButton = plusButton;
+							inputSelectElem.addEventListener("change", function(e)
+							{
+								e.preventDefault();
+
+								var thisSelect = e.srcElement;
+								if( thisSelect.selectedIndex !== -1 )
+									thisSelect.plusButton.disabled = false;
+								else
+									thisSelect.plusButton.disabled = true;
+							});
+
+							populatePlatforms(inputSelectElem, inputData);
+							function populatePlatforms(selectElem, inData)
+							{
+								selectElem.options.length = 0;
+
+								var y, inputOption;
+								for( y in metaverse.library.platforms )
+								{
+									inputOption = document.createElement("option");
+									inputOption.value = y;
+									inputOption.text = metaverse.library.platforms[y].current.title;
+									selectElem.appendChild(inputOption);
+								}
+
+								if( arguments.length > 1 )
+									selectElem.value = inData.value;
+							}
+
+							limitListContainerElem.appendChild(inputSelectElem);
+							limitListContainerElem.appendChild(plusButton);
+							inputLabelElem.appendChild(limitListContainerElem);
+							form.appendChild(inputLabelElem);
+							formElems[x] = {};
+
+							var orphanageElem = document.createElement("div");
+							form.appendChild(orphanageElem);
+							var hr = document.createElement("hr");
+							form.appendChild(hr);
+
+							plusButton.menuId = menuId;
+							plusButton.x = x;
+							plusButton.orphanage = orphanageElem;
+							plusButton.inputData = inputData;
+							plusButton.select = inputSelectElem;
+							plusButton.addEventListener("click", function(e)
+							{
+								addNewPlatform(e.srcElement.orphanage, e.srcElement.x, e.srcElement.inputData);
+							});
+
+							//plusButton.addEventListener("click", addNewFilePath);
+							/*
+							function(e)
 							{
 								var thisElem = e.srcElement;
 								var selectedValue = thisElem.select.options[thisElem.select.selectedIndex].value;
@@ -351,9 +811,6 @@
 									minusElem.parentContainer.parentNode.removeChild(minusElem.parentContainer);
 
 									delete formElems[minusElem.x][minusElem.parentContainer.pushId];
-//									console.log(minusElem.parentContainer.pushId);//minusElem.x);
-//									console.log(minusElem.inputData);
-
 									populatePlatforms(minusElem.select, minusElem.inputData);
 								}, true);
 
@@ -361,258 +818,240 @@
 								childContainer.appendChild(childInputLabelElem);
 								thisElem.orphanage.appendChild(childContainer);
 							});
-						}
-					}
-					else if( inputData.type === "button" )
-					{
-						inputElem = document.createElement("input");
-						inputElem.type = "button";
-						inputElem.value = inputData.value;
-						inputElem.action = inputData.action;
+*/
 
-						inputElem.addEventListener("click", function(e)
-						{
-							metaverse.menuAction(e.srcElement.action, formElems);
-						});
-
-						form.appendChild(inputElem);
-						formElems[x] = inputElem;
-					}
-					else if( inputData.type === "submit" )
-					{
-						inputElem = document.createElement("input");
-						inputElem.type = "submit";
-						inputElem.value = inputData.value;
-						form.formAction = inputData.action;
-
-						form.addEventListener("submit", function(e)
-						{
-							e.preventDefault();
-
-							metaverse.menuAction(e.srcElement.formAction, formElems);
-						});
-
-						form.appendChild(inputElem);
-						formElems[x] = inputElem;
-					}
-					else if( inputData.type === "child" )
-					{
-						// THIS IS EDIT APP
-						inputLabelTextElem = document.createElement("div");
-						inputLabelTextElem.className = "labelText";
-						inputLabelTextElem.innerHTML = inputData.label;
-
-						inputLabelElem = document.createElement("label");
-						inputLabelElem.appendChild(inputLabelTextElem);
-
-						var plusButton = document.createElement("input");
-						plusButton.type = "button";
-						plusButton.value = " + Add";
-						plusButton.style.cssText = "width: 250px; height: 14px; font-size: 8px; font-weight: 900; display: inline;";
-						inputLabelElem.appendChild(plusButton);
-
-						form.appendChild(inputLabelElem);
-						formElems[x] = {};
-
-						var orphanageElem = document.createElement("div");
-						form.appendChild(orphanageElem);
-						var hr = document.createElement("hr");
-						form.appendChild(hr);
-
-						plusButton.x = x;
-						plusButton.orphanage = orphanageElem;
-						plusButton.inputData = inputData;
-						plusButton.addEventListener("click", function(e)
-						{
-							addNewFilePath(e.srcElement.orphanage, e.srcElement.x, e.srcElement.inputData);
-						});
-
-						var y;
-						for( y in inputData.value )
-						{
-							addFilePath(orphanageElem, x, inputData.value[y], inputData.placeholder);
-						}
-
-						/*
-						inputLabelTextElem = document.createElement("div");
-						inputLabelTextElem.className = "labelText";
-						inputLabelTextElem.innerHTML = inputData.label;
-
-						inputLabelElem = document.createElement("label");
-						inputLabelElem.appendChild(inputLabelTextElem);
-
-						inputElem = document.createElement("input");
-						inputElem.type =  inputData.type;
-						inputElem.value = inputData.value;
-
-						if( !!inputData.placeholder && inputData.placeholder !== "" )
-							inputElem.placeholder = inputData.placeholder;
-
-						inputLabelElem.appendChild(inputElem);
-						form.appendChild(inputLabelElem);
-
-						if( inputData.focus )
-							focusElem = inputElem;
-
-						formElems[x] = inputElem;
-						*/
-
-						//function addFilePath(thisElem)
-						function addNewFilePath(orphanage, key, inputData)
-						{
-							var childContainer = document.createElement("div");
-							childContainer.style.cssText = "display: block;";
-							childContainer.pushId = metaverse.generatePushId();
-
-							var hr = document.createElement("hr");
-							childContainer.appendChild(hr);
-
-							var childInputLabelTextElem, childInputLabelElem;
-
-							formElems[key][childContainer.pushId] = {};
-
+							//var alreadyUsed;
 							var y;
-							for( y in inputData.placeholder )
+							for( y in inputData.value )
 							{
-								if( y === "label" )
-									continue;
+								addPlatform(orphanageElem, x, inputData.value[y], inputData.placeholder);
+
+								//alreadyUsed = false;
+								var i;
+								for( i = 0; i < inputSelectElem.options.length; i++ )
+								{
+									if( inputSelectElem.options[i].value === y )
+									{
+										inputSelectElem.options[i].parentNode.removeChild(inputSelectElem.options[i]);
+										//alreadyUsed = true;
+										break;
+									}
+								}
+							}
+
+							function addPlatform(orphanage, key, inputData, placeholder)
+							{
+								var childContainer = document.createElement("div");
+								childContainer.style.cssText = "display: block;";
+								childContainer.pushId = inputData.id;//metaverse.generatePushId();
+
+								var hr = document.createElement("hr");
+								childContainer.appendChild(hr);
+
+								var childInputLabelTextElem, childInputLabelElem;
+
+								//var thisElem = e.srcElement;
+								formElems[key][childContainer.pushId] = {};
+
+								var y;
+								for( y in placeholder )
+								{
+									helper(y, placeholder[y]);
+								}
+
+								// Add stuff in addition to id and file to the list.
+								var customFields;
+								if( menuId === "libraryModelsEdit" )
+									customFields = metaverse.tokenize(metaverse.library.platforms[childContainer.pushId].current.modelCustomFields);
+
+								var z;
+								for( z in customFields )
+								{
+									helper(z, {
+										"label": customFields[z],
+										"placeholder": "string",
+										"type": "text",
+										"value": ""
+									});
+								}
+
+								function helper(y, helperData)
+								{
+									if( y === "label" )
+										return;
+
+									childInputLabelTextElem = document.createElement("div");
+									childInputLabelTextElem.className = "labelText";
+									childInputLabelTextElem.innerHTML = helperData.label + ": ";
+
+									childInputLabelElem = document.createElement("label");
+									childInputLabelElem.appendChild(childInputLabelTextElem);
+
+									childInputElem = document.createElement("input");
+									childInputElem.type =  "text";
+									childInputElem.value = inputData[y];//helperData.default;
+
+									if( !!helperData.placeholder && helperData.placeholder !== "" )
+										childInputElem.placeholder = helperData.placeholder;
+									else
+										childInputElem.placeholder = helperData.types;
+
+									childInputLabelElem.appendChild(childInputElem);
+									childContainer.appendChild(childInputLabelElem);
+
+									if( helperData.focus )
+										focusElem = childInputElem;
+
+									//formElems[plusButton.x][y] = childInputElem;
+									if( y === "id" )
+									{
+										childInputElem.value = childContainer.pushId;
+										childInputElem.locked = true;
+										childInputElem.disabled = true;
+									}
+
+									formElems[key][childContainer.pushId][y] = childInputElem;
+								}
 
 								childInputLabelTextElem = document.createElement("div");
 								childInputLabelTextElem.className = "labelText";
-								childInputLabelTextElem.innerHTML = inputData.placeholder[y].label + ": ";
+								childInputLabelTextElem.innerHTML = "";
 
 								childInputLabelElem = document.createElement("label");
 								childInputLabelElem.appendChild(childInputLabelTextElem);
 
-								childInputElem = document.createElement("input");
-								childInputElem.type =  "text";
-								childInputElem.value = inputData.placeholder[y].default;
-
-								if( !!inputData.placeholder[y].placeholder && inputData.placeholder[y].placeholder !== "" )
-									childInputElem.placeholder = inputData.placeholder[y].placeholder;
-								else
-									childInputElem.placeholder = inputData.placeholder[y].types;
-
-								childInputLabelElem.appendChild(childInputElem);
-								childContainer.appendChild(childInputLabelElem);
-
-								if( inputData.placeholder[y].focus )
-									focusElem = childInputElem;
-
-								//formElems[plusButton.x][y] = childInputElem;
-								if( y === "id" )
+								var minusButton = document.createElement("input");
+								minusButton.type = "button";
+								minusButton.value = " - Remove";
+								minusButton.style.cssText = "width: 250px; height: 14px; font-size: 8px; font-weight: 900; display: inline;";
+								minusButton.x = key;
+								minusButton.parentContainer = childContainer;
+								minusButton.addEventListener("click", function(e)
 								{
-									childInputElem.value = childContainer.pushId;
-									childInputElem.locked = true;
-									childInputElem.disabled = true;
-								}
+									var minusElem = e.srcElement;
+									minusElem.parentContainer.parentNode.removeChild(minusElem.parentContainer);
 
-								formElems[key][childContainer.pushId][y] = childInputElem;
+									delete formElems[minusElem.x][minusElem.parentContainer.pushId];
+
+									var inputOption = document.createElement("option");
+									inputOption.value = minusElem.parentContainer.pushId;
+									inputOption.text = metaverse.library.platforms[minusElem.parentContainer.pushId].current.title;
+									inputSelectElem.appendChild(inputOption);
+									//populatePlatforms(inputSelectElem);
+								}, true);
+
+								childInputLabelElem.appendChild(minusButton);
+								childContainer.appendChild(childInputLabelElem);
+								orphanage.appendChild(childContainer);
 							}
 
-							childInputLabelTextElem = document.createElement("div");
-							childInputLabelTextElem.className = "labelText";
-							childInputLabelTextElem.innerHTML = "";
-
-							childInputLabelElem = document.createElement("label");
-							childInputLabelElem.appendChild(childInputLabelTextElem);
-
-							var minusButton = document.createElement("input");
-							minusButton.type = "button";
-							minusButton.value = " - Remove";
-							minusButton.style.cssText = "width: 250px; height: 14px; font-size: 8px; font-weight: 900; display: inline;";
-							minusButton.x = key;
-							minusButton.parentContainer = childContainer;
-							minusButton.addEventListener("click", function(e)
+							function addNewPlatform(orphanage, key, inputData, platformId)
 							{
-								var minusElem = e.srcElement;
-								minusElem.parentContainer.parentNode.removeChild(minusElem.parentContainer);
+								var childContainer = document.createElement("div");
+								childContainer.style.cssText = "display: block;";
+								childContainer.pushId = inputSelectElem.options[inputSelectElem.selectedIndex].value;//metaverse.generatePushId();
 
-								delete formElems[minusElem.x][minusElem.parentContainer.pushId];
-							}, true);
+								var hr = document.createElement("hr");
+								childContainer.appendChild(hr);
 
-							childInputLabelElem.appendChild(minusButton);
-							childContainer.appendChild(childInputLabelElem);
-							orphanage.appendChild(childContainer);
-						}
+								var childInputLabelTextElem, childInputLabelElem;
 
-						function addFilePath(orphanage, key, inputData, placeholder)
-						{
-							var childContainer = document.createElement("div");
-							childContainer.style.cssText = "display: block;";
-							childContainer.pushId = inputData.id;//metaverse.generatePushId();
+								formElems[key][childContainer.pushId] = {};
 
-							var hr = document.createElement("hr");
-							childContainer.appendChild(hr);
+								var y;
+								for( y in inputData.placeholder )
+								{
+									helper(y, inputData.placeholder[y]);
+								}
 
-							var childInputLabelTextElem, childInputLabelElem;
+								// Add stuff in addition to id and file to the list.
+								var customFields;
+								if( menuId === "libraryModelsEdit" )
+									customFields = metaverse.tokenize(metaverse.library.platforms[childContainer.pushId].current.modelCustomFields);
 
-							//var thisElem = e.srcElement;
-							formElems[key][childContainer.pushId] = {};
+								var z;
+								for( z in customFields )
+								{
+									helper(z, {
+										"label": customFields[z],
+										"placeholder": "string",
+										"type": "text",
+										"value": ""
+									});
+								}
 
-							var y;
-							for( y in placeholder )
-							{
-								if( y === "label" )
-									continue;
+								function helper(y, helperData)
+								{
+									if( y === "label" )
+										return;
+
+									childInputLabelTextElem = document.createElement("div");
+									childInputLabelTextElem.className = "labelText";
+									childInputLabelTextElem.innerHTML = helperData.label + ": ";
+
+									childInputLabelElem = document.createElement("label");
+									childInputLabelElem.appendChild(childInputLabelTextElem);
+
+									childInputElem = document.createElement("input");
+									childInputElem.type =  "text";
+									childInputElem.value = "";//helperData.default;
+
+									if( !!helperData.placeholder && helperData.placeholder !== "" )
+										childInputElem.placeholder = helperData.placeholder;
+									else
+										childInputElem.placeholder = helperData.types;
+
+									childInputLabelElem.appendChild(childInputElem);
+									childContainer.appendChild(childInputLabelElem);
+
+									if( helperData.focus )
+										focusElem = childInputElem;
+
+									//formElems[plusButton.x][y] = childInputElem;
+									if( y === "id" )
+									{
+										childInputElem.value = childContainer.pushId;
+										childInputElem.locked = true;
+										childInputElem.disabled = true;
+									}
+
+									formElems[key][childContainer.pushId][y] = childInputElem;
+								}
 
 								childInputLabelTextElem = document.createElement("div");
 								childInputLabelTextElem.className = "labelText";
-								childInputLabelTextElem.innerHTML = placeholder[y].label + ": ";
+								childInputLabelTextElem.innerHTML = "";
 
 								childInputLabelElem = document.createElement("label");
 								childInputLabelElem.appendChild(childInputLabelTextElem);
 
-								childInputElem = document.createElement("input");
-								childInputElem.type =  "text";
-								childInputElem.value = inputData[y];//placeholder[y].default;
-
-								if( !!placeholder[y].placeholder && placeholder[y].placeholder !== "" )
-									childInputElem.placeholder = placeholder[y].placeholder;
-								else
-									childInputElem.placeholder = placeholder[y].types;
-
-								childInputLabelElem.appendChild(childInputElem);
-								childContainer.appendChild(childInputLabelElem);
-
-								if( placeholder[y].focus )
-									focusElem = childInputElem;
-
-								//formElems[plusButton.x][y] = childInputElem;
-								if( y === "id" )
+								var minusButton = document.createElement("input");
+								minusButton.type = "button";
+								minusButton.value = " - Remove";
+								minusButton.style.cssText = "width: 250px; height: 14px; font-size: 8px; font-weight: 900; display: inline;";
+								minusButton.x = key;
+								minusButton.parentContainer = childContainer;
+								minusButton.addEventListener("click", function(e)
 								{
-									childInputElem.value = childContainer.pushId;
-									childInputElem.locked = true;
-									childInputElem.disabled = true;
-								}
+									var minusElem = e.srcElement;
+									minusElem.parentContainer.parentNode.removeChild(minusElem.parentContainer);
 
-								formElems[key][childContainer.pushId][y] = childInputElem;
+									delete formElems[minusElem.x][minusElem.parentContainer.pushId];
+
+									var inputOption = document.createElement("option");
+									inputOption.value = minusElem.parentContainer.pushId;
+									inputOption.text = metaverse.library.platforms[minusElem.parentContainer.pushId].current.title;
+									inputSelectElem.appendChild(inputOption);
+								}, true);
+
+								childInputLabelElem.appendChild(minusButton);
+								childContainer.appendChild(childInputLabelElem);
+								orphanage.appendChild(childContainer);
+
+								// remove the selected platform
+								inputSelectElem.options[inputSelectElem.selectedIndex].parentNode.removeChild(inputSelectElem.options[inputSelectElem.selectedIndex]);
+								plusButton.disabled = true;
 							}
-
-							childInputLabelTextElem = document.createElement("div");
-							childInputLabelTextElem.className = "labelText";
-							childInputLabelTextElem.innerHTML = "";
-
-							childInputLabelElem = document.createElement("label");
-							childInputLabelElem.appendChild(childInputLabelTextElem);
-
-							var minusButton = document.createElement("input");
-							minusButton.type = "button";
-							minusButton.value = " - Remove";
-							minusButton.style.cssText = "width: 250px; height: 14px; font-size: 8px; font-weight: 900; display: inline;";
-							minusButton.x = key;
-							minusButton.parentContainer = childContainer;
-							minusButton.addEventListener("click", function(e)
-							{
-								var minusElem = e.srcElement;
-								minusElem.parentContainer.parentNode.removeChild(minusElem.parentContainer);
-
-								delete formElems[minusElem.x][minusElem.parentContainer.pushId];
-							}, true);
-
-							childInputLabelElem.appendChild(minusButton);
-							childContainer.appendChild(childInputLabelElem);
-							orphanage.appendChild(childContainer);
 						}
 					}
 					else if( false && inputData.placeholder === "autokey" && !inputData.hasOwnProperty("locked") )
@@ -807,6 +1246,21 @@
 								inputOption = document.createElement("option");
 								inputOption.value = y;
 								inputOption.text = metaverse.library.apps[y].current.title;
+								inputElem.appendChild(inputOption);
+							}
+
+							if( inputElem.options.length === 0 )
+								needsSubmitDisable = true;
+							else
+								inputElem.selectedIndex = 0;
+						}
+						else if( inputData.generateOptions === "libraryModels" )
+						{
+							for( y in metaverse.library.models )
+							{
+								inputOption = document.createElement("option");
+								inputOption.value = y;
+								inputOption.text = metaverse.library.models[y].current.title;
 								inputElem.appendChild(inputOption);
 							}
 

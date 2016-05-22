@@ -384,7 +384,7 @@ function Metaverse(eventHandler)
 			"label": "Keywords",
 			"default": "",
 			"types": "string",
-			"format": "/.*$/i",
+			"format": "/^.{2,1024}$/i",
 			"formatDescription": "Keywords must be comma separated strings longer than 2 characters each and under 1024 characters total."
 		},
 		"dynamic":
@@ -536,6 +536,10 @@ function Metaverse(eventHandler)
 			"priority": 0
 		}
 	];
+//(https?:\/\/|www\d?\.)
+//TomyLobo: if you have a user-submitted url you want to check
+//TomyLobo: this should be anchored
+//TomyLobo: ^$
 
 	this.defaultApps = [
 		{
@@ -565,924 +569,983 @@ function Metaverse(eventHandler)
 //							}
 //	};
 
-	this.getMenus = function(options)
-	{
-		var item;
-		if( !!options && !!options.itemId )
-			item = this.library.items[options.itemId].current;
-
-		var type;
-		if( !!options && !!options.typeId )
-			type = this.library.types[options.typeId].current;
-
-		var platform;
-		if( !!options && !!options.platformId )
-			platform = this.library.platforms[options.platformId].current;
-
-		var app;
-		if( !!options && !!options.appId )
-			app = this.library.apps[options.appId].current;
-
-		var menus = {
-			"metaverseMenu":
-			{
-				"menuId": "metaverseMenu",
-				"menuHeader": "Metaverse",
-				"quickJoin":
-				{
-					"type": "button",
-					"value": "Quick Join",
-					"action": "quickJoin"
-				},
-				"firebaseConnect":
-				{
-					"type": "button",
-					"value": "Connect to Firebase",
-					"action": "firebaseConnect"
-				},
-				"firebaseHost":
-				{
-					"type": "button",
-					"value": "Host Firebase",
-					"action": "firebaseHost"
-				},
-				"localLoad":
-				{
-					"type": "button",
-					"value": "Load Local Session",
-					"action": "localLoad"
-				},
-				"localNew":
-				{
-					"type": "button",
-					"value": "New Local Session",
-					"action": "localNew"
-				}
-			},
-			"firebaseConnectMenu":
-			{
-				"menuId": "firebaseConnectMenu",
-				"menuHeader": "Firebase",
-				"address":
-				{
-					"label": "Firebase Address: ",
-					"type": "text",
-					"value": this.quickJoinAddress,
-					"focus": true
-				},
-				"connect":
-				{
-					"type": "submit",
-					"value": "Connect",
-					"action": "connectToFirebase"
-				},
-				"cancel":
-				{
-					"type": "button",
-					"value": "Cancel",
-					"action": "cancelFirebaseConnect"
-				}
-			},
-			"universeMenu":
-			{
-				"menuId": "universeMenu",
-				"menuHeader": "Universe",
-				"universeSelect":
-				{
-					"type": "select",
-					"generateOptions": "universeTitles",
-					"focus": true,
-					"action": "universeSelectChange"
-				},
-				"joinUniverse":
-				{
-					"type": "submit",
-					"value": "Join Universe",
-					"action": "joinUniverse"
-				},
-				"newUniverse":
-				{
-					"type": "button",
-					"value": "New Universe",
-					"action": "newUniverse"
-				},
-				"cancel":
-				{
-					"type": "button",
-					"value": "Cancel",
-					"action": "cancelUniverse"
-				}
-			},
-			"newUniverseMenu":
-			{
-				"menuId": "newUniverseMenu",
-				"menuHeader": "Universe / New",
-				"title":
-				{
-					"label": "Universe Title: ",
-					"type": "text",
-					"value": "",
-					"placeholder": "string",
-					"focus": true
-				},
-				"createUniverse":
-				{
-					"type": "submit",
-					"value": "Create Universe",
-					"action": "createUniverse"
-				},
-				"cancel":
-				{
-					"type": "button",
-					"value": "Cancel",
-					"action": "cancelNewUniverse"
-				}
-			},
-			"signUpMenu":
-			{
-				"menuId": "signUpMenu",
-				"menuHeader": "Dashboard / Sign-Up",
-				"username":
-				{
-					"label": "Username: ",
-					"type": "text",
-					"value": this.defaultUser.username.default,
-					"placeholder": this.defaultUser.username.types,
-					"focus": true
-				},
-				"passcode":
-				{
-					"label": "<u>Public</u> Passcode: ",
-					"type": "password",
-					"value": this.defaultUser.passcode.default,
-					"placeholder": this.defaultUser.passcode.types
-				},
-				"displayName":
-				{
-					"label": "Display Name: ",
-					"type": "text",
-					"value": this.defaultUser.displayName.default,
-					"placeholder": this.defaultUser.displayName.types
-				},
-				"signUp":
-				{
-					"type": "submit",
-					"value": "Sign-Up",
-					"action": "doSignUp"
-				},
-				"cancel":
-				{
-					"type": "button",
-					"value": "Cancel",
-					"action": "cancelSignUp"
-				}
-			},
-			"logInMenu":
-			{
-				"menuId": "logInMenu",
-				"menuHeader": "Dashboard / Log-In",
-				"username":
-				{
-					"label": "Username: ",
-					"type": "text",
-					"value": this.defaultUser.username.default,
-					"placeholder": this.defaultUser.username.types,
-					"focus": true
-				},
-				"passcode":
-				{
-					"label": "<u>Public</u> Passcode: ",
-					"type": "password",
-					"value": this.defaultUser.passcode.default,
-					"placeholder": this.defaultUser.passcode.types
-				},
-				"logIn":
-				{
-					"type": "submit",
-					"value": "Log-In",
-					"action": "doLogIn"
-				},
-				"cancel":
-				{
-					"type": "button",
-					"value": "Cancel",
-					"action": "cancelLogIn"
-				}
-			},
-			"dashboardMenu":
-			{
-				"menuId": "dashboardMenu",
-				"menuHeader": "Dashboard",
-				"library":
-				{
-					"type": "button",
-					"value": "Library",
-					"action": "showLibrary"
-				},
-				"logIn":
-				{
-					"type": "button",
-					"value": "Log-In",
-					"action": "logIn"
-				},
-				"signUp":
-				{
-					"type": "button",
-					"value": "Sign-Up",
-					"action": "signUp"
-				},
-				"account":
-				{
-					"type": "button",
-					"value": "Account",
-					"action": "showAccount"
-				},
-				"disconnect":
-				{
-					"type": "button",
-					"value": "Disconnect",
-					"action": "disconnectMetaverse"
-				}
-			},
-			"libraryMenu":
-			{
-				"menuId": "libraryMenu",
-				"menuHeader": "Dashboard / Library",
-				"items":
-				{
-					"type": "button",
-					"value": "Items",
-					"action": "showLibraryItems"
-				},
-				"models":
-				{
-					"type": "button",
-					"value": "Models",
-					"action": "showLibraryModels"
-				},
-				"types":
-				{
-					"type": "button",
-					"value": "Types",
-					"action": "showLibraryTypes"
-				},
-				"apps":
-				{
-					"type": "button",
-					"value": "Apps",
-					"action": "showLibraryApps"
-				},
-				"platforms":
-				{
-					"type": "button",
-					"value": "Platforms",
-					"action": "showLibraryPlatforms"
-				},
-				"cancel":
-				{
-					"type": "button",
-					"value": "Cancel",
-					"action": "cancelLibrary"
-				}
-			},
-			"accountMenu":
-			{
-				"menuId": "accountMenu",
-				"menuHeader": "Dashboard / Account",
-				"metaverse":
-				{
-					"label": "Metaverse: ",
-					"type": "text",
-					"value": this.root,
-					"placeholder": "uri",
-					"locked": true
-				},
-				"universe":
-				{
-					"label": "Universe: ",
-					"type": "text",
-					"value": this.universe,
-					"placeholder": "string",
-					"locked": true
-				},
-				"username":
-				{
-					"label": "Username: ",
-					"type": "text",
-					"value": this.localUser.username,
-					"placeholder": "string",
-					"locked": true
-				},
-				"displayName":
-				{
-					"label": "Display Name: ",
-					"type": "text",
-					"value": this.localUser.displayName,
-					"placeholder": "string",
-					"focus": true
-				},
-				"oldPasscode":
-				{
-					"label": "Old <u>Public</u> Passcode: ",
-					"type": "password",
-					"value": "",
-					"placeholder": "string"
-				},
-				"newPasscode":
-				{
-					"label": "New <u>Public</u> Passcode: ",
-					"type": "password",
-					"value": "",
-					"placeholder": "string"
-				},
-				"newPasscodeAgain":
-				{
-					"label": "New Passcode Again: ",
-					"type": "password",
-					"value": "",
-					"placeholder": "string"
-				},
-				"changePasscode":
-				{
-					"type": "button",
-					"value": "Change Passcode",
-					"action": "changePasscode"
-				},
-				"save":
-				{
-					"type": "submit",
-					"value": "Save",
-					"action": "saveAccount"
-				},
-				"cancel":
-				{
-					"type": "button",
-					"value": "Cancel",
-					"action": "cancelAccount"
-				}
-			},
-			"libraryItems":
-			{
-				"menuId": "libraryItems",
-				"menuHeader": "Dashboard / Library / Items",
-				"itemSelect":
-				{
-					"type": "select",
-					"generateOptions": "libraryItems",
-					"focus": true,
-					"action": "libraryItemsSelectChange"
-				},
-				"editItem":
-				{
-					"type": "submit",
-					"value": "Edit Item",
-					"action": "showEditItem"
-				},
-				"newItem":
-				{
-					"type": "button",
-					"value": "Create New Item",
-					"action": "showCreateItem"
-				},
-				"cancel":
-				{
-					"type": "button",
-					"value": "Cancel",
-					"action": "cancelLibraryItems"
-				}
-			},
-			"libraryModels":
-			{
-				"menuId": "libraryItems",
-				"menuHeader": "Dashboard / Library / Models",
-				"modelSelect":
-				{
-					"type": "select",
-					"generateOptions": "libraryModel",
-					"focus": true,
-					"action": "libraryModelSelectChange"
-				},
-				"editModel":
-				{
-					"type": "submit",
-					"value": "Edit Model",
-					"action": "showEditModel"
-				},
-				"newModel":
-				{
-					"type": "button",
-					"value": "Create New Model",
-					"action": "showCreateModel"
-				},
-				"cancel":
-				{
-					"type": "button",
-					"value": "Cancel",
-					"action": "cancelLibraryModels"
-				}
-			},
-			"libraryItemsCreate":
-			{
-				"menuId": "libraryItemsCreate",
-				"menuHeader": "Dashboard / Library / Items / New",
-				"shortcut":
-				{
-					"label": "Shortcut: ",
-					"type": "text",
-					"value": "",
-					"placeholder": "uri|string",
-					"focus": true
-				},
-				"create":
-				{
-					"type": "submit",
-					"value": "Create Item",
-					"action": "generateNewItem"
-				},
-				"cancel":
-				{
-					"type": "button",
-					"value": "Cancel",
-					"action": "cancelLibraryItemCreate"
-				}
-			},
-			"libraryModelsCreate":
-			{
-				"menuId": "libraryModelsCreate",
-				"menuHeader": "Dashboard / Library / Models / New",
-			},
-			"libraryItemsEdit":
-			{
-				"menuId": "libraryItemsEdit",
-				"menuHeader": "Dashboard / Library / Items / Edit"
-			},
-			"libraryTypes":
-			{
-				"menuId": "libraryTypes",
-				"menuHeader": "Dashboard / Library / Types",
-				"typeSelect":
-				{
-					"type": "select",
-					"generateOptions": "libraryTypes",
-					"focus": true,
-					"action": "libraryTypesSelectChange"
-				},
-				"editType":
-				{
-					"type": "submit",
-					"value": "Edit Type",
-					"action": "showEditType"
-				},
-				"newType":
-				{
-					"type": "button",
-					"value": "Create New Type",
-					"action": "showCreateType"
-				},
-				"cancel":
-				{
-					"type": "button",
-					"value": "Cancel",
-					"action": "cancelLibraryTypes"
-				}
-			},
-			"libraryApps":
-			{
-				"menuId": "libraryApps",
-				"menuHeader": "Dashboard / Library / Apps",
-				"appSelect":
-				{
-					"type": "select",
-					"generateOptions": "libraryApps",
-					"focus": true,
-					"action": "libraryAppsSelectChange"
-				},
-				"editApp":
-				{
-					"type": "submit",
-					"value": "Edit App",
-					"action": "showEditApp"
-				},
-				"newApp":
-				{
-					"type": "button",
-					"value": "Create New App",
-					"action": "showCreateApp"
-				},
-				"cancel":
-				{
-					"type": "button",
-					"value": "Cancel",
-					"action": "cancelLibraryApps"
-				}
-			},
-			"libraryTypesCreate":
-			{
-				"menuId": "libraryTypesCreate",
-				"menuHeader": "Dashboard / Library / Types / New",
-			},
-			"libraryAppsCreate":
-			{
-				"menuId": "libraryAppsCreate",
-				"menuHeader": "Dashboard / Library / Apps / New",
-			},
-			"libraryTypesEdit":
-			{
-				"menuId": "libraryTypesEdit",
-				"menuHeader": "Dashboard / Library / Types / Edit",
-			},
-			"libraryAppsEdit":
-			{
-				"menuId": "libraryAppsEdit",
-				"menuHeader": "Dashboard / Library / Apps / Edit",
-			},
-			"libraryPlatforms":
-			{
-				"menuId": "libraryPlatforms",
-				"menuHeader": "Dashboard / Library / Platforms",
-				"platformSelect":
-				{
-					"type": "select",
-					"generateOptions": "libraryPlatforms",
-					"focus": true,
-					"action": "libraryPlatformsSelectChange"
-				},
-				"editPlatform":
-				{
-					"type": "submit",
-					"value": "Edit Platform",
-					"action": "showEditPlatform"
-				},
-				"newPlatform":
-				{
-					"type": "button",
-					"value": "Create New Platform",
-					"action": "showCreatePlatform"
-				},
-				"cancel":
-				{
-					"type": "button",
-					"value": "Cancel",
-					"action": "cancelLibraryPlatforms"
-				}
-			},
-			"libraryPlatformsCreate":
-			{
-				"menuId": "libraryPlatformsCreate",
-				"menuHeader": "Dashboard / Library / Platforms / New",
-			},
-			"libraryPlatformsEdit":
-			{
-				"menuId": "libraryPlatformsEdit",
-				"menuHeader": "Dashboard / Library / Platforms / Edit",	
-			}
-		};
-
-		var x;
-		var menuId;
-
-		// MENU
-		menuId = "libraryItemsEdit";
-		if( !!item )
-		{
-			menus[menuId]["id"] = {
-				"label": "ID: ",
-				"type": "text",
-				"value": item.info.id,
-				"placeholder": "autokey",
-				"locked": true
-			};
-		}
-		for( x in this.defaultItem )
-		{
-			if( x === "info" )
-				continue;
-
-			menus[menuId][x] = {
-				"label": this.defaultItem[x].label + ": ",
-				"type": "text",
-				"value": (!!item) ? item[x] : "",
-				"placeholder": this.defaultItem[x].types
-			};
-		}
-		menus[menuId]["save"] = {
-			"type": "submit",
-			"value": "Save",
-			"action": "saveLibraryItemEdit"
-		};
-		menus[menuId]["cancel"] = {
-			"type": "button",
-			"value": "Cancel",
-			"action": "cancelLibraryItemEdit"
-		};
-
-		// MENU
-		menuId = "libraryModelsCreate";
-		for( x in this.defaultModel )
-		{
-			if( x === "info" )
-				continue;
-
-			if( !this.defaultModel[x].hasOwnProperty("default") )
-			{
-				menus[menuId][x] = {
-					"label": this.defaultModel[x].label
-				};
-
-				var y;
-				for( y in this.defaultModel[x] )
-				{
-					if( y === "label" )
-						continue;
-					
-					menus[menuId][x][y] = {
-						"label": this.defaultModel[x][y].label + ": ",
-						"type": "text",
-						"value": "",
-						"placeholder": this.defaultModel[x][y].types
-					};
-				}
-			}
-			else
-			{
-				menus[menuId][x] = {
-					"label": this.defaultModel[x].label + ": ",
-					"type": "text",
-					"value": (!!item) ? item[x] : "",
-					"placeholder": this.defaultModel[x].types
-				};
-			}
-		}
-		menus[menuId]["save"] = {
-			"type": "submit",
-			"value": "Save",
-			"action": "createLibraryModel"
-		};
-		menus[menuId]["cancel"] = {
-			"type": "button",
-			"value": "Cancel",
-			"action": "cancelLibraryModelCreate"
-		};
-
-		// MENU
-		menuId = "libraryTypesCreate";
-		for( x in this.defaultType )
-		{
-			if( x === "info" )
-				continue;
-
-			menus[menuId][x] = {
-				"label": this.defaultType[x].label + ": ",
-				"type": "text",
-				"value": (!!item) ? item[x] : "",
-				"placeholder": this.defaultType[x].types
-			};
-		}
-		menus[menuId]["save"] = {
-			"type": "submit",
-			"value": "Save",
-			"action": "createLibraryType"
-		};
-		menus[menuId]["cancel"] = {
-			"type": "button",
-			"value": "Cancel",
-			"action": "cancelLibraryTypeCreate"
-		};
-
-/*
-				"path":
-				{
-					"label": "Path",
-					"default": "",
-					"types": "string",
-					"format": "/^.{2,1024}$/i",
-					"formatDescription": "Executable must be a valid local file."
-				},
-				"type":
-				{
-					"label": "Type",
-					"default": "",
-					"types": "autokey",
-					"format": "/.+$/i",
-					"formatDescription": "Type must be an auto-generated key."
-				}
-*/
-
-		// MENU
-		menuId = "libraryAppsCreate";
-		for( x in this.defaultApp )
-		{
-			if( x === "info" )
-				continue;
-
-			if( !this.defaultApp[x].hasOwnProperty("default") )
-			{
-				menus[menuId][x] = {
-					"label": this.defaultApp[x].label
-				};
-
-				var y;
-				for( y in this.defaultApp[x] )
-				{
-					if( y === "label" )
-						continue;
-					
-					menus[menuId][x][y] = {
-						"label": this.defaultApp[x][y].label + ": ",
-						"type": "text",
-						"value": "",
-						"placeholder": this.defaultApp[x][y].types
-					};
-				}
-			}
-			else
-			{
-				menus[menuId][x] = {
-					"label": this.defaultApp[x].label + ": ",
-					"type": "text",
-					"value": (!!item) ? item[x] : "",
-					"placeholder": this.defaultApp[x].types
-				};
-			}
-		}
-		menus[menuId]["save"] = {
-			"type": "submit",
-			"value": "Save",
-			"action": "createLibraryApp"
-		};
-		menus[menuId]["cancel"] = {
-			"type": "button",
-			"value": "Cancel",
-			"action": "cancelLibraryAppCreate"
-		};
-
-		// MENU
-		menuId = "libraryTypesEdit";
-		if( !!type )
-		{
-			menus[menuId]["id"] = {
-				"label": "ID: ",
-				"type": "text",
-				"value": type.info.id,
-				"placeholder": "autokey",
-				"locked": true
-			};
-		}
-		for( x in this.defaultType )
-		{
-			if( x === "info" )
-				continue;
-
-			menus[menuId][x] = {
-				"label": this.defaultType[x].label + ": ",
-				"type": "text",
-				"value": (!!type) ? type[x] : "",
-				"placeholder": this.defaultType[x].types
-			};
-		}
-		menus[menuId]["save"] = {
-			"type": "submit",
-			"value": "Save",
-			"action": "updateLibraryType"
-		};
-		menus[menuId]["cancel"] = {
-			"type": "button",
-			"value": "Cancel",
-			"action": "cancelLibraryTypeEdit"
-		};
-
-		// MENU
-		menuId = "libraryAppsEdit";
-		if( !!app )
-		{
-			menus[menuId]["id"] = {
-				"label": "ID: ",
-				"type": "text",
-				"value": app.info.id,
-				"placeholder": "autokey",
-				"locked": true
-			};
-		}
-		for( x in this.defaultApp )
-		{
-			if( x === "info" )
-				continue;
-
-			if( !!app && typeof app[x] === "object" )
-			{
-				//console.log(app[x]);
-				menus[menuId][x] = {
-					"label": this.defaultApp[x].label + ": ",
-					"type": "child",
-					"value": (!!app) ? app[x] : "",
-					"placeholder": this.defaultApp[x]
-				};
-			}
-			else
-			{
-				menus[menuId][x] = {
-					"label": this.defaultApp[x].label + ": ",
-					"type": "text",
-					"value": (!!app) ? app[x] : "",
-					"placeholder": this.defaultApp[x].types
-				};
-			}
-		}
-		menus[menuId]["save"] = {
-			"type": "submit",
-			"value": "Save",
-			"action": "updateLibraryApp"
-		};
-		menus[menuId]["cancel"] = {
-			"type": "button",
-			"value": "Cancel",
-			"action": "cancelLibraryAppEdit"
-		};
-
-		// MENU
-		menuId = "libraryPlatformsCreate";
-		if( !!platform )
-		{
-			menus[menuId]["id"] = {
-				"label": "ID: ",
-				"type": "text",
-				"value": platform.info.id,
-				"placeholder": "autokey",
-				"locked": true
-			};
-		}
-		for( x in this.defaultPlatform )
-		{
-			if( x === "info" )
-				continue;
-
-			menus[menuId][x] = {
-				"label": this.defaultPlatform[x].label + ": ",
-				"type": "text",
-				"value": (!!platform) ? platform[x] : "",
-				"placeholder": this.defaultPlatform[x].types
-			};
-		}
-		menus[menuId]["save"] = {
-			"type": "submit",
-			"value": "Save",
-			"action": "createLibraryPlatform"
-		};
-		menus[menuId]["cancel"] = {
-			"type": "button",
-			"value": "Cancel",
-			"action": "cancelLibraryPlatformCreate"
-		};
-
-		// MENU
-		menuId = "libraryPlatformsEdit";
-		if( !!platform )
-		{
-			menus[menuId]["id"] = {
-				"label": "ID: ",
-				"type": "text",
-				"value": platform.info.id,
-				"placeholder": "autokey",
-				"locked": true
-			};
-		}
-		for( x in this.defaultPlatform )
-		{
-			if( x === "info" )
-				continue;
-
-			menus[menuId][x] = {
-				"label": this.defaultPlatform[x].label + ": ",
-				"type": "text",
-				"value": (!!platform) ? platform[x] : "",
-				"placeholder": this.defaultPlatform[x].types
-			};
-		}
-		menus[menuId]["save"] = {
-			"type": "submit",
-			"value": "Save",
-			"action": "updateLibraryPlatform"
-		};
-		menus[menuId]["cancel"] = {
-			"type": "button",
-			"value": "Cancel",
-			"action": "cancelLibraryPlatformEdit"
-		};
-
-		return menus;
-	}.bind(this);
-
 	this.showMenu("metaverseMenu");
 }
 
+Metaverse.prototype.getMenus = function(options)
+{
+	var item;
+	if( !!options && !!options.itemId )
+		item = this.library.items[options.itemId].current;
+
+	var type;
+	if( !!options && !!options.typeId )
+		type = this.library.types[options.typeId].current;
+
+	var platform;
+	if( !!options && !!options.platformId )
+		platform = this.library.platforms[options.platformId].current;
+
+	var app;
+	if( !!options && !!options.appId )
+		app = this.library.apps[options.appId].current;
+
+	var model;
+	if( !!options && !!options.modelId )
+		model = this.library.models[options.modelId].current;
+
+	var menus = {
+		"metaverseMenu":
+		{
+			"menuId": "metaverseMenu",
+			"menuHeader": "Metaverse",
+			"quickJoin":
+			{
+				"type": "button",
+				"value": "Quick Join",
+				"action": "quickJoin"
+			},
+			"firebaseConnect":
+			{
+				"type": "button",
+				"value": "Connect to Firebase",
+				"action": "firebaseConnect"
+			},
+			"firebaseHost":
+			{
+				"type": "button",
+				"value": "Host Firebase",
+				"action": "firebaseHost"
+			},
+			"localLoad":
+			{
+				"type": "button",
+				"value": "Load Local Session",
+				"action": "localLoad"
+			},
+			"localNew":
+			{
+				"type": "button",
+				"value": "New Local Session",
+				"action": "localNew"
+			}
+		},
+		"firebaseConnectMenu":
+		{
+			"menuId": "firebaseConnectMenu",
+			"menuHeader": "Firebase",
+			"address":
+			{
+				"label": "Firebase Address: ",
+				"type": "text",
+				"value": this.quickJoinAddress,
+				"focus": true
+			},
+			"connect":
+			{
+				"type": "submit",
+				"value": "Connect",
+				"action": "connectToFirebase"
+			},
+			"cancel":
+			{
+				"type": "button",
+				"value": "Cancel",
+				"action": "cancelFirebaseConnect"
+			}
+		},
+		"universeMenu":
+		{
+			"menuId": "universeMenu",
+			"menuHeader": "Universe",
+			"universeSelect":
+			{
+				"type": "select",
+				"generateOptions": "universeTitles",
+				"focus": true,
+				"action": "universeSelectChange"
+			},
+			"joinUniverse":
+			{
+				"type": "submit",
+				"value": "Join Universe",
+				"action": "joinUniverse"
+			},
+			"newUniverse":
+			{
+				"type": "button",
+				"value": "New Universe",
+				"action": "newUniverse"
+			},
+			"cancel":
+			{
+				"type": "button",
+				"value": "Cancel",
+				"action": "cancelUniverse"
+			}
+		},
+		"newUniverseMenu":
+		{
+			"menuId": "newUniverseMenu",
+			"menuHeader": "Universe / New",
+			"title":
+			{
+				"label": "Universe Title: ",
+				"type": "text",
+				"value": "",
+				"placeholder": "string",
+				"focus": true
+			},
+			"createUniverse":
+			{
+				"type": "submit",
+				"value": "Create Universe",
+				"action": "createUniverse"
+			},
+			"cancel":
+			{
+				"type": "button",
+				"value": "Cancel",
+				"action": "cancelNewUniverse"
+			}
+		},
+		"signUpMenu":
+		{
+			"menuId": "signUpMenu",
+			"menuHeader": "Dashboard / Sign-Up",
+			"username":
+			{
+				"label": "Username: ",
+				"type": "text",
+				"value": this.defaultUser.username.default,
+				"placeholder": this.defaultUser.username.types,
+				"focus": true
+			},
+			"passcode":
+			{
+				"label": "<u>Public</u> Passcode: ",
+				"type": "password",
+				"value": this.defaultUser.passcode.default,
+				"placeholder": this.defaultUser.passcode.types
+			},
+			"displayName":
+			{
+				"label": "Display Name: ",
+				"type": "text",
+				"value": this.defaultUser.displayName.default,
+				"placeholder": this.defaultUser.displayName.types
+			},
+			"signUp":
+			{
+				"type": "submit",
+				"value": "Sign-Up",
+				"action": "doSignUp"
+			},
+			"cancel":
+			{
+				"type": "button",
+				"value": "Cancel",
+				"action": "cancelSignUp"
+			}
+		},
+		"logInMenu":
+		{
+			"menuId": "logInMenu",
+			"menuHeader": "Dashboard / Log-In",
+			"username":
+			{
+				"label": "Username: ",
+				"type": "text",
+				"value": this.defaultUser.username.default,
+				"placeholder": this.defaultUser.username.types,
+				"focus": true
+			},
+			"passcode":
+			{
+				"label": "<u>Public</u> Passcode: ",
+				"type": "password",
+				"value": this.defaultUser.passcode.default,
+				"placeholder": this.defaultUser.passcode.types
+			},
+			"logIn":
+			{
+				"type": "submit",
+				"value": "Log-In",
+				"action": "doLogIn"
+			},
+			"cancel":
+			{
+				"type": "button",
+				"value": "Cancel",
+				"action": "cancelLogIn"
+			}
+		},
+		"dashboardMenu":
+		{
+			"menuId": "dashboardMenu",
+			"menuHeader": "Dashboard",
+			"library":
+			{
+				"type": "button",
+				"value": "Library",
+				"action": "showLibrary"
+			},
+			"logIn":
+			{
+				"type": "button",
+				"value": "Log-In",
+				"action": "logIn"
+			},
+			"signUp":
+			{
+				"type": "button",
+				"value": "Sign-Up",
+				"action": "signUp"
+			},
+			"account":
+			{
+				"type": "button",
+				"value": "Account",
+				"action": "showAccount"
+			},
+			"disconnect":
+			{
+				"type": "button",
+				"value": "Disconnect",
+				"action": "disconnectMetaverse"
+			}
+		},
+		"libraryMenu":
+		{
+			"menuId": "libraryMenu",
+			"menuHeader": "Dashboard / Library",
+			"items":
+			{
+				"type": "button",
+				"value": "Items",
+				"action": "showLibraryItems"
+			},
+			"models":
+			{
+				"type": "button",
+				"value": "Models",
+				"action": "showLibraryModels"
+			},
+			"types":
+			{
+				"type": "button",
+				"value": "Types",
+				"action": "showLibraryTypes"
+			},
+			"apps":
+			{
+				"type": "button",
+				"value": "Apps",
+				"action": "showLibraryApps"
+			},
+			"platforms":
+			{
+				"type": "button",
+				"value": "Platforms",
+				"action": "showLibraryPlatforms"
+			},
+			"cancel":
+			{
+				"type": "button",
+				"value": "Cancel",
+				"action": "cancelLibrary"
+			}
+		},
+		"accountMenu":
+		{
+			"menuId": "accountMenu",
+			"menuHeader": "Dashboard / Account",
+			"metaverse":
+			{
+				"label": "Metaverse: ",
+				"type": "text",
+				"value": this.root,
+				"placeholder": "uri",
+				"locked": true
+			},
+			"universe":
+			{
+				"label": "Universe: ",
+				"type": "text",
+				"value": this.universe,
+				"placeholder": "string",
+				"locked": true
+			},
+			"username":
+			{
+				"label": "Username: ",
+				"type": "text",
+				"value": this.localUser.username,
+				"placeholder": "string",
+				"locked": true
+			},
+			"displayName":
+			{
+				"label": "Display Name: ",
+				"type": "text",
+				"value": this.localUser.displayName,
+				"placeholder": "string",
+				"focus": true
+			},
+			"oldPasscode":
+			{
+				"label": "Old <u>Public</u> Passcode: ",
+				"type": "password",
+				"value": "",
+				"placeholder": "string"
+			},
+			"newPasscode":
+			{
+				"label": "New <u>Public</u> Passcode: ",
+				"type": "password",
+				"value": "",
+				"placeholder": "string"
+			},
+			"newPasscodeAgain":
+			{
+				"label": "New Passcode Again: ",
+				"type": "password",
+				"value": "",
+				"placeholder": "string"
+			},
+			"changePasscode":
+			{
+				"type": "button",
+				"value": "Change Passcode",
+				"action": "changePasscode"
+			},
+			"save":
+			{
+				"type": "submit",
+				"value": "Save",
+				"action": "saveAccount"
+			},
+			"cancel":
+			{
+				"type": "button",
+				"value": "Cancel",
+				"action": "cancelAccount"
+			}
+		},
+		"libraryItems":
+		{
+			"menuId": "libraryItems",
+			"menuHeader": "Dashboard / Library / Items",
+			"itemSelect":
+			{
+				"type": "select",
+				"generateOptions": "libraryItems",
+				"focus": true,
+				"action": "libraryItemsSelectChange"
+			},
+			"editItem":
+			{
+				"type": "submit",
+				"value": "Edit Item",
+				"action": "showEditItem"
+			},
+			"newItem":
+			{
+				"type": "button",
+				"value": "Create New Item",
+				"action": "showCreateItem"
+			},
+			"cancel":
+			{
+				"type": "button",
+				"value": "Cancel",
+				"action": "cancelLibraryItems"
+			}
+		},
+		"libraryModels":
+		{
+			"menuId": "libraryItems",
+			"menuHeader": "Dashboard / Library / Models",
+			"modelSelect":
+			{
+				"type": "select",
+				"generateOptions": "libraryModels",
+				"focus": true,
+				"action": "libraryModelSelectChange"
+			},
+			"editModel":
+			{
+				"type": "submit",
+				"value": "Edit Model",
+				"action": "showEditModel"
+			},
+			"newModel":
+			{
+				"type": "button",
+				"value": "Create New Model",
+				"action": "showCreateModel"
+			},
+			"cancel":
+			{
+				"type": "button",
+				"value": "Cancel",
+				"action": "cancelLibraryModels"
+			}
+		},
+		"libraryItemsCreate":
+		{
+			"menuId": "libraryItemsCreate",
+			"menuHeader": "Dashboard / Library / Items / New",
+			"shortcut":
+			{
+				"label": "Shortcut: ",
+				"type": "text",
+				"value": "",
+				"placeholder": "uri|string",
+				"focus": true
+			},
+			"create":
+			{
+				"type": "submit",
+				"value": "Create Item",
+				"action": "generateNewItem"
+			},
+			"cancel":
+			{
+				"type": "button",
+				"value": "Cancel",
+				"action": "cancelLibraryItemCreate"
+			}
+		},
+		"libraryModelsCreate":
+		{
+			"menuId": "libraryModelsCreate",
+			"menuHeader": "Dashboard / Library / Models / New",
+		},
+		"libraryItemsEdit":
+		{
+			"menuId": "libraryItemsEdit",
+			"menuHeader": "Dashboard / Library / Items / Edit"
+		},
+		"libraryTypes":
+		{
+			"menuId": "libraryTypes",
+			"menuHeader": "Dashboard / Library / Types",
+			"typeSelect":
+			{
+				"type": "select",
+				"generateOptions": "libraryTypes",
+				"focus": true,
+				"action": "libraryTypesSelectChange"
+			},
+			"editType":
+			{
+				"type": "submit",
+				"value": "Edit Type",
+				"action": "showEditType"
+			},
+			"newType":
+			{
+				"type": "button",
+				"value": "Create New Type",
+				"action": "showCreateType"
+			},
+			"cancel":
+			{
+				"type": "button",
+				"value": "Cancel",
+				"action": "cancelLibraryTypes"
+			}
+		},
+		"libraryApps":
+		{
+			"menuId": "libraryApps",
+			"menuHeader": "Dashboard / Library / Apps",
+			"appSelect":
+			{
+				"type": "select",
+				"generateOptions": "libraryApps",
+				"focus": true,
+				"action": "libraryAppsSelectChange"
+			},
+			"editApp":
+			{
+				"type": "submit",
+				"value": "Edit App",
+				"action": "showEditApp"
+			},
+			"newApp":
+			{
+				"type": "button",
+				"value": "Create New App",
+				"action": "showCreateApp"
+			},
+			"cancel":
+			{
+				"type": "button",
+				"value": "Cancel",
+				"action": "cancelLibraryApps"
+			}
+		},
+		"libraryTypesCreate":
+		{
+			"menuId": "libraryTypesCreate",
+			"menuHeader": "Dashboard / Library / Types / New",
+		},
+		"libraryAppsCreate":
+		{
+			"menuId": "libraryAppsCreate",
+			"menuHeader": "Dashboard / Library / Apps / New",
+		},
+		"libraryTypesEdit":
+		{
+			"menuId": "libraryTypesEdit",
+			"menuHeader": "Dashboard / Library / Types / Edit",
+		},
+		"libraryModelsEdit":
+		{
+			"menuId": "libraryModelsEdit",
+			"menuHeader": "Dashboard / Library / Models / Edit",
+		},
+		"libraryAppsEdit":
+		{
+			"menuId": "libraryAppsEdit",
+			"menuHeader": "Dashboard / Library / Apps / Edit",
+		},
+		"libraryPlatforms":
+		{
+			"menuId": "libraryPlatforms",
+			"menuHeader": "Dashboard / Library / Platforms",
+			"platformSelect":
+			{
+				"type": "select",
+				"generateOptions": "libraryPlatforms",
+				"focus": true,
+				"action": "libraryPlatformsSelectChange"
+			},
+			"editPlatform":
+			{
+				"type": "submit",
+				"value": "Edit Platform",
+				"action": "showEditPlatform"
+			},
+			"newPlatform":
+			{
+				"type": "button",
+				"value": "Create New Platform",
+				"action": "showCreatePlatform"
+			},
+			"cancel":
+			{
+				"type": "button",
+				"value": "Cancel",
+				"action": "cancelLibraryPlatforms"
+			}
+		},
+		"libraryPlatformsCreate":
+		{
+			"menuId": "libraryPlatformsCreate",
+			"menuHeader": "Dashboard / Library / Platforms / New",
+		},
+		"libraryPlatformsEdit":
+		{
+			"menuId": "libraryPlatformsEdit",
+			"menuHeader": "Dashboard / Library / Platforms / Edit",	
+		}
+	};
+
+	var x;
+	var menuId;
+
+	// MENU
+	menuId = "libraryItemsEdit";
+	if( !!item )
+	{
+		menus[menuId]["id"] = {
+			"label": "ID: ",
+			"type": "text",
+			"value": item.info.id,
+			"placeholder": "autokey",
+			"locked": true
+		};
+	}
+	for( x in this.defaultItem )
+	{
+		if( x === "info" )
+			continue;
+
+		menus[menuId][x] = {
+			"label": this.defaultItem[x].label + ": ",
+			"type": "text",
+			"value": (!!item) ? item[x] : "",
+			"placeholder": this.defaultItem[x].types
+		};
+	}
+	menus[menuId]["save"] = {
+		"type": "submit",
+		"value": "Save",
+		"action": "saveLibraryItemEdit"
+	};
+	menus[menuId]["cancel"] = {
+		"type": "button",
+		"value": "Cancel",
+		"action": "cancelLibraryItemEdit"
+	};
+
+	// MENU
+	menuId = "libraryModelsCreate";
+	for( x in this.defaultModel )
+	{
+		if( x === "info" )
+			continue;
+
+		if( !this.defaultModel[x].hasOwnProperty("default") )
+		{
+			menus[menuId][x] = {
+				"label": this.defaultModel[x].label
+			};
+
+			var y;
+			for( y in this.defaultModel[x] )
+			{
+				if( y === "label" )
+					continue;
+				
+				menus[menuId][x][y] = {
+					"label": this.defaultModel[x][y].label + ": ",
+					"type": "text",
+					"value": "",
+					"placeholder": this.defaultModel[x][y].types
+				};
+			}
+		}
+		else
+		{
+			menus[menuId][x] = {
+				"label": this.defaultModel[x].label + ": ",
+				"type": "text",
+				"value": (!!item) ? item[x] : "",
+				"placeholder": this.defaultModel[x].types
+			};
+		}
+	}
+	menus[menuId]["save"] = {
+		"type": "submit",
+		"value": "Save",
+		"action": "createLibraryModel"
+	};
+	menus[menuId]["cancel"] = {
+		"type": "button",
+		"value": "Cancel",
+		"action": "cancelLibraryModelCreate"
+	};
+
+	// MENU
+	menuId = "libraryTypesCreate";
+	for( x in this.defaultType )
+	{
+		if( x === "info" )
+			continue;
+
+		menus[menuId][x] = {
+			"label": this.defaultType[x].label + ": ",
+			"type": "text",
+			"value": (!!item) ? item[x] : "",
+			"placeholder": this.defaultType[x].types
+		};
+	}
+	menus[menuId]["save"] = {
+		"type": "submit",
+		"value": "Save",
+		"action": "createLibraryType"
+	};
+	menus[menuId]["cancel"] = {
+		"type": "button",
+		"value": "Cancel",
+		"action": "cancelLibraryTypeCreate"
+	};
+
+/*
+			"path":
+			{
+				"label": "Path",
+				"default": "",
+				"types": "string",
+				"format": "/^.{2,1024}$/i",
+				"formatDescription": "Executable must be a valid local file."
+			},
+			"type":
+			{
+				"label": "Type",
+				"default": "",
+				"types": "autokey",
+				"format": "/.+$/i",
+				"formatDescription": "Type must be an auto-generated key."
+			}
+*/
+
+	// MENU
+	menuId = "libraryAppsCreate";
+	for( x in this.defaultApp )
+	{
+		if( x === "info" )
+			continue;
+
+		if( !this.defaultApp[x].hasOwnProperty("default") )
+		{
+			menus[menuId][x] = {
+				"label": this.defaultApp[x].label
+			};
+
+			var y;
+			for( y in this.defaultApp[x] )
+			{
+				if( y === "label" )
+					continue;
+				
+				menus[menuId][x][y] = {
+					"label": this.defaultApp[x][y].label + ": ",
+					"type": "text",
+					"value": "",
+					"placeholder": this.defaultApp[x][y].types
+				};
+			}
+		}
+		else
+		{
+			menus[menuId][x] = {
+				"label": this.defaultApp[x].label + ": ",
+				"type": "text",
+				"value": (!!item) ? item[x] : "",
+				"placeholder": this.defaultApp[x].types
+			};
+		}
+	}
+	menus[menuId]["save"] = {
+		"type": "submit",
+		"value": "Save",
+		"action": "createLibraryApp"
+	};
+	menus[menuId]["cancel"] = {
+		"type": "button",
+		"value": "Cancel",
+		"action": "cancelLibraryAppCreate"
+	};
+
+	// MENU
+	menuId = "libraryTypesEdit";
+	if( !!type )
+	{
+		menus[menuId]["id"] = {
+			"label": "ID: ",
+			"type": "text",
+			"value": type.info.id,
+			"placeholder": "autokey",
+			"locked": true
+		};
+	}
+	for( x in this.defaultType )
+	{
+		if( x === "info" )
+			continue;
+
+		menus[menuId][x] = {
+			"label": this.defaultType[x].label + ": ",
+			"type": "text",
+			"value": (!!type) ? type[x] : "",
+			"placeholder": this.defaultType[x].types
+		};
+	}
+	menus[menuId]["save"] = {
+		"type": "submit",
+		"value": "Save",
+		"action": "updateLibraryType"
+	};
+	menus[menuId]["cancel"] = {
+		"type": "button",
+		"value": "Cancel",
+		"action": "cancelLibraryTypeEdit"
+	};
+
+	// MENU
+	menuId = "libraryModelsEdit";
+	if( !!model )
+	{
+		menus[menuId]["id"] = {
+			"label": "ID: ",
+			"type": "text",
+			"value": model.info.id,
+			"placeholder": "autokey",
+			"locked": true
+		};
+	}
+	for( x in this.defaultModel )
+	{
+		if( x === "info" )
+			continue;
+
+		if( !!model && typeof model[x] === "object" )
+		{
+			//console.log(model[x]);
+			menus[menuId][x] = {
+				"label": this.defaultModel[x].label,
+				"type": "child",
+				"value": (!!model) ? model[x] : "",
+				"placeholder": this.defaultModel[x]
+			};
+		}
+		else
+		{
+			menus[menuId][x] = {
+				"label": this.defaultModel[x].label + ": ",
+				"type": "text",
+				"value": (!!model) ? model[x] : "",
+				"placeholder": this.defaultModel[x].types
+			};
+		}
+	}
+	menus[menuId]["save"] = {
+		"type": "submit",
+		"value": "Save",
+		"action": "updateLibraryModel"
+	};
+	menus[menuId]["cancel"] = {
+		"type": "button",
+		"value": "Cancel",
+		"action": "cancelLibraryModelEdit"
+	};
+
+	// MENU
+	menuId = "libraryAppsEdit";
+	if( !!app )
+	{
+		menus[menuId]["id"] = {
+			"label": "ID: ",
+			"type": "text",
+			"value": app.info.id,
+			"placeholder": "autokey",
+			"locked": true
+		};
+	}
+	for( x in this.defaultApp )
+	{
+		if( x === "info" )
+			continue;
+
+		if( !!app && typeof app[x] === "object" )
+		{
+			//console.log(app[x]);
+			menus[menuId][x] = {
+				"label": this.defaultApp[x].label + ": ",
+				"type": "child",
+				"value": (!!app) ? app[x] : "",
+				"placeholder": this.defaultApp[x]
+			};
+		}
+		else
+		{
+			menus[menuId][x] = {
+				"label": this.defaultApp[x].label + ": ",
+				"type": "text",
+				"value": (!!app) ? app[x] : "",
+				"placeholder": this.defaultApp[x].types
+			};
+		}
+	}
+	menus[menuId]["save"] = {
+		"type": "submit",
+		"value": "Save",
+		"action": "updateLibraryApp"
+	};
+	menus[menuId]["cancel"] = {
+		"type": "button",
+		"value": "Cancel",
+		"action": "cancelLibraryAppEdit"
+	};
+
+	// MENU
+	menuId = "libraryPlatformsCreate";
+	if( !!platform )
+	{
+		menus[menuId]["id"] = {
+			"label": "ID: ",
+			"type": "text",
+			"value": platform.info.id,
+			"placeholder": "autokey",
+			"locked": true
+		};
+	}
+	for( x in this.defaultPlatform )
+	{
+		if( x === "info" )
+			continue;
+
+		menus[menuId][x] = {
+			"label": this.defaultPlatform[x].label + ": ",
+			"type": "text",
+			"value": (!!platform) ? platform[x] : "",
+			"placeholder": this.defaultPlatform[x].types
+		};
+	}
+	menus[menuId]["save"] = {
+		"type": "submit",
+		"value": "Save",
+		"action": "createLibraryPlatform"
+	};
+	menus[menuId]["cancel"] = {
+		"type": "button",
+		"value": "Cancel",
+		"action": "cancelLibraryPlatformCreate"
+	};
+
+	// MENU
+	menuId = "libraryPlatformsEdit";
+	if( !!platform )
+	{
+		menus[menuId]["id"] = {
+			"label": "ID: ",
+			"type": "text",
+			"value": platform.info.id,
+			"placeholder": "autokey",
+			"locked": true
+		};
+	}
+	for( x in this.defaultPlatform )
+	{
+		if( x === "info" )
+			continue;
+
+		menus[menuId][x] = {
+			"label": this.defaultPlatform[x].label + ": ",
+			"type": "text",
+			"value": (!!platform) ? platform[x] : "",
+			"placeholder": this.defaultPlatform[x].types
+		};
+	}
+	menus[menuId]["save"] = {
+		"type": "submit",
+		"value": "Save",
+		"action": "updateLibraryPlatform"
+	};
+	menus[menuId]["cancel"] = {
+		"type": "button",
+		"value": "Cancel",
+		"action": "cancelLibraryPlatformEdit"
+	};
+
+	return menus;
+};
+
 Metaverse.prototype.tokenize = function(string)
 {
-	//return string.match(/\S+/g);
-	return string.split(/,\s*/g);
+	return string.split(/[,\s]+/g);
 };
 
 Metaverse.prototype.showMenu = function(menuId, options)
 {
+	//console.log(this.getMenus(options)[menuId]);
+	//console.log(options);
+	//this.eventHandler("showMenu", this.getMenus(options)[menuId]);
 	this.eventHandler("showMenu", this.getMenus(options)[menuId]);
 };
 
@@ -1910,6 +1973,53 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	{
 		this.showMenu("libraryApps");
 	}
+	else if( actionName === "createLibraryModel" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var data = {};
+		var x;
+		for( x in actionData )
+		{
+			if( !(actionData[x] instanceof HTMLElement) )
+			{
+				data[x] = {};
+
+				var y;
+				for( y in actionData[x] )
+				{
+					data[x][y] = {};
+
+					var z;
+					for( z in actionData[x][y] )
+						data[x][y][z] = actionData[x][y][z].value;
+				}
+			}
+			else if( actionData[x].type !== "button" && actionData[x].type !== "submit" )
+				data[x] = actionData[x].value;
+		}
+
+		// data MUST have platforms object
+		//if( !data.hasOwnProperty("platforms") )
+			//data.platforms = {};
+
+		this.createLibraryObject("Model", data, function(modelId)
+		{
+			if( !!!modelId )
+			{
+				if( !!this.error )
+				{
+					this.eventHandler("error", this.error);
+					this.eventHandler("unfreezeInputs");
+					return;
+				}
+
+				return;
+			}
+
+			this.showMenu("libraryModels");
+		}.bind(this));
+	}
 	else if( actionName === "createLibraryApp" )
 	{
 		this.eventHandler("freezeInputs");
@@ -1937,8 +2047,8 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 		}
 
 		// data MUST have filePaths object
-		if( !data.hasOwnProperty("filePaths") )
-			data.filePaths = {};
+		//if( !data.hasOwnProperty("filePaths") )
+		//	data.filePaths = {};
 
 		this.createLibraryObject("App", data, function(appId)
 		{
@@ -1990,6 +2100,10 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	{
 		this.showMenu("libraryTypesEdit", {"typeId": actionData["typeSelect"].options[actionData["typeSelect"].selectedIndex].value});
 	}
+	else if( actionName === "showEditModel" )
+	{
+		this.showMenu("libraryModelsEdit", {"modelId": actionData["modelSelect"].options[actionData["modelSelect"].selectedIndex].value});
+	}
 	else if( actionName === "showEditApp" )
 	{
 		this.showMenu("libraryAppsEdit", {"appId": actionData["appSelect"].options[actionData["appSelect"].selectedIndex].value});
@@ -1998,9 +2112,64 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	{
 		this.showMenu("libraryTypes");
 	}
+	else if( actionName === "cancelLibraryModelEdit" )
+	{
+		this.showMenu("libraryModels");
+	}
 	else if( actionName === "cancelLibraryAppEdit" )
 	{
 		this.showMenu("libraryApps");
+	}
+	else if( actionName === "updateLibraryModel" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var data = {};
+		var x;
+		for( x in actionData )
+		{
+			if( actionData[x].type !== "button" && actionData[x].type !== "submit" && x !== "id" )
+			{
+				if( actionData[x].type === undefined )
+				{
+					data[x] = {};
+
+					var y;
+					for( y in actionData[x] )
+					{
+						data[x][y] = {};
+						var z;
+						for( z in actionData[x][y] )
+							data[x][y][z] = actionData[x][y][z].value;
+					}
+				}
+				else
+					data[x] = actionData[x].value;
+			}
+		}
+
+		data.info = {"id": actionData["id"].value};
+
+		// data MUST have platforms object
+		//if( !data.hasOwnProperty("platforms") )
+			//data.platforms = {};
+
+		this.updateLibraryObject("Model", data, function(modelId)
+		{
+			if( !!!modelId )
+			{
+				if( !!this.error )
+				{
+					this.eventHandler("error", this.error);
+					this.eventHandler("unfreezeInputs");
+					return;
+				}
+
+				return;
+			}
+
+			this.showMenu("libraryModels");
+		}.bind(this));
 	}
 	else if( actionName === "updateLibraryApp" )
 	{
@@ -2505,7 +2674,20 @@ Metaverse.prototype.modelAdded = function(child, prevChildKey)
 {
 	var key = child.key();
 	console.log("Downloaded metaverse information for model " + key);
-	this.library.models[key] = child.val();
+
+	// Make sure the model has all required fields.
+	var val = child.val();
+	var x;
+	for( x in this.defaultModel )
+	{
+		if( !val.current.hasOwnProperty(x) )
+		{
+			// Assume it is an empty container object.
+			val.current[x] = {};
+		}
+	}
+
+	this.library.models[key] = val;
 	this.libraryRef.child("models").child(key).child("current").on("value", this.modelChanged.bind(this));
 };
 
@@ -2518,6 +2700,18 @@ Metaverse.prototype.modelRemoved = function(child)
 Metaverse.prototype.modelChanged = function(child, prevChildKey)
 {
 	var val = child.val();
+
+	// Make sure the model has all required fields.
+	var x;
+	for( x in this.defaultModel )
+	{
+		if( !val.hasOwnProperty(x) )
+		{
+			// Assume it is an empty container object.
+			val[x] = {};
+		}
+	}
+
 	this.library.models[val.info.id].current = val;
 };
 
@@ -2909,7 +3103,10 @@ Metaverse.prototype.validateData = function(data, defaultData, callback)
 			{
 				for( s in data[x][r] )
 				{
-					//console.log(defaultData[x][s].format);
+					if( !defaultData[x].hasOwnProperty(s) )
+						continue;
+
+					//console.log(defaultData[x]);
 					//console.log(data[x][r][s]);
 					if( data[x][r][s].search(eval(defaultData[x][s].format)) === -1 )
 					{
