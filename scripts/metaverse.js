@@ -136,6 +136,18 @@ function Metaverse(eventHandler)
 			"format": "/(((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)/i",
 			"formatDescription": "Single Query must be a valid URI to a PHP handler."
 		},
+		"types":
+		{
+			"label": "Types",
+			"id":
+			{
+				"label": "ID",
+				"default": "",
+				"types": "autokey",
+				"format": "/.+$/i",
+				"formatDescription": "Types must be an auto-generated key."
+			}
+		},
 		"typeAliases":
 		{
 			"label": "Type Aliases",
@@ -2032,64 +2044,103 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 				return;
 			}
 
-			// If no item twin has been found yet, let's scout some more info and try again.
-			// ADD SOME SORT OF SCOUTING OPTIONS HERE
-			var request = new XMLHttpRequest();
-			var requestURL = "http://metaverse.anarchyarcade.com/tubeinfo.php?id=" + this.extractYouTubeId(item.file);
+			// FIXME: This must be changed into an async loop!! (Right now it just uses the 1st applicable database then quits.)
+			// However, it's only worth it to check the next database if it at least has the POTENTIAL to fill in missing fields.
+			// This means further complicating Database definitions to specify beforehand which item fields they are able to fill.
 
-			request.onreadystatechange = function()
+			// IDEA: Perhaps each database, in addition to their singleQuery handler, could also have a getInfo handler that responds
+			// with field names that the database is able to fill. (BUT WOULD THIS BE BETTER THAN LOCALLY DEFINING??? ANY ADDITIONAL USES FOR THE INFO RESPONSE????? ABORT THIS IDEA IF NOT.)
+
+			// REMEMBER: The 1st database hit will usually be enough, ESPECIALLY for singleQueries.
+			// POSTPONE FOR NOW!!! Come back to this after you have added MORE than just singleQuery to the databases structure.
+
+
+
+			// DO THESE NEXT (right now, i'm from the future)!!!!!!!!!!!!!!!!!!!
+			// FIXME: Handle HTTP failures and timeouts.
+			// FIXME: Handle alternative cases where there's no matching databases, etc, so that onShouldCreate still gets called.
+			//var databaseUsed = false;
+			var x;
+			for( x in this.library.databases )
 			{
-				if( request.readyState === 4 && request.status === 200 )
+				if( !this.library.databases[x].current.types.hasOwnProperty(item.type) )
+					continue;
+
+				// If no item twin has been found yet, let's scout some more info and try again.
+				var encodedItem = this.encodeRFC5987ValueChars(encodeURIComponent(JSON.stringify(item)));
+				var request = new XMLHttpRequest();
+
+				var x;
+				for( x in this.library.databases )
 				{
-					var response = JSON.parse(request.responseText);
-					console.log(response);
-					var data = response.data;
+					var requestURL = this.library.databases[x].current.singleQueryUri + "?item=" + encodedItem;//"http://metaverse.anarchyarcade.com/tubeinfo.php?id=" + this.extractYouTubeId(item.file);
 
-					var x;
-					for( x in data )
+					request.onreadystatechange = function()
 					{
-						if( item.hasOwnProperty(x) )
-							item[x] = data[x];
-					}
-					/*
-					item.title = json.items[0].snippet.title;
-					var description = json.items[0].snippet.description;
-					description = description.replace(/\r?\n/g, "\\n");
-					description.substring(0, 1023);
-					item.description = description;
-
-					var screenUri = "http://img.youtube.com/vi/";
-					screenUri += json.items[0].id;
-					screenUri += "/0.jpg";
-					item.screen = screenUri;
-
-					item.reference = "http://www.youtube.com/watch?v=" + json.items[0].id;
-					*/
-										
-					onShouldCreate.call(this);
-				}
-			}.bind(this);
-
-			request.open("GET", requestURL, true);
-			request.send();			
-
-			function onShouldCreate()
-			{
-				// Add the item.
-				this.createLibraryObject("Item", item, function(itemId)
-				{
-					if( !!!itemId )
-					{
-						if( !!this.error )
+						if( request.readyState === 4 && request.status === 200 )
 						{
-							this.eventHandler("error", this.error);
-							this.eventHandler("unfreezeInputs");
+							var response = JSON.parse(request.responseText);
+							console.log(response);
+							var data = response.data;
+
+							// Types returned by databases may be aliases!!
+							if( data.hasOwnProperty("type") && !this.library.types.hasOwnProperty(data.type) )
+							{
+								// probably an alias at this point.
+								var typeAliases = this.library.databases[x].typeAliases;
+
+								var foundType = false;
+								var y;
+								for( y in typeAliases )
+								{
+									if( typeAliases[y] === data.type )
+									{
+										data.type = y;
+										foundType = true;
+										break;
+									}
+								}
+
+								// If no type match was found, replace it with the original type.
+								if( !foundType )
+									data.type = item.type;
+							}
+
+							var x;
+							for( x in data )
+							{
+								if( item.hasOwnProperty(x) )
+									item[x] = data[x];
+							}
+							
+							onShouldCreate.call(this);
 						}
-						return;
+					}.bind(this);
+
+					request.open("GET", requestURL, true);
+					request.send();			
+
+					function onShouldCreate()
+					{
+						// Add the item.
+						this.createLibraryObject("Item", item, function(itemId)
+						{
+							if( !!!itemId )
+							{
+								if( !!this.error )
+								{
+									this.eventHandler("error", this.error);
+									this.eventHandler("unfreezeInputs");
+								}
+								return;
+							}
+
+							this.showMenu("libraryItems");
+						}.bind(this));
 					}
 
-					this.showMenu("libraryItems");
-				}.bind(this));
+					break;
+				}
 			}
 			
 		}.bind(this));
@@ -3620,6 +3671,19 @@ Metaverse.prototype.isUrl = function(text)
 	return (text.search(/((http|https):\/\/|(www\.|www\d\.))([^\-][a-zA-Z0-9\-]+)?(\.\w+)(\/\w+){0,}(\.\w+){0,}(\?\w+\=\w+){0,}(\&\w+\=\w+)?/i) !== -1);
 };
 
+// Originally from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent
+Metaverse.prototype.encodeRFC5987ValueChars = function(str){
+    return encodeURIComponent(str).
+        // Note that although RFC3986 reserves "!", RFC5987 does not,
+        // so we do not need to escape it
+        replace(/['()]/g, escape). // i.e., %27 %28 %29
+        replace(/\*/g, '%2A').
+            // The following are not required for percent-encoding per RFC5987, 
+            // so we can allow for a little better readability over the wire: |`^
+            replace(/%(?:7C|60|5E)/g, unescape);
+};
+
+/*
 Metaverse.prototype.extractYouTubeId = function(trailerURL) {
   if( typeof trailerURL === "undefined" )
     return trailerURL;
@@ -3647,3 +3711,4 @@ Metaverse.prototype.extractYouTubeId = function(trailerURL) {
 
   return youtubeid;
 };
+*/
