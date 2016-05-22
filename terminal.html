@@ -1080,6 +1080,7 @@
 						var y, inputOption;
 						if( x === "type" )
 						{
+							// active value on top
 							for( y in metaverse.library.types )
 							{
 								if( y === inputData.value )
@@ -1092,12 +1093,13 @@
 								}
 							}
 
+							// default 2nd
 							for( y in metaverse.library.types )
 							{
 								if( y === inputData.value )
 									continue;
 
-								if( metaverse.library.types[y].current.title === "standard" )
+								if( metaverse.library.types[y].current.title === "Default" )
 								{
 									inputOption = document.createElement("option");
 									inputOption.value = y;
@@ -1107,9 +1109,10 @@
 								}
 							}
 
+							// the rest
 							for( y in metaverse.library.types )
 							{
-								if( metaverse.library.types[y].current.title === "standard" || y === inputData.value )
+								if( metaverse.library.types[y].current.title === "Default" || y === inputData.value )
 									continue;
 
 								inputOption = document.createElement("option");
@@ -1139,7 +1142,7 @@
 
 							inputOption = document.createElement("option");
 							inputOption.value = "";
-							inputOption.text = "Standalone";
+							inputOption.text = "Default";
 							inputElem.appendChild(inputOption);
 
 							for( y in metaverse.library.apps )
@@ -1181,7 +1184,7 @@
 							{
 								if( y === inputData.value )
 									continue;
-								
+
 								inputOption = document.createElement("option");
 								inputOption.value = y;
 								inputOption.text = metaverse.library.models[y].current.title;

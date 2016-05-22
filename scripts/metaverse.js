@@ -440,97 +440,97 @@ function Metaverse(eventHandler)
 
 	this.defaultTypes = [
 		{
-			"title": "youtube",
+			"title": "YouTube",
 			"fileFormat": "/(http|https):\\/\\/(?:www\\.)?youtu(?:be\\.com\\/watch\\?v=|\\.be\\/)([\\w\\-]+)(&(amp;)?[\\w\\?=]*)?/i",
 			"titleFormat": "/(?=[^\\/]*$).+$/i",
 			"priority": 2
 		},
 		{
-			"title": "image",
+			"title": "Image",
 			"fileFormat": "/(.jpg|.jpeg|.gif|.png|.tga)$/i",
 			"titleFormat": "/(?=[^\\/]*$).+$/i",
 			"priority": 2
 		},
 		{
-			"title": "ds",
+			"title": "DS",
 			"fileFormat": "/(.nds)$/i",
 			"titleFormat": "/.+$/i",
 			"priority": 1
 		},
 		{
-			"title": "wii",
+			"title": "Wii",
 			"fileFormat": "/(.iso)$/i",
 			"titleFormat": "/.+$/i",
 			"priority": 1
 		},
 		{
-			"title": "ps",
+			"title": "PS",
 			"fileFormat": "/(.iso|.bin|.img|.ccd|.mds|.pbp|.ecm)$/i",
 			"titleFormat": "/.+$/i",
 			"priority": 1
 		},
 		{
-			"title": "nes",
+			"title": "NES",
 			"fileFormat": "/(.nes|.zip)$/i",
 			"titleFormat": "/.+$/i",
 			"priority": 1
 		},
 		{
-			"title": "genesis",
+			"title": "Genesis",
 			"fileFormat": "/(.zip|.gen|.smc)$/i",
 			"titleFormat": "/.+$/i",
 			"priority": 1
 		},
 		{
-			"title": "arcade",
+			"title": "Arcade",
 			"fileFormat": "/(.zip)$/i",
 			"titleFormat": "/.+$/i",
 			"priority": 1
 		},
 		{
-			"title": "psp",
+			"title": "PSP",
 			"fileFormat": "/(.iso)$/i",
 			"titleFormat": "/.+$/i",
 			"priority": 1
 		},
 		{
-			"title": "n64",
+			"title": "N64",
 			"fileFormat": "/(.n64|.zip)$/i",
 			"titleFormat": "/.+$/i",
 			"priority": 1
 		},
 		{
-			"title": "snes",
+			"title": "SNES",
 			"fileFormat": "/(.smc|.zip)$/i",
 			"titleFormat": "/.+$/i",
 			"priority": 1
 		},
 		{
-			"title": "gb",
+			"title": "GB",
 			"fileFormat": "/(.zip)$/i",
 			"titleFormat": "/.+$/i",
 			"priority": 1
 		},
 		{
-			"title": "gba",
+			"title": "GBA",
 			"fileFormat": "/(.zip)$/i",
 			"titleFormat": "/.+$/i",
 			"priority": 1
 		},
 		{
-			"title": "pinball",
+			"title": "Pinball",
 			"fileFormat": "/(.vpt)$/i",
 			"titleFormat": "/.+$/i",
 			"priority": 1
 		},
 		{
-			"title": "website",
+			"title": "Website",
 			"fileFormat": "/((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?/i",
 			"titleFormat": "/(?=[^\\/]*$).+$/i",
 			"priority": 1
 		},
 		{
-			"title": "standard",
+			"title": "Default",
 			"fileFormat": "/.+$/i",
 			"titleFormat": "/.+$/i",
 			"priority": 0
@@ -1893,21 +1893,56 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 				return;
 			}
 
-			// Add the item.
-			this.createLibraryObject("Item", item, function(itemId)
-			{
-				if( !!!itemId )
-				{
-					if( !!this.error )
-					{
-						this.eventHandler("error", this.error);
-						this.eventHandler("unfreezeInputs");
-					}
-					return;
-				}
+			// If no item twin has been found yet, let's scout some more info and try again.
+			// ADD SOME SORT OF SCOUTING OPTIONS HERE
+			var request = new XMLHttpRequest();
+			var requestURL = "http://metaverse.anarchyarcade.com/tubeinfo.php?id=" + this.extractYouTubeId(item.file);
 
-				this.showMenu("libraryItems");
-			}.bind(this));
+			request.onreadystatechange = function()
+			{
+				if( request.readyState === 4 && request.status === 200 )
+				{
+					var json = JSON.parse(request.responseText);
+					item.title = json.items[0].snippet.title;
+
+					var description = json.items[0].snippet.description;
+					description = description.replace(/\r?\n/g, "\\n");
+					description.substring(0, 1023);
+					item.description = description;
+
+					var screenUri = "http://img.youtube.com/vi/";
+					screenUri += json.items[0].id;
+					screenUri += "/0.jpg";
+					item.screen = screenUri;
+
+					item.reference = "http://www.youtube.com/watch?v=" + json.items[0].id;
+										
+					onShouldCreate.call(this);
+				}
+			}.bind(this);
+
+			request.open("GET", requestURL, true);
+			request.send();			
+
+			function onShouldCreate()
+			{
+				// Add the item.
+				this.createLibraryObject("Item", item, function(itemId)
+				{
+					if( !!!itemId )
+					{
+						if( !!this.error )
+						{
+							this.eventHandler("error", this.error);
+							this.eventHandler("unfreezeInputs");
+						}
+						return;
+					}
+
+					this.showMenu("libraryItems");
+				}.bind(this));
+			}
+			
 		}.bind(this));
 	}
 	else if( actionName === "saveLibraryItemEdit" )
@@ -3321,4 +3356,32 @@ Metaverse.prototype.generateType = function(file)
 Metaverse.prototype.isUrl = function(text)
 {
 	return (text.search(/((http|https):\/\/|(www\.|www\d\.))([^\-][a-zA-Z0-9\-]+)?(\.\w+)(\/\w+){0,}(\.\w+){0,}(\?\w+\=\w+){0,}(\&\w+\=\w+)?/i) !== -1);
+};
+
+Metaverse.prototype.extractYouTubeId = function(trailerURL) {
+  if( typeof trailerURL === "undefined" )
+    return trailerURL;
+
+  var youtubeid;
+  if( trailerURL.indexOf("youtube") != -1 && trailerURL.indexOf("v=") != -1 ) {
+    youtubeid = trailerURL.substr(trailerURL.indexOf("v=")+2);
+
+    var found = youtubeid.indexOf("&");
+    if( found > -1 ) {
+      youtubeid = youtubeid.substr(0, found);
+    }
+  }
+  else {
+    var found = trailerURL.indexOf("youtu.be/");
+    if( found != -1 ) {
+      youtubeid = trailerURL.substr(found+9);
+
+      found = youtubeid.indexOf("&");
+      if( found != -1 ) {
+        youtubeid = youtubeid.substr(0, found);
+      }
+    }
+  }
+
+  return youtubeid;
 };
