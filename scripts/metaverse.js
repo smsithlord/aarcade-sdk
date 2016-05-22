@@ -1902,9 +1902,18 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 			{
 				if( request.readyState === 4 && request.status === 200 )
 				{
-					var json = JSON.parse(request.responseText);
-					item.title = json.items[0].snippet.title;
+					var response = JSON.parse(request.responseText);
+					console.log(response);
+					var data = response.data;
 
+					var x;
+					for( x in data )
+					{
+						if( item.hasOwnProperty(x) )
+							item[x] = data[x];
+					}
+					/*
+					item.title = json.items[0].snippet.title;
 					var description = json.items[0].snippet.description;
 					description = description.replace(/\r?\n/g, "\\n");
 					description.substring(0, 1023);
@@ -1916,6 +1925,7 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 					item.screen = screenUri;
 
 					item.reference = "http://www.youtube.com/watch?v=" + json.items[0].id;
+					*/
 										
 					onShouldCreate.call(this);
 				}
