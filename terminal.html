@@ -1054,7 +1054,7 @@
 							}
 						}
 					}
-					else if( false && inputData.placeholder === "autokey" && !inputData.hasOwnProperty("locked") )
+					else if( inputData.placeholder === "autokey" && !inputData.hasOwnProperty("locked") )
 					{
 						inputLabelTextElem = document.createElement("div");
 						inputLabelTextElem.className = "labelText";
@@ -1082,6 +1082,36 @@
 						{
 							for( y in metaverse.library.types )
 							{
+								if( y === inputData.value )
+								{
+									inputOption = document.createElement("option");
+									inputOption.value = y;
+									inputOption.text = metaverse.library.types[y].current.title;
+									inputElem.appendChild(inputOption);
+									break;
+								}
+							}
+
+							for( y in metaverse.library.types )
+							{
+								if( y === inputData.value )
+									continue;
+
+								if( metaverse.library.types[y].current.title === "standard" )
+								{
+									inputOption = document.createElement("option");
+									inputOption.value = y;
+									inputOption.text = metaverse.library.types[y].current.title;
+									inputElem.appendChild(inputOption);
+									break;
+								}
+							}
+
+							for( y in metaverse.library.types )
+							{
+								if( metaverse.library.types[y].current.title === "standard" || y === inputData.value )
+									continue;
+
 								inputOption = document.createElement("option");
 								inputOption.value = y;
 								inputOption.text = metaverse.library.types[y].current.title;
@@ -1097,9 +1127,64 @@
 						{
 							for( y in metaverse.library.apps )
 							{
+								if( y === inputData.value )
+								{
+									inputOption = document.createElement("option");
+									inputOption.value = y;
+									inputOption.text = metaverse.library.apps[y].current.title;
+									inputElem.appendChild(inputOption);
+									break;
+								}
+							}
+
+							inputOption = document.createElement("option");
+							inputOption.value = "";
+							inputOption.text = "Standalone";
+							inputElem.appendChild(inputOption);
+
+							for( y in metaverse.library.apps )
+							{
+								if( y === inputData.value )
+									continue;
+
 								inputOption = document.createElement("option");
 								inputOption.value = y;
 								inputOption.text = metaverse.library.apps[y].current.title;
+								inputElem.appendChild(inputOption);
+							}
+
+							inputElem.value = inputData.value;
+
+							if( inputElem.options.length === 0 )
+								needsSubmitDisable = true;
+						}
+						else if( x === "model" )
+						{
+							for( y in metaverse.library.models )
+							{
+								if( y === inputData.value )
+								{
+									inputOption = document.createElement("option");
+									inputOption.value = y;
+									inputOption.text = metaverse.library.models[y].current.title;
+									inputElem.appendChild(inputOption);
+									break;
+								}
+							}
+
+							inputOption = document.createElement("option");
+							inputOption.value = "";
+							inputOption.text = "Default";
+							inputElem.appendChild(inputOption);
+
+							for( y in metaverse.library.models )
+							{
+								if( y === inputData.value )
+									continue;
+								
+								inputOption = document.createElement("option");
+								inputOption.value = y;
+								inputOption.text = metaverse.library.models[y].current.title;
 								inputElem.appendChild(inputOption);
 							}
 
