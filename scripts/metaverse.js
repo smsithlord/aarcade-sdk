@@ -135,7 +135,7 @@ function Metaverse(eventHandler)
 			"types": "uri",
 			"format": "/(((http|https):\\/\\/|(www\\.|www\\d\\.))([^\\-][a-zA-Z0-9\\-]+)?(\\.\\w+)(\\/\\w+){0,}(\\.\\w+){0,}(\\?\\w+\\=\\w+){0,}(\\&\\w+\\=\\w+)?)/i",
 			"formatDescription": "Single Query must be a valid URI to a PHP handler."
-		},
+		}/*,
 		"types":
 		{
 			"label": "Types",
@@ -147,7 +147,7 @@ function Metaverse(eventHandler)
 				"format": "/.+$/i",
 				"formatDescription": "Types must be an auto-generated key."
 			}
-		},
+		}*/,
 		"typeAliases":
 		{
 			"label": "Type Aliases",
@@ -159,13 +159,13 @@ function Metaverse(eventHandler)
 				"format": "/.+$/i",
 				"formatDescription": "ID must be an auto-generated key."
 			},
-			"alias":
+			"aliases":
 			{
-				"label": "Alias",
+				"label": "Aliases",
 				"default": "",
 				"types": "string",
-				"format": "/^.{2,1024}$/i",
-				"formatDescription": "Alias must be between 0 and 1024 characters."
+				"format": "/.*$/i",//"/^.{2,1024}$/i",
+				"formatDescription": "Aliases must be between 0 and 1024 characters."
 			}
 		}
 	};
@@ -490,6 +490,20 @@ function Metaverse(eventHandler)
 
 		return JSON.stringify(dummy);
 	}
+
+	this.defaultDatabases = [
+		{
+			"title": "YouTube.com",
+			"singleQueryUri": "http://metaverse.anarchyarcade.com/tubeinfo.php",
+			"typeAliases":
+			{
+				"YouTube":
+				{
+					"aliases": ""
+				}
+			}
+		}
+	];
 
 	this.defaultTypes = [
 		{
@@ -1006,9 +1020,15 @@ Metaverse.prototype.getMenus = function(options)
 				"focus": true,
 				"action": "libraryItemsSelectChange"
 			},
-			"editItem":
+			"selectItem":
 			{
 				"type": "submit",
+				"value": "Select Item",
+				"action": "selectItem"
+			},
+			"editItem":
+			{
+				"type": "button",
 				"value": "Edit Item",
 				"action": "showEditItem"
 			},
@@ -1684,6 +1704,62 @@ Metaverse.prototype.getMenus = function(options)
 		"action": "cancelLibraryPlatformEdit"
 	};
 
+	// MENU
+	menuId = "libraryDatabasesEdit";
+	if( !!database )
+	{
+		menus[menuId]["id"] = {
+			"label": "ID: ",
+			"type": "text",
+			"value": database.info.id,
+			"placeholder": "autokey",
+			"locked": true
+		};
+	}
+	for( x in this.defaultDatabase )
+	{
+		if( x === "info" )
+			continue;
+
+		if( !!database && typeof database[x] === "object" )
+		{
+			//console.log(model[x]);
+			menus[menuId][x] = {
+				"label": this.defaultDatabase[x].label,
+				"type": "child",
+				"value": (!!database) ? database[x] : "",
+				"placeholder": this.defaultDatabase[x]
+			};
+		}
+		else
+		{
+			menus[menuId][x] = {
+				"label": this.defaultDatabase[x].label + ": ",
+				"type": "text",
+				"value": (!!database) ? database[x] : "",
+				"placeholder": this.defaultDatabase[x].types
+			};
+		}
+/*
+		menus[menuId][x] = {
+			"label": this.defaultDatabase[x].label + ": ",
+			"type": "text",
+			"value": (!!database) ? database[x] : "",
+			"placeholder": this.defaultDatabase[x].types
+		};
+		*/
+	}
+	menus[menuId]["save"] = {
+		"type": "submit",
+		"value": "Save",
+		"action": "updateLibraryDatabase"
+	};
+	menus[menuId]["cancel"] = {
+		"type": "button",
+		"value": "Cancel",
+		"action": "cancelLibraryDatabaseEdit"
+	};
+
 	return menus;
 };
 
@@ -1980,6 +2056,10 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	{
 		this.showMenu("libraryModels");
 	}
+	else if( actionName === "selectItem" )
+	{
+		console.log("Yarrr");
+	}
 	else if( actionName === "showEditItem" )
 	{
 		this.showMenu("libraryItemsEdit", {"itemId": actionData["itemSelect"].options[actionData["itemSelect"].selectedIndex].value});
@@ -2054,25 +2134,19 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 			// REMEMBER: The 1st database hit will usually be enough, ESPECIALLY for singleQueries.
 			// POSTPONE FOR NOW!!! Come back to this after you have added MORE than just singleQuery to the databases structure.
 
-
-
-			// DO THESE NEXT (right now, i'm from the future)!!!!!!!!!!!!!!!!!!!
-			// FIXME: Handle HTTP failures and timeouts.
-			// FIXME: Handle alternative cases where there's no matching databases, etc, so that onShouldCreate still gets called.
-			//var databaseUsed = false;
+			var async = false;
 			var x;
 			for( x in this.library.databases )
 			{
-				if( !this.library.databases[x].current.types.hasOwnProperty(item.type) )
+				if( !this.library.databases[x].current.typeAliases.hasOwnProperty(item.type) )
 					continue;
-
-				// If no item twin has been found yet, let's scout some more info and try again.
-				var encodedItem = this.encodeRFC5987ValueChars(encodeURIComponent(JSON.stringify(item)));
-				var request = new XMLHttpRequest();
 
 				var x;
 				for( x in this.library.databases )
 				{
+					// If no item twin has been found yet, let's scout some more info and try again.
+					var encodedItem = this.encodeRFC5987ValueChars(encodeURIComponent(JSON.stringify(item)));
+					var request = new XMLHttpRequest();
 					var requestURL = this.library.databases[x].current.singleQueryUri + "?item=" + encodedItem;//"http://metaverse.anarchyarcade.com/tubeinfo.php?id=" + this.extractYouTubeId(item.file);
 
 					request.onreadystatechange = function()
@@ -2080,7 +2154,7 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 						if( request.readyState === 4 && request.status === 200 )
 						{
 							var response = JSON.parse(request.responseText);
-							console.log(response);
+							//console.log(response);
 							var data = response.data;
 
 							// Types returned by databases may be aliases!!
@@ -2089,18 +2163,23 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 								// probably an alias at this point.
 								var typeAliases = this.library.databases[x].typeAliases;
 
+								// FIXME: Needs to be updated to tokenize aliases!!
+
+								var aliases;
 								var foundType = false;
 								var y;
 								for( y in typeAliases )
 								{
-									if( typeAliases[y] === data.type )
+									var aliases = this.tokenize(typeAliases[y].aliases);
+									//if( typeAliases[y].aliases === data.type )
+									if( aliases.indexOf(data.type) >= 0)
 									{
 										data.type = y;
 										foundType = true;
 										break;
 									}
 								}
-
+console.log("yarbles");
 								// If no type match was found, replace it with the original type.
 								if( !foundType )
 									data.type = item.type;
@@ -2115,34 +2194,41 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 							
 							onShouldCreate.call(this);
 						}
+						else if( request.status >= 500 )
+						{
+							onShouldCreate.call(this);
+						}
 					}.bind(this);
 
 					request.open("GET", requestURL, true);
-					request.send();			
+					request.send();
 
-					function onShouldCreate()
-					{
-						// Add the item.
-						this.createLibraryObject("Item", item, function(itemId)
-						{
-							if( !!!itemId )
-							{
-								if( !!this.error )
-								{
-									this.eventHandler("error", this.error);
-									this.eventHandler("unfreezeInputs");
-								}
-								return;
-							}
-
-							this.showMenu("libraryItems");
-						}.bind(this));
-					}
-
+					async = true;
 					break;
 				}
 			}
-			
+
+			if( !async )
+				onShouldCreate.call(this);
+
+			function onShouldCreate()
+			{
+				// Add the item.
+				this.createLibraryObject("Item", item, function(itemId)
+				{
+					if( !!!itemId )
+					{
+						if( !!this.error )
+						{
+							this.eventHandler("error", this.error);
+							this.eventHandler("unfreezeInputs");
+						}
+						return;
+					}
+
+					this.showMenu("libraryItems");
+				}.bind(this));
+			}
 		}.bind(this));
 	}
 	else if( actionName === "saveLibraryItemEdit" )
@@ -2512,6 +2598,10 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	{
 		this.showMenu("libraryPlatforms");
 	}
+	else if( actionName === "cancelLibraryDatabaseEdit" )
+	{
+		this.showMenu("libraryDatabases");
+	}
 	else if( actionName === "cancelLibraryPlatformEdit" )
 	{
 		this.showMenu("libraryPlatforms");
@@ -2523,6 +2613,10 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	else if( actionName === "showCreatePlatform" )
 	{
 		this.showMenu("libraryPlatformsCreate");
+	}
+	else if( actionName === "showEditDatabase" )
+	{
+		this.showMenu("libraryDatabasesEdit", {"databaseId": actionData["databaseSelect"].options[actionData["databaseSelect"].selectedIndex].value});
 	}
 	else if( actionName === "showEditPlatform" )
 	{
@@ -2600,6 +2694,87 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 			this.showMenu("libraryPlatforms");
 		}.bind(this));
 	}
+	else if( actionName === "updateLibraryDatabase" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var data = {};
+		var x;
+		for( x in actionData )
+		{
+			if( actionData[x].type !== "button" && actionData[x].type !== "submit" && x !== "id" )
+			{
+				if( actionData[x].type === undefined )
+				{
+					data[x] = {};
+
+					var y;
+					for( y in actionData[x] )
+					{
+						data[x][y] = {};
+						var z;
+						for( z in actionData[x][y] )
+							data[x][y][z] = actionData[x][y][z].value;
+					}
+				}
+				else
+					data[x] = actionData[x].value;
+			}
+		}
+
+		data.info = {"id": actionData["id"].value};
+
+		// data MUST have platforms object
+		//if( !data.hasOwnProperty("platforms") )
+			//data.platforms = {};
+
+		this.updateLibraryObject("Database", data, function(databaseId)
+		{
+			if( !!!databaseId )
+			{
+				if( !!this.error )
+				{
+					this.eventHandler("error", this.error);
+					this.eventHandler("unfreezeInputs");
+					return;
+				}
+
+				return;
+			}
+
+			this.showMenu("libraryDatabases");
+		}.bind(this));
+		/*
+		this.eventHandler("freezeInputs");
+
+		var data = {};
+		var x;
+		for( x in actionData )
+		{
+			if( actionData[x].type !== "button" && actionData[x].type !== "submit" && x !== "id" )
+				data[x] = actionData[x].value;
+		}
+
+		data.info = {"id": actionData["id"].value};
+
+		this.updateLibraryObject("Database", data, function(databaseId)
+		{
+			if( !!!databaseId )
+			{
+				if( !!this.error )
+				{
+					this.eventHandler("error", this.error);
+					this.eventHandler("unfreezeInputs");
+					return;
+				}
+
+				return;
+			}
+
+			this.showMenu("libraryDatabases");
+		}.bind(this));
+*/
+	}
 	else if( actionName === "updateLibraryPlatform" )
 	{
 		this.eventHandler("freezeInputs");
@@ -2631,6 +2806,19 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 			this.showMenu("libraryPlatforms");
 		}.bind(this));
 	}
+};
+
+Metaverse.prototype.findType = function(title)
+{
+	var x, type;
+	for( x in this.library.types )
+	{
+		type = this.library.types[x].current;
+		if( type.title == title )
+			return type;
+	}
+
+	return null;
 };
 
 // Based on: https://gist.github.com/mikelehen/3596a30bd69384624c11
@@ -3305,24 +3493,78 @@ Metaverse.prototype.logIn = function(username, passcode, callback)
 
 									function onTypesCreated()
 									{
-										onCallbackReady.call(this);
-										/*
-										// Now import all of the default apps.
-										var numDefaultApps = this.defaultApps.length;
-										var resolvedIndex = -1;
-										createAppHelper.call(this);
+										// Now import all of the default databases.
+										var numDefaultDatabases = this.defaultDatabases.length;
+										var resolvedDatabaseIndex = -1;
+										createDatabaseHelper.call(this);
 
-										function createAppHelper(appId)
+										function createDatabaseHelper(databaseId)
 										{
-											if( !!appId )
-												resolvedIndex++;
+											if( !!databaseId )
+												resolvedDatabaseIndex++;
 
-											if( resolvedIndex+1 < numDefaultApps )
-												this.createLibraryObject("App", this.defaultApps[resolvedIndex+1], arguments.callee.bind(this));
+											if( resolvedDatabaseIndex+1 < numDefaultDatabases )
+											{
+												// Resolve type names to type ID's
+												var database = this.defaultDatabases[resolvedDatabaseIndex+1];
+
+												var realTypes = {};
+												var realTypeAliases = {};
+												
+												var x, realType;
+												/*
+												for( x in database.types )
+												{
+													// find "x" in types, and replace x with the actual type id
+													realType = this.findType(x);
+
+													if( !realType )
+														continue;
+
+													realTypes[realType.info.id] = {"id": realType.info.id};
+												}
+												database.types = realTypes;
+												*/
+
+												for( x in database.typeAliases )
+												{
+													// find "x" in types, and replace x with the actual type id
+													realType = this.findType(x);
+
+													if( !realType )
+														continue;
+
+													realTypeAliases[realType.info.id] = {"id": realType.info.id, "aliases": database.typeAliases[x].aliases};
+												}
+												database.typeAliases = realTypeAliases;
+	
+												this.createLibraryObject("Database", database, arguments.callee.bind(this));
+											}
 											else
-												onCallbackReady.call(this);
+												onDatabasesCreated.call(this);
 										}
-										*/
+
+										function onDatabasesCreated()
+										{
+											onCallbackReady.call(this);
+										/*
+											// Now import all of the default apps.
+											var numDefaultApps = this.defaultApps.length;
+											var resolvedIndex = -1;
+											createAppHelper.call(this);
+
+											function createAppHelper(appId)
+											{
+												if( !!appId )
+													resolvedIndex++;
+
+												if( resolvedIndex+1 < numDefaultApps )
+													this.createLibraryObject("App", this.defaultApps[resolvedIndex+1], arguments.callee.bind(this));
+												else
+													onCallbackReady.call(this);
+											}
+											*/
+										}
 									}
 
 									function onCallbackReady()
@@ -3495,6 +3737,7 @@ Metaverse.prototype.findTwinPlatform = function(original, callback)
 
 Metaverse.prototype.updateLibraryObject = function(type, data, callback)
 {
+	console.log(data);
 	if( !this.validateData(data, this["default" + type], callback) )
 		return;
 
