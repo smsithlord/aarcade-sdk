@@ -10,7 +10,8 @@ function Metaverse(eventHandler)
 		"types": {},
 		"apps": {},
 		"databases": {},
-		"platforms": {}
+		"platforms": {},
+		"maps": {}
 	};
 
 	this.localUser = 
@@ -422,6 +423,46 @@ function Metaverse(eventHandler)
 		}
 	};
 
+	this.defaultMap = {
+		"info": true,
+		"title":
+		{
+			"label": "Title",
+			"default": "",
+			"types": "string",
+			"format": "/^.{2,1024}$/i",
+			"formatDescription": "Title must be between 2 and 1024 characters."
+		},
+		"keywords":
+		{
+			"label": "Keywords",
+			"default": "",
+			"types": "string",
+			"format": "/^.*$/i",
+			"formatDescription": "Keywords must be comma separated strings under 1024 characters total."
+		},
+		"platforms":
+		{
+			"label": "Platforms",
+			"id":
+			{
+				"label": "ID",
+				"default": "",
+				"types": "autokey",
+				"format": "/.+$/i",
+				"formatDescription": "ID must be an auto-generated key."
+			},
+			"file":
+			{
+				"label": "File",
+				"default": "",
+				"types": "string",
+				"format": "/^.{2,1024}$/i",
+				"formatDescription": "File must be between 0 and 1024 characters."
+			}
+		}
+	};
+
 	this.defaultModel = {
 		"info": true,
 		"title":
@@ -660,6 +701,10 @@ Metaverse.prototype.getMenus = function(options)
 	var app;
 	if( !!options && !!options.appId )
 		app = this.library.apps[options.appId].current;
+
+	var map;
+	if( !!options && !!options.mapId )
+		map = this.library.maps[options.mapId].current;
 
 	var model;
 	if( !!options && !!options.modelId )
@@ -902,6 +947,12 @@ Metaverse.prototype.getMenus = function(options)
 				"value": "Models",
 				"action": "showLibraryModels"
 			},
+			"maps":
+			{
+				"type": "button",
+				"value": "Maps",
+				"action": "showLibraryMaps"
+			},
 			"types":
 			{
 				"type": "button",
@@ -1045,6 +1096,36 @@ Metaverse.prototype.getMenus = function(options)
 				"action": "cancelLibraryItems"
 			}
 		},
+		"libraryMaps":
+		{
+			"menuId": "libraryMaps",
+			"menuHeader": "Dashboard / Library / Maps",
+			"mapSelect":
+			{
+				"type": "select",
+				"generateOptions": "libraryMaps",
+				"focus": true,
+				"action": "libraryMapSelectChange"
+			},
+			"editMap":
+			{
+				"type": "submit",
+				"value": "Edit Map",
+				"action": "showEditMap"
+			},
+			"newMap":
+			{
+				"type": "button",
+				"value": "Create New Map",
+				"action": "showCreateMap"
+			},
+			"cancel":
+			{
+				"type": "button",
+				"value": "Cancel",
+				"action": "cancelLibraryMaps"
+			}
+		},
 		"libraryModels":
 		{
 			"menuId": "libraryItems",
@@ -1099,6 +1180,11 @@ Metaverse.prototype.getMenus = function(options)
 				"value": "Cancel",
 				"action": "cancelLibraryItemCreate"
 			}
+		},
+		"libraryMapsCreate":
+		{
+			"menuId": "libraryMapsCreate",
+			"menuHeader": "Dashboard / Library / Maps / New",
 		},
 		"libraryModelsCreate":
 		{
@@ -1215,6 +1301,11 @@ Metaverse.prototype.getMenus = function(options)
 			"menuId": "libraryTypesEdit",
 			"menuHeader": "Dashboard / Library / Types / Edit",
 		},
+		"libraryMapsEdit":
+		{
+			"menuId": "libraryMapsEdit",
+			"menuHeader": "Dashboard / Library / Maps / Edit",
+		},
 		"libraryModelsEdit":
 		{
 			"menuId": "libraryModelsEdit",
@@ -1313,6 +1404,54 @@ Metaverse.prototype.getMenus = function(options)
 		"type": "button",
 		"value": "Cancel",
 		"action": "cancelLibraryItemEdit"
+	};
+
+	// MENU
+	menuId = "libraryMapsCreate";
+	for( x in this.defaultMap )
+	{
+		if( x === "info" )
+			continue;
+
+		if( !this.defaultMap[x].hasOwnProperty("default") )
+		{
+			menus[menuId][x] = {
+				"label": this.defaultMap[x].label
+			};
+
+			var y;
+			for( y in this.defaultMap[x] )
+			{
+				if( y === "label" )
+					continue;
+				
+				menus[menuId][x][y] = {
+					"label": this.defaultMap[x][y].label + ": ",
+					"type": "text",
+					"value": "",
+					"placeholder": this.defaultMap[x][y].types
+				};
+			}
+		}
+		else
+		{
+			menus[menuId][x] = {
+				"label": this.defaultMap[x].label + ": ",
+				"type": "text",
+				"value": (!!item) ? item[x] : "",
+				"placeholder": this.defaultMap[x].types
+			};
+		}
+	}
+	menus[menuId]["save"] = {
+		"type": "submit",
+		"value": "Save",
+		"action": "createLibraryMap"
+	};
+	menus[menuId]["cancel"] = {
+		"type": "button",
+		"value": "Cancel",
+		"action": "cancelLibraryMapCreate"
 	};
 
 	// MENU
@@ -1488,6 +1627,53 @@ Metaverse.prototype.getMenus = function(options)
 		"type": "button",
 		"value": "Cancel",
 		"action": "cancelLibraryTypeEdit"
+	};
+
+	// MENU
+	menuId = "libraryMapsEdit";
+	if( !!map )
+	{
+		menus[menuId]["id"] = {
+			"label": "ID: ",
+			"type": "text",
+			"value": map.info.id,
+			"placeholder": "autokey",
+			"locked": true
+		};
+	}
+	for( x in this.defaultMap )
+	{
+		if( x === "info" )
+			continue;
+
+		if( !!map && typeof map[x] === "object" )
+		{
+			menus[menuId][x] = {
+				"label": this.defaultMap[x].label,
+				"type": "child",
+				"value": (!!map) ? map[x] : "",
+				"placeholder": this.defaultMap[x]
+			};
+		}
+		else
+		{
+			menus[menuId][x] = {
+				"label": this.defaultMap[x].label + ": ",
+				"type": "text",
+				"value": (!!map) ? map[x] : "",
+				"placeholder": this.defaultMap[x].types
+			};
+		}
+	}
+	menus[menuId]["save"] = {
+		"type": "submit",
+		"value": "Save",
+		"action": "updateLibraryMap"
+	};
+	menus[menuId]["cancel"] = {
+		"type": "button",
+		"value": "Cancel",
+		"action": "cancelLibraryMapEdit"
 	};
 
 	// MENU
@@ -2044,6 +2230,10 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	{
 		this.showMenu("libraryMenu");
 	}
+	else if( actionName === "cancelLibraryMaps" )
+	{
+		this.showMenu("libraryMenu");
+	}
 	else if( actionName === "cancelLibraryModels" )
 	{
 		this.showMenu("libraryMenu");
@@ -2055,6 +2245,10 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	else if( actionName === "showLibraryModels" )
 	{
 		this.showMenu("libraryModels");
+	}
+	else if( actionName === "showLibraryMaps" )
+	{
+		this.showMenu("libraryMaps");
 	}
 	else if( actionName === "selectItem" )
 	{
@@ -2072,6 +2266,10 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	{
 		this.showMenu("libraryItemsCreate");
 	}
+	else if( actionName === "showCreateMap" )
+	{
+		this.showMenu("libraryMapsCreate");
+	}
 	else if( actionName === "showCreateModel" )
 	{
 		this.showMenu("libraryModelsCreate");
@@ -2079,6 +2277,10 @@ Metaverse.prototype.menuAction = function(actionName, actionData)
 	else if( actionName === "cancelLibraryItemCreate" )
 	{
 		this.showMenu("libraryItems");
+	}
+	else if( actionName === "cancelLibraryMapCreate" )
+	{
+		this.showMenu("libraryMaps");
 	}
 	else if( actionName === "cancelLibraryModelCreate" )
 	{
@@ -2302,7 +2504,7 @@ console.log("yarbles");
 	{
 		this.showMenu("libraryApps");
 	}
-	else if( actionName === "createLibraryModel" )
+	else if( actionName === "createLibraryMap" )
 	{
 		this.eventHandler("freezeInputs");
 
@@ -2322,6 +2524,58 @@ console.log("yarbles");
 					var z;
 					for( z in actionData[x][y] )
 						data[x][y][z] = actionData[x][y][z].value;
+				}
+			}
+			else if( actionData[x].type !== "button" && actionData[x].type !== "submit" )
+				data[x] = actionData[x].value;
+		}
+
+		// data MUST have platforms object
+		//if( !data.hasOwnProperty("platforms") )
+			//data.platforms = {};
+
+		this.createLibraryObject("Map", data, function(mapId)
+		{
+			if( !!!mapId )
+			{
+				if( !!this.error )
+				{
+					this.eventHandler("error", this.error);
+					this.eventHandler("unfreezeInputs");
+					return;
+				}
+
+				return;
+			}
+
+			this.showMenu("libraryMaps");
+		}.bind(this));
+	}
+	else if( actionName === "createLibraryModel" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var data = {};
+		var x;
+		for( x in actionData )
+		{
+			if( !(actionData[x] instanceof HTMLElement) )
+			{
+				data[x] = {};
+
+				var y;
+				for( y in actionData[x] )
+				{
+					data[x][y] = {};
+
+					var z;
+					for( z in actionData[x][y] )
+					{
+						console.log("Yarblesssss");
+						console.log(actionData);
+						console.log(z);
+						data[x][y][z] = actionData[x][y][z].value;
+					}
 				}
 			}
 			else if( actionData[x].type !== "button" && actionData[x].type !== "submit" )
@@ -2429,6 +2683,10 @@ console.log("yarbles");
 	{
 		this.showMenu("libraryTypesEdit", {"typeId": actionData["typeSelect"].options[actionData["typeSelect"].selectedIndex].value});
 	}
+	else if( actionName === "showEditMap" )
+	{
+		this.showMenu("libraryMapsEdit", {"mapId": actionData["mapSelect"].options[actionData["mapSelect"].selectedIndex].value});
+	}
 	else if( actionName === "showEditModel" )
 	{
 		this.showMenu("libraryModelsEdit", {"modelId": actionData["modelSelect"].options[actionData["modelSelect"].selectedIndex].value});
@@ -2441,6 +2699,10 @@ console.log("yarbles");
 	{
 		this.showMenu("libraryTypes");
 	}
+	else if( actionName === "cancelLibraryMapEdit" )
+	{
+		this.showMenu("libraryMaps");
+	}
 	else if( actionName === "cancelLibraryModelEdit" )
 	{
 		this.showMenu("libraryModels");
@@ -2448,6 +2710,57 @@ console.log("yarbles");
 	else if( actionName === "cancelLibraryAppEdit" )
 	{
 		this.showMenu("libraryApps");
+	}
+	else if( actionName === "updateLibraryMap" )
+	{
+		this.eventHandler("freezeInputs");
+
+		var data = {};
+		var x;
+		for( x in actionData )
+		{
+			if( actionData[x].type !== "button" && actionData[x].type !== "submit" && x !== "id" )
+			{
+				if( actionData[x].type === undefined )
+				{
+					data[x] = {};
+
+					var y;
+					for( y in actionData[x] )
+					{
+						data[x][y] = {};
+						var z;
+						for( z in actionData[x][y] )
+							data[x][y][z] = actionData[x][y][z].value;
+					}
+				}
+				else
+					data[x] = actionData[x].value;
+			}
+		}
+
+		data.info = {"id": actionData["id"].value};
+
+		// data MUST have platforms object
+		//if( !data.hasOwnProperty("platforms") )
+			//data.platforms = {};
+
+		this.updateLibraryObject("Map", data, function(mapId)
+		{
+			if( !!!mapId )
+			{
+				if( !!this.error )
+				{
+					this.eventHandler("error", this.error);
+					this.eventHandler("unfreezeInputs");
+					return;
+				}
+
+				return;
+			}
+
+			this.showMenu("libraryMaps");
+		}.bind(this));
 	}
 	else if( actionName === "updateLibraryModel" )
 	{
@@ -2885,6 +3198,10 @@ Metaverse.prototype.reset = function()
 		this.libraryRef.child("platforms").off();
 		for( x in this.library.platforms )
 			this.libraryRef.child("platforms").child(this.library.platforms[x].current.info.id).child("current").off();
+
+		this.libraryRef.child("maps").off();
+		for( x in this.library.maps )
+			this.libraryRef.child("maps").child(this.library.maps[x].current.info.id).child("current").off();
 	}
 
 	if( this.usersRef )
@@ -2905,7 +3222,8 @@ Metaverse.prototype.reset = function()
 		"types": {},
 		"apps": {},
 		"databases": {},
-		"platforms": {}
+		"platforms": {},
+		"maps": {}
 	};
 
 	this.localUser = 
@@ -3101,7 +3419,8 @@ Metaverse.prototype.joinUniverse = function(universeKey, callback)
 		"types": {},
 		"apps": {},
 		"databases": {},
-		"platforms": {}
+		"platforms": {},
+		"maps": {}
 	};
 
 	this.libraryRef.child("items").on("child_added", this.itemAdded.bind(this))
@@ -3118,6 +3437,9 @@ Metaverse.prototype.joinUniverse = function(universeKey, callback)
 
 	this.libraryRef.child("platforms").on("child_added", this.platformAdded.bind(this))
 	this.libraryRef.child("platforms").on("child_removed", this.platformRemoved.bind(this));
+
+	this.libraryRef.child("maps").on("child_added", this.mapAdded.bind(this))
+	this.libraryRef.child("maps").on("child_removed", this.mapRemoved.bind(this));
 
 	this.libraryRef.child("apps").on("child_added", this.appAdded.bind(this))
 	this.libraryRef.child("apps").on("child_removed", this.appRemoved.bind(this));
@@ -3336,6 +3658,51 @@ Metaverse.prototype.platformChanged = function(child, prevChildKey)
 {
 	var val = child.val();
 	this.library.platforms[val.info.id].current = val;
+};
+
+Metaverse.prototype.mapAdded = function(child, prevChildKey)
+{
+	var key = child.key();
+	console.log("Downloaded metaverse information for map " + key);
+
+	// Make sure the map has all required fields.
+	var val = child.val();
+	var x;
+	for( x in this.defaultMap )
+	{
+		if( !val.current.hasOwnProperty(x) )
+		{
+			// Assume it is an empty container object.
+			val.current[x] = {};
+		}
+	}
+
+	this.library.maps[key] = val;
+	this.libraryRef.child("maps").child(key).child("current").on("value", this.mapChanged.bind(this));
+};
+
+Metaverse.prototype.mapRemoved = function(child)
+{
+	console.log("Map removed.");
+	delete this.library.maps[child.key()];
+};
+
+Metaverse.prototype.mapChanged = function(child, prevChildKey)
+{
+	var val = child.val();
+
+	// Make sure the map has all required fields.
+	var x;
+	for( x in this.defaultMap )
+	{
+		if( !val.hasOwnProperty(x) )
+		{
+			// Assume it is an empty container object.
+			val[x] = {};
+		}
+	}
+
+	this.library.maps[val.info.id].current = val;
 };
 
 Metaverse.prototype.getUniverseKey = function(universeTitle)
@@ -3735,9 +4102,13 @@ Metaverse.prototype.findTwinPlatform = function(original, callback)
 	callback();
 };
 
+Metaverse.prototype.findTwinMap = function(original, callback)
+{
+	callback();
+};
+
 Metaverse.prototype.updateLibraryObject = function(type, data, callback)
 {
-	console.log(data);
 	if( !this.validateData(data, this["default" + type], callback) )
 		return;
 

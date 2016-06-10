@@ -289,11 +289,13 @@
 								var customFields;
 								if( menuId === "libraryModelsCreate" )
 									customFields = metaverse.tokenize(metaverse.library.platforms[childContainer.pushId].current.modelCustomFields);
+								else if( menuId === "libraryMapsCreate" )
+									customFields = metaverse.tokenize(metaverse.library.platforms[childContainer.pushId].current.mapCustomFields);
 
 								var z;
 								for( z in customFields )
 								{
-									helper(z, {
+									helper(customFields[z], {
 										"label": customFields[z],
 										"placeholder": "string",
 										"type": "text",
@@ -977,7 +979,7 @@
 								orphanage.appendChild(childContainer);
 							}
 						}
-						else if( menuId === "libraryModelsEdit" )
+						else if( menuId === "libraryModelsEdit" || menuId === "libraryMapsEdit" )
 						{
 							//console.log(inputData);
 // THIS IS PLATFORM
@@ -1104,11 +1106,13 @@
 								var customFields;
 								if( menuId === "libraryModelsEdit" )
 									customFields = metaverse.tokenize(metaverse.library.platforms[childContainer.pushId].current.modelCustomFields);
+								else if( menuId === "libraryMapsEdit" )
+									customFields = metaverse.tokenize(metaverse.library.platforms[childContainer.pushId].current.mapCustomFields);
 
 								var z;
 								for( z in customFields )
 								{
-									helper(z, {
+									helper(customFields[z], {
 										"label": customFields[z],
 										"placeholder": "string",
 										"type": "text",
@@ -1209,11 +1213,13 @@
 								var customFields;
 								if( menuId === "libraryModelsEdit" )
 									customFields = metaverse.tokenize(metaverse.library.platforms[childContainer.pushId].current.modelCustomFields);
+								else if( menuId === "libraryMapsEdit" )
+									customFields = metaverse.tokenize(metaverse.library.platforms[childContainer.pushId].current.mapCustomFields);
 
 								var z;
 								for( z in customFields )
 								{
-									helper(z, {
+									helper(customFields[z], {
 										"label": customFields[z],
 										"placeholder": "string",
 										"type": "text",
@@ -1892,6 +1898,21 @@
 								inputOption = document.createElement("option");
 								inputOption.value = y;
 								inputOption.text = metaverse.library.models[y].current.title;
+								inputElem.appendChild(inputOption);
+							}
+
+							if( inputElem.options.length === 0 )
+								needsSubmitDisable = true;
+							else
+								inputElem.selectedIndex = 0;
+						}
+						else if( inputData.generateOptions === "libraryMaps" )
+						{
+							for( y in metaverse.library.maps )
+							{
+								inputOption = document.createElement("option");
+								inputOption.value = y;
+								inputOption.text = metaverse.library.maps[y].current.title;
 								inputElem.appendChild(inputOption);
 							}
 
