@@ -1,0 +1,460 @@
+<html>
+	<head>
+		<title>AArcade: Web</title>
+		<script src="https://cdn.firebase.com/js/client/2.3.2/firebase.js"></script>
+
+		<script>
+			var pleaseWaitElem;
+
+			// kodi crc code originally from: http://forum.kodi.tv/showthread.php?tid=58389
+			Number.prototype.unsign = function(bytes)
+			{
+				return this >= 0 ? this : Math.pow(256, bytes || 4) + this;
+			};
+
+			// kodi crc code originally from: http://forum.kodi.tv/showthread.php?tid=58389
+			function generateCRC(data_in)
+			{
+				var data = data_in.toLowerCase();
+				data = data.replace(/\//g,"\\");
+
+			    var CRC = 0xffffffff;
+			    data = data.toLowerCase();
+			    for ( var j = 0; j < data.length; j++) {
+			        var c = data.charCodeAt(j);
+			        CRC ^= c << 24;
+			        for ( var i = 0; i < 8; i++) {
+			            if (CRC.unsign(8) & 0x80000000) {
+			                CRC = (CRC << 1) ^ 0x04C11DB7;
+			            } else {
+			                CRC <<= 1;
+			            }
+			        }
+			    }
+			    if (CRC < 0)
+			        CRC = CRC >>> 0;
+			    var CRC_str = CRC.toString(16);
+			    while (CRC_str.length < 8) {
+			        CRC_str = '0' + CRC_str;
+			    }
+
+			    return CRC_str;
+			};
+
+			function lobbyAdded(child, prevChildKey)
+			{
+				var lobbyInfo = child.val();
+				if( !lobbyInfo.isPublic )
+					return;
+
+				rootRef.child(lobbyInfo.universe).child("info").child("banned").child(g_localUserHashedIP).once("value", function(bannedSnapshot)
+				{
+					if( !bannedSnapshot.exists() )
+					{
+						rootRef.child(lobbyInfo.universe).child("library").child("instances").child(lobbyInfo.instance).child("current").once("value", function(instanceSnapshot)
+						{
+							var instanceInfo = instanceSnapshot.val();
+							if( !!!instanceInfo )
+							{
+								console.log("Error.  Instance was null.");
+								return;
+							}
+
+							if( !!!instanceInfo.password || instanceInfo.password === "" )
+							{
+								//console.log("Found a lobby.");
+
+								// fetch all users in this universe
+								rootRef.child(lobbyInfo.universe).child("users").once("value", function(usersSnapshot)
+								{
+									var users = usersSnapshot.val();
+									if( !!users )
+									{
+										var userCount = 0;
+										var usersKeys = Object.keys(users);
+										for( var i = 0; i < usersKeys.length; i++ )
+										{
+											var user = users[usersKeys[i]];
+											if( !!user.sessions )
+												userCount++;
+										}
+
+										//console.log(instanceInfo.title + " has " + userCount + " player(s).");
+
+										pleaseWaitElem.style.display = "none";
+
+										instanceContainerElem = document.createElement("div");
+										instanceContainerElem.className = "instanceContainer aaPrettyPanel";
+										instanceContainerElem.setAttribute("lobbyId", lobbyInfo.id);
+										instanceContainerElem.numUsers = userCount;
+										instanceContainerElem.addEventListener("click", function(e)
+										{
+											window.location = "live/" + this.getAttribute("lobbyId");
+										}.bind(instanceContainerElem), true);
+
+										var instanceTitleElem = document.createElement("div");
+										instanceTitleElem.className = "instanceTitle";
+
+										var instanceLiveImage = document.createElement("img");
+										instanceLiveImage.src = "live.gif";
+										instanceLiveImage.style.cssText = "height: 32px; vertical-align: middle; margin-right: 16px;";
+
+										var instanceTitleTextNode = document.createTextNode(instanceInfo.title);
+
+										var instanceNumPlayersElem = document.createElement("div");
+										instanceNumPlayersElem.className = "instanceNumPlayers";
+										if( userCount === 1 )
+											instanceNumPlayersElem.innerHTML = "(1 player)";
+										else
+											instanceNumPlayersElem.innerHTML = "(" + userCount + " players)";
+
+										instanceContainerElem.appendChild(instanceTitleElem);
+										instanceTitleElem.appendChild(instanceLiveImage);
+										instanceTitleElem.appendChild(instanceTitleTextNode);
+										instanceContainerElem.appendChild(instanceNumPlayersElem);
+										instanceListElem.appendChild(instanceContainerElem);
+									}
+								});
+							}
+						});
+					}
+				});
+			}
+
+			function lobbyRemoved(snapshot)
+			{
+				var lobbyInfo = snapshot.val();
+				//console.log(lobbyInfo);
+				var instanceContainerElem = instanceListElem.querySelector(".instanceContainer[lobbyId='" + lobbyInfo.id + "']");
+
+				if( !!instanceContainerElem )
+					instanceContainerElem.parentNode.removeChild(instanceContainerElem);
+
+				if( !!!instanceListElem.querySelector(".instanceContainer") )
+					pleaseWaitElem.style.display = "inline-block";
+			}
+
+			var g_localUserIp;
+			var g_localUserHashedIp;
+			function obtainedUserIP(response)
+			{
+				if( !!!response.ip )
+				{
+					console.log("ERROR: Could not obtain your IP!");
+					return;
+				}
+				
+				g_localUserIP = response.ip;
+				g_localUserHashedIP = generateCRC(g_localUserIP);
+
+				var rootRef = new Firebase("https://metaverse.firebaseio.com/");
+				rootRef.child("lobbies").on("child_added", lobbyAdded);
+				rootRef.child("lobbies").on("child_removed", lobbyRemoved);
+			}
+
+			// get the client's IP
+			var xmlHttp = new XMLHttpRequest();
+			xmlHttp.onreadystatechange = function()
+			{ 
+				if (xmlHttp.readyState == 4)
+				{
+					if(xmlHttp.status == 200)
+						obtainedUserIP({"ip": xmlHttp.responseText});
+					else
+						obtainedUserIP({"ip": "420"});
+				}
+			}
+			
+			xmlHttp.open("GET", "ip.php", true);
+			xmlHttp.send(null);
+		</script>
+
+		<style>
+			.aaLogo
+			{
+				border: 3px solid #999;
+				background-color: rgb(20, 20, 20);
+				background-image: url('globe.gif');
+				background-size: cover;
+				border-radius: 50%;
+				padding: 16px;
+			}
+
+			.aaPrettyPanel
+			{
+				border: 3px solid #999;
+				display: inline-block;
+				font-family: Arial;
+				font-size: 30px;
+				/*font-weight: bold;*/
+				color: #ccc;
+				background-color: rgb(20, 20, 20);
+				padding: 20px;
+				border-radius: 20px;
+			}
+
+			.loadingIndicator
+			{
+				width: 50px;
+				height: 50px;
+				border-width: 10px;
+				border-radius: 50%;
+				border-style: dashed;
+				-webkit-animation: spin 4s infinite linear;
+			}
+
+			@-webkit-keyframes spin
+			{
+				0%  {-webkit-transform: rotate(0deg);}
+				100% {-webkit-transform: rotate(360deg);}   
+			}
+
+			.animatedEllipsis
+			{
+				display: inline;
+			}
+
+			.animatedEllipsis div
+			{
+				display: inline;
+				visibility: hidden;
+			}
+
+			#pleaseWait
+			{
+				cursor: default;
+			}
+
+			body
+			{
+				background-color: #000;
+			}
+
+			.instanceContainer
+			{
+				display: flex;
+				margin: auto;
+				cursor: pointer;
+			}
+
+			.instanceContainer:hover
+			{
+				background-color: rgb(40, 40, 40);
+				color: #fff;
+				border-color: #fff;
+			}
+/*
+			.instanceContainer
+			{
+				font-size: 24px;
+				font-family: Arial;
+				font-weight: bold;
+				background-color: rgba(50, 50, 50, 0.5);
+				padding: 20px;
+				border-radius: 20px;
+				border: 1px solid #000;
+				display: block;
+				width: 30%;
+				margin: auto;
+				color: #fff;
+				cursor: pointer;
+			}
+
+			.instanceContainer:hover
+			{
+				background-color: rgba(80, 80, 80, 0.9);
+			}
+*/
+			.instanceTitle
+			{
+				flex: 1;
+				text-align: left;
+			}
+
+			.instanceNumPlayers
+			{
+				flex: 1;
+			}
+		</style>
+	</head>
+<body onselectstart="return false;" ondragstart="return false;">
+	<table style="width: 100%; height: 100%; border: 0;" cellspacing="0" cellpadding="0">
+		<tr>
+			<td align="center" valign="middle">
+				<img src="aalogo.png" class="aaLogo" style="margin: 40px;" />
+				<br />
+				<div class="aaPrettyPanel" id="pleaseWait">
+					<div class="loadingIndicator" style="display: inline-block; border-color: #ccc; border-width: 6px; width: 30px; height: 30px; vertical-align: middle; margin-right: 6px;"></div>
+					Searching for LIVE servers<div class="animatedEllipsis"><div>.</div><div>.</div><div>.</div></div>
+				</div>
+
+				<br /><br />
+
+				<div id="instanceList" style="width: 80%;"></div>
+			</td>
+		</tr>
+	</table>
+
+	<script>
+		setInterval(function()
+		{
+			var animatedEllipsisElems = document.querySelectorAll(".animatedEllipsis");
+			var animatedEllipsisElem, animatedEllipsisDivs;
+			for( var i = 0; i < animatedEllipsisElems.length; i++ )
+			{
+				animatedEllipsisElem = animatedEllipsisElems[i];
+				if( !!!animatedEllipsisElem.state )
+					animatedEllipsisElem.state = 0;
+
+				animatedEllipsisElem.state++;
+
+				if( animatedEllipsisElem.state > 3 )
+					animatedEllipsisElem.state = 0;
+
+				animatedEllipsisDivs = animatedEllipsisElem.querySelectorAll("div");
+				for( var j = 0; j < animatedEllipsisDivs.length; j++ )
+				{
+					if( j < animatedEllipsisElem.state )
+						animatedEllipsisDivs[j].style.visibility = "visible";
+					else
+						animatedEllipsisDivs[j].style.visibility = "hidden";
+				}
+			}
+		}, 500);
+
+		var isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+
+		var instanceListElem = document.querySelector("#instanceList")
+		var root = "https://metaverse.firebaseio.com/";
+		var rootRef = new Firebase(root);
+
+		var universeIds;
+
+		//setInterval(fetchAllUniverseIds, 5000);
+		//fetchAllUniverseIds();
+
+		pleaseWaitElem = document.querySelector("#pleaseWait");
+		function instanceDetected(universeId, instanceId, instanceInfo, user)
+		{
+			var instanceContainerElem = instanceListElem.querySelector(".instanceContainer[instanceId='" + instanceId + "']");
+
+			var instanceTitleElem;
+			var instanceNumPlayersElem;
+			if( !!!instanceContainerElem )
+			{
+				pleaseWaitElem.style.display = "none";
+
+				instanceContainerElem = document.createElement("div");
+				instanceContainerElem.className = "instanceContainer aaPrettyPanel";
+				instanceContainerElem.setAttribute("universeId", universeId);
+				instanceContainerElem.setAttribute("instanceId", instanceId);
+				instanceContainerElem.numUsers = 1;
+				instanceContainerElem.players = [user.id];
+				instanceContainerElem.addEventListener("click", function(e)
+				{
+					window.location = "live.html?universe=" + this.getAttribute("universeId") + "&instance=" + this.getAttribute("instanceId");
+				}.bind(instanceContainerElem), true);
+
+				var instanceTitleElem = document.createElement("div");
+				instanceTitleElem.className = "instanceTitle";
+
+				var instanceLiveImage = document.createElement("img");
+				instanceLiveImage.src = "live.gif";
+				instanceLiveImage.style.cssText = "height: 32px; vertical-align: middle; margin-right: 16px;";
+
+				var instanceTitleTextNode = document.createTextNode(instanceInfo.title);
+
+				var instanceNumPlayersElem = document.createElement("div");
+				instanceNumPlayersElem.className = "instanceNumPlayers";
+				instanceNumPlayersElem.innerHTML = "(1 player)";
+
+
+				instanceContainerElem.appendChild(instanceTitleElem);
+				instanceTitleElem.appendChild(instanceLiveImage);
+				instanceTitleElem.appendChild(instanceTitleTextNode);
+				instanceContainerElem.appendChild(instanceNumPlayersElem);
+				instanceListElem.appendChild(instanceContainerElem);
+			}
+			else
+			{
+				if( instanceContainerElem.players.indexOf(user.id) < 0 )
+				{
+					instanceContainerElem.players.push(user.id);
+					instanceContainerElem.numUsers++;
+
+					var instanceNumPlayersElem = instanceContainerElem.querySelector(".instanceNumPlayers");
+					instanceNumPlayersElem.innerHTML = "(" + instanceContainerElem.numUsers + " players)";
+				}
+			}
+		}
+
+		function onAllUniverseIdsFetched()
+		{
+			// add/update all 
+			for( var i = 0; i < universeIds.length; i++ )
+			{
+				// fetch all users in this universe
+				rootRef.child(universeIds[i]).child("users").once("value", function(snapshot)
+				{
+					var users = snapshot.val();
+					for( var x in users )
+					{
+						var user = users[x];
+
+						for( var y in user.sessions )
+						{
+							var session = user.sessions[y];
+							if( !!session.instance && session.instance !== "" )
+							{
+								rootRef.child(this).child("library").child("instances").child(session.instance).child("current").once("value", function(instanceInfoSnapshot)
+								{
+									var val = instanceInfoSnapshot.val();
+									if( !!val )
+										instanceDetected(this.universe, this.instance, val, this.user);
+								}.bind({"universe": this, "instance": session.instance, "user": user}));
+							}
+						}
+					}
+				}.bind(universeIds[i]));
+			}
+
+			// remove dead universes
+			var containers = document.querySelectorAll(".instanceContainer");
+			var universeId;
+			for( var i = 0; i < containers.length; i++ )
+			{
+				universeId = containers[i].getAttribute("universeId");
+
+				if( universeIds.indexOf(universeId) < 0 )
+				{
+					// remove the entry for it.
+					containers[i].parentNode.removeChild(containers[i]);
+				}
+			}
+
+			containers = document.querySelectorAll(".instanceContainer");
+			if( containers.length === 0 )
+				pleaseWaitElem.style.display = "inline-block";
+		}
+
+		function fetchAllUniverseIds()
+		{		
+			var infoRequest = new XMLHttpRequest();
+
+			infoRequest.onreadystatechange = function()
+			{
+				if (infoRequest.readyState == 4 && infoRequest.status == 200)
+				{
+					var responseData = (!!infoRequest.responseText) ? JSON.parse(infoRequest.responseText) : {};
+					universeIds = (!!responseData) ? Object.keys(responseData) : [];
+
+					onAllUniverseIdsFetched();
+				}
+			};
+
+			infoRequest.open("GET", root + ".json?shallow=true", true);
+			infoRequest.send(null);
+		}
+	</script>
+</body>
+</html>

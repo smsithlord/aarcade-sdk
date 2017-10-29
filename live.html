@@ -1,0 +1,3879 @@
+<html>
+	<head>
+		<base href="http://aarcade.tv/" />
+		<title>AArcade: Web</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+		<script>
+			// https://stackoverflow.com/questions/17130940/retrieve-the-same-offsetx-on-touch-like-mouse-event
+			function normalizePosition(evt, parent)
+			{ // Simple adoptation
+				var position = {};
+
+				position.x = (evt.changedTouches) ? evt.changedTouches[0].pageX : evt.clientX;
+				position.y = (evt.changedTouches) ? evt.changedTouches[0].pageY : evt.clientY;
+
+				while(parent.offsetParent){
+				    position.x -= parent.offsetLeft - parent.scrollLeft;
+				    position.y -= parent.offsetTop - parent.scrollTop;
+
+				    parent = parent.offsetParent;
+				}
+
+				return position;
+			}
+
+
+			var g_activePanoId;
+
+			var g_defaultStarterX;
+			var g_defaultStarterY;
+			var g_canvasStartLeft;
+			var g_canvasStartTop;
+			var g_canvasStartZoom;
+
+			var g_isMobile = (/Mobi/i.test(navigator.userAgent) || /Android/i.test(navigator.userAgent));
+
+			var g_touchStartEvent = (g_isMobile) ? "touchstart" : "mousedown";
+			var g_touchEndEvent = (g_isMobile) ? "touchend" : "mouseup";
+			var g_touchMoveEvent = (g_isMobile) ? "touchmove" : "mousemove";
+			var g_touchEvent = (g_isMobile) ? "touchend" : "click";
+		</script>
+
+		<style>
+			.aaLogo
+			{
+				border: 3px solid #999;
+				background-color: rgb(20, 20, 20);
+				background-image: url('globe.gif');
+				background-size: cover;
+				border-radius: 50%;
+				padding: 16px;
+			}
+
+			.aaPrettyPanel
+			{
+				border: 3px solid #999;
+				display: inline-block;
+				font-family: Arial;
+				font-size: 30px;
+				/*font-weight: bold;*/
+				color: #ccc;
+				background-color: rgb(20, 20, 20);
+				padding: 20px;
+				border-radius: 20px;
+			}
+
+			.loadingIndicator
+			{
+				width: 50px;
+				height: 50px;
+				border-width: 10px;
+				border-radius: 50%;
+				border-style: dashed;
+				-webkit-animation: spin 4s infinite linear;
+			}
+
+			@-webkit-keyframes spin
+			{
+				0%  {-webkit-transform: rotate(0deg);}
+				100% {-webkit-transform: rotate(360deg);}   
+			}
+
+			.animatedEllipsis
+			{
+				display: inline;
+			}
+
+			.animatedEllipsis div
+			{
+				display: inline;
+				visibility: hidden;
+			}
+			
+			html, body
+			{
+				margin: 0;
+				padding: 0;
+			}
+
+			body
+			{
+				background-color: #000;
+				color: #ccc;
+				overflow: hidden;
+			}
+
+			body::-webkit-scrollbar, .prettyScroll::-webkit-scrollbar
+			{
+				width: 15px;
+				height: 15px;
+			}
+
+			body::-webkit-scrollbar-track, .prettyScroll::-webkit-scrollbar-track
+			{
+				-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.7);
+				border-radius: 10px;
+				background-color: rgba(100, 100, 100, 0.7);
+			}
+
+			body::-webkit-scrollbar-thumb, .prettyScroll::-webkit-scrollbar-thumb
+			{
+				border-radius: 10px;
+				-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,1);
+				background-color: #555;
+			}
+
+			body::-webkit-scrollbar-corner, .prettyScroll::-webkit-scrollbar-corner
+			{
+				background-color: transparent;
+			}
+
+			.entriesContainer
+			{
+				max-height: 300px;
+				max-width: 400px;
+				overflow-y: auto;
+				overflow-x: hidden;
+			}
+
+			.entryContainer
+			{
+				font-family: Arial;
+				font-weight: bold;
+				font-size: 14px;
+				padding: 6px;
+				background-color: rgb(0, 0, 0);
+				border-style: solid;
+				border-width: 2px;
+				border-color: transparent;
+				cursor: pointer;
+			}
+
+			.entryContainer:nth-child(even)
+			{
+				background-color: rgb(20, 20, 20);
+			}
+
+			.entryContainer:hover
+			{
+				background-color: rgb(60, 60, 60);
+			}
+
+			.entry
+			{
+
+			}
+
+			.playerMarker, #playerCursor, .userLookConeContainer
+			{
+				-webkit-transition: all 0.7s;
+				transition: all 0.7s;
+				transition-timing-function: linear;
+			}
+
+			.localPlayerMarker
+			{
+				-webkit-transition: none 0.7s;
+				transition: none 0.7s;
+			}
+
+			.playerMarker
+			{
+				z-index: 10;
+				position: relative;
+				top: 0;
+				left: 0;
+				background-color: red;
+				/*pointer-events: none;*/
+			}
+
+			.selectedPlayerMarker .userOriginDot
+			{
+				/*transform: scale(2.0);*/
+				border-color: yellow;
+				background-color: yellow;
+			}
+
+			.selectedPlayerMarker .userLookCone
+			{
+				border-color: rgba(220, 220, 60, 0.5);
+			}
+
+			.localPlayerMarker .userOriginDot
+			{
+				background-color: rgb(60, 200, 60);
+				border-color: rgb(0, 0, 0);
+				cursor: -webkit-grab;
+				/*pointer-events: none;*/
+			}
+
+			.localPlayerMarker .userLookCone
+			{
+				border-right-color: rgba(60, 200, 60, 0.4);
+			}
+
+			.userOriginDot
+			{
+				background-color: rgb(20, 20, 255);
+				border-radius: 50%;
+				border-width: 2px;
+				border-style: solid;
+				border-color: rgb(60, 60, 200);/*rgba(0, 0, 0, 0.7);*/
+				/*border-color: rgba(60, 200, 60, 0.7);*/
+				pointer-events: all;
+				cursor: pointer;
+			}
+
+			.userLookConeContainer
+			{
+				position: relative;
+				left: -11px;	/* (userOriginDot.width / -4.0) + (userOriginDot.border * 2.0)  */
+				top: -46px;	/* (userOriginDot.width / -2.0) + (userOriginDot.border * 2.0) */
+				pointer-events: none;
+			}
+
+			.userLookCone
+			{
+				width: 0;
+				height: 0;
+				border: 80px;
+				border-color: transparent;
+				border-style: solid;
+
+				border-left: 0;
+				border-top-width: 80px;
+				border-bottom-width: 80px;
+				border-right-width: 80px;
+				border-right-color: rgba(20, 20, 255, 0.4);
+				border-radius: 50%;
+
+				position: relative;
+				left: 40px;	/* userLookCone.border / 2.0 */
+				pointer-events: none;
+			}
+
+			.userName
+			{
+				position: relative;
+				transform: translateX(-50%) translateY(-100%);
+				white-space: nowrap;
+				left: 30px;
+				font-size: 38px;
+				font-family: Arial;
+				font-weight: 900;
+				text-shadow: 4px 4px rgb(0, 0, 0);
+				pointer-events: none;
+			}
+
+			.objectSlateContainer
+			{
+				position: absolute;
+				pointer-events: none;
+			}
+
+			.objectSlate
+			{
+				position: relative;
+				background-color: rgb(255, 255, 255);
+				-webkit-transition: all 0.3s;
+				transition: all 0.3s;
+				transition-timing-function: linear;
+				-webkit-transition-delay: 0.2s;
+				transition-delay: 0.2s;
+				overflow: hidden;
+				border-radius: 12px;
+				pointer-events: none;
+				opacity: 0;
+				width: 0;
+				/*top: -20px;*/
+				margin-left: 30px;
+			}
+
+			.shortcutTitle
+			{
+				padding: 6px;
+				padding-left: 50px;
+				padding-right: 12px;
+				font-size: 30px;
+				white-space: nowrap;
+				font-family: Arial;
+				font-weight: bold;
+				pointer-events: none;
+				color: #000;
+				background-color: #fff;
+			}
+
+			.propTitle
+			{
+				color: #000;
+				background-color: rgb(80, 80, 120);
+			}
+
+			.breadCrumbContainer
+			{
+				position: relative;
+				top: 0;
+				left: 0;
+				pointer-events: none;
+			}
+
+			.breadCrumb
+			{
+				z-index: 3;
+				border-radius: 50%;
+				background-color: rgba(60, 60, 255, 0.4);
+				width: 60px;
+				height: 60px;
+				position: relative;
+				left: -4px;
+				top: -4px;
+				opacity: 1.0;
+				-webkit-transition: all 30s;
+				transition: all 30s;
+				transition-timing-function: linear;
+			}
+
+			.localBreadCrumb
+			{
+				background-color: rgba(60, 200, 60, 0.4);
+			}
+
+			.selectedBreadCrumb
+			{
+				/*background-color: rgba(60, 60, 100, 0.4);
+border-color: rgba(220, 220, 60, 0.5);
+background-color: rgba(220, 220, 60, 0.4);
+				*/
+				background-color: rgba(220, 220, 60, 0.4);
+			}
+
+			.shortcutContainer
+			{
+				-webkit-transition: all 0.7s;
+				transition: all 0.7s;
+				transition-timing-function: linear;
+				cursor: pointer;
+			}
+
+			.shortcut, .prop
+			{
+				z-index: 3;
+				border-width: 4px;
+				background-color: #fff;
+				border-color: rgba(0, 0, 0, 0.5);
+				border-style: solid;
+				border-radius: 50%;
+				position: relative;
+				transform: scale(1.0);
+				-webkit-transition: all 0.3s;
+				transition: all 0.3s;
+				transition-timing-function: linear;
+				-webkit-transition-delay: 0s;
+				transition-delay: 0s;
+			}
+
+			.prop
+			{
+				background-color: rgb(80, 80, 120);
+				z-index: 2;
+			}
+
+			.tab
+			{
+				display: inline-block;
+				pointer-events: all;
+				position: relative;
+				transform: translateY(-100%);
+				font-family: Arial;
+				font-size: 20px;
+				font-weight: bold;
+				padding: 8px;
+				padding-left: 16px;
+				padding-right: 16px;
+				background-color: #000;
+				border: 4px solid rgba(50, 50, 50, 150);
+				border-top-left-radius: 10px;
+				border-top-right-radius: 10px;
+				margin-left: 2px;
+				border-bottom-width: 8px;
+				background-color: #000;
+				cursor: pointer;
+			}
+
+			.tab:hover
+			{
+				background-color: #222;
+			}
+
+			.activeTab, .activeTab:hover
+			{
+				background-color: #333;
+			}
+
+			.loadingIndicator
+			{
+				width: 64px;
+				height: 64px;
+				border-width: 10px;
+				border-radius: 50%;
+				border-style: dashed;
+				margin-left: auto;
+				margin-right: auto;
+				-webkit-animation: spin 4s infinite linear;
+			}
+
+			@-webkit-keyframes spin
+			{
+				0%  {-webkit-transform: rotate(0deg);}
+				100% {-webkit-transform: rotate(360deg);}   
+			}
+/*
+			.overviewContainer
+			{
+				max-width: 80%;
+			}
+*/
+/*
+			.chatInputContainer
+			{
+				border-top: 2px solid rgba(50, 50, 50, 150);
+			}*/
+/*
+			#chatInput
+			{
+				font-family: Arial;
+				font-size: 16px;
+				width: 100%;
+				padding: 10px;
+				border: 0;
+				background-color: inherit;
+				color: #ccc;
+				margin-top: 4px;
+			}
+*/
+			.chatEntryContainer
+			{
+				display: block;
+				font-family: Arial;
+				font-size: 18px;
+				font-weight: bold;
+				padding: 6px;
+			}
+
+			.chatEntryName
+			{
+				display: inline;
+				margin-right: 10px;
+			}
+
+			.chatEntryContent
+			{
+				display: inline;
+				color: rgb(150, 150, 150);
+			}
+
+			.chatAlertContainer
+			{
+				display: block;
+				font-family: Arial;
+				font-size: 18px;
+				font-weight: bold;
+				padding: 6px;
+			}
+
+			.chatAlertContent
+			{
+				display: inline;
+				color: rgb(150, 60, 60);
+				margin-left: auto;
+				margin-right: auto;
+				font-style: italic;
+			}
+
+			.objectChatLink
+			{
+				display: inline-block;
+				font-weight: bold;
+				color: rgb(200, 200, 200);
+				cursor: pointer;
+				pointer-events: all;
+			}
+
+			.objectChatLink:hover .objectChatLinkTitle
+			{
+				text-decoration: underline;
+			}
+
+			.objectChatLinkTitle
+			{
+				display: inline-block;
+				overflow: hidden;
+				white-space: nowrap;
+				text-overflow: ellipsis;
+				max-width: 50vw;
+			}
+
+			.chatIcon
+			{
+				width: 32px;
+				height: 32px;
+				vertical-align: bottom;
+			}
+
+			.avatarImage
+			{
+				max-width: 150px;
+				display: inline-block;
+				border-style: solid;
+				border-width: 10px;
+				border-color: transparent;
+				cursor: pointer;
+			}
+
+			.avatarImage:hover
+			{
+				border-color: rgb(100, 100, 100);
+			}
+
+			.selectedAvatarImage, .selectedAvatarImage:hover
+			{
+				border-color: rgb(255, 255, 255);
+			}
+
+			#displayNameInput
+			{
+				/*
+				font-family: Arial;
+				font-size: 16px;
+				padding: 10px;*/
+				/*border: 0;*/
+				/*background-color: inherit;
+				color: #ccc;
+				margin-top: 4px;
+				margin-bottom: 12px;
+				width: 100%;
+				font-weight: bold;*/
+			}
+
+			.displayNameInputContainer
+			{
+			}
+
+			#topContainer, #bottomContainer
+			{
+				position: absolute;
+				left: 0;
+				right: 0;
+				z-index: 999999;
+			}
+
+			#topContainer
+			{
+				top: 0;
+				height: 70px;
+			}
+
+			#bottomContainer
+			{
+				bottom: 0;
+				height: 90px;
+			}
+
+			.module/*#inventoryTableContainer, .mapContainer*/
+			{
+				position: absolute;
+				left: 0;
+				right: 0;
+				top: 70px;
+				bottom: 90px;
+				overflow: auto;
+			}
+
+			#inventoryTableContainer
+			{
+				border-bottom: 4px solid rgb(5, 5, 5);
+				border-top: 4px solid rgb(5, 5, 5);
+				overflow-x: hidden;
+			}
+
+			.deselectAddressButton
+			{
+				display: inline-block;
+				white-space: nowrap;
+				font-weight: bold;
+				font-size: 16px;
+				font-family: Arial;
+				letter-spacing: 0.1em;
+				padding: 8px;
+				border: 2px solid transparent;
+			}
+
+			.deselectAddressButton:hover
+			{
+				background-color: rgb(40, 40, 40);
+				border: 2px solid rgb(60, 60, 60);
+			}
+
+			.disabledModuleButton .deselectAddressButton
+			{
+				display: none;
+			}
+
+			#addressBoxContainer
+			{
+				width: 100%;
+				height: 100%;
+			}
+
+			#addressBoxLabel
+			{
+				font-family: Arial;
+				font-size: 20px;
+				padding: 10px;
+				/*background-color: rgb(20, 20, 20);*/
+				color: rgb(100, 100, 100);
+				border: 0;
+				margin: 0;
+				white-space: nowrap;
+				font-weight: 900;
+			}
+
+			#addressBoxInput
+			{
+				width: 100%;
+				height: 100%;
+				font-size: 20px;
+				padding: 10px;
+				background-color: rgb(20, 20, 20);
+				color: rgb(100, 100, 100);
+				border: 0;
+				margin: 0;
+			}
+
+			#chatTableContainer
+			{
+				position: absolute;
+				top: 0;
+				bottom: 60px;
+				left: 0;
+				right: 0;
+				overflow: auto;
+			}
+/*
+			#chatTable
+			{
+				width: 100%;
+				height: 100%;
+				pointer-events: none;
+			}
+*/
+			#chatBoxContainer
+			{
+				position: absolute;
+				bottom: 0px;
+				height: 60px;
+				left: 0;
+				right: 0;
+				background-color: red;
+			}
+
+			#chatBoxInput
+			{
+				width: 100%;
+				height: 100%;
+				font-size: 40px;
+				padding-left: 10px;
+				padding-right: 10px;
+				background-color: rgb(20, 20, 20);
+				color: #fff;
+				/*
+				font-family: Arial;
+				font-size: 16px;
+				width: 100%;
+				padding: 10px;
+				border: 0;
+				background-color: inherit;
+				color: #ccc;
+				margin-top: 4px;*/
+			}
+
+			.chatAvatarImage
+			{
+				max-width: 150px;
+				max-height: 150px;
+			}
+
+			.chatAvatarDisplayName
+			{
+				padding-top: 8px;
+				color: rgb(100, 100, 100);
+				font-weight: bold;
+			}
+
+			.avatarContainer
+			{
+				display: inline-block;
+				text-align: right;
+				font-family: Arial;
+				font-size: 20px;
+				padding: 8px;
+				padding-right: 16px;
+				/*border-right: 4px solid rgb(40, 40, 40);*/
+				max-width: 25vw;
+				overflow: hidden;
+			}
+
+			.chatContentContainer
+			{
+				padding: 6px;
+				padding-left: 16px;
+				padding-right: 16px;
+				font-size: 40px;
+				font-family: Arial;
+				display: inline-block;
+			}
+
+			.chatRow
+			{
+				background-color: rgb(20, 20, 20);
+			}
+
+			.chatRow td:nth-child(1)
+			{
+				border-top-left-radius: 10px;
+				border-bottom-left-radius: 10px;
+			}
+
+			.chatRow td:nth-child(2)
+			{
+				border-top-right-radius: 10px;
+				border-bottom-right-radius: 10px;
+			}
+
+			.chatRow:nth-child(even)
+			{
+				background-color: rgb(10, 10, 10);
+			}
+
+/*
+			#toolbar
+			{
+				position: absolute;
+				top: 0;
+				bottom: 0;
+				left: 0;
+				right: 0;
+				width: 100%;
+				height: 100%;
+				z-index: 999999;
+				text-align: center;
+				pointer-events: none;
+			}
+*/
+			.moduleButton
+			{
+				pointer-events: all;
+				width: 25%;
+				border: 2px solid rgb(20, 20, 20);
+				/*border-radius: 4px;*/
+				/*display: inline-block;*/
+				padding: 8px;
+				margin: 6px;
+				cursor: pointer;
+				font-family: Arial;
+				font-size: 30px;
+				font-weight: bold;
+			}
+
+			#backButton
+			{
+				padding: 0px;
+			}
+
+			.moduleButton:hover, .activeModuleButton
+			{
+				background-color: rgb(20, 20, 20);
+				border-color: rgb(40, 40, 40);
+			}
+
+			.activeModuleButton
+			{
+				background-color: rgb(30, 30, 30);
+				/*border-color: rgb(255, 255, 255);*/
+			}
+
+			.disabledModuleButton
+			{
+				opacity: 0.1;
+				pointer-events: none;
+			}
+/*
+			.activeModuleButton:hover
+			{
+				border-color: rgb(255, 255, 255);
+			}*/
+		</style>
+
+
+		<style>
+			#overviewCanvasContainer
+			{
+				position: absolute;
+				left: 0;
+				right: 0;
+				top: 0;
+				bottom: 0;
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+				z-index: 1;
+			}
+
+			#mapModule
+			{
+				/*display: none;*/
+			}
+
+			#overviewCanvas
+			{
+				position: relative;
+				background-image: url("biggrid.jpg");
+				/*background-color: rgb(220, 255, 220);*/
+				margin: 0;
+				padding: 0;
+				cursor: -webkit-grab;
+			}
+
+			.dragOverviewCanvas
+			{
+				cursor: -webkit-grabbing !important;
+			}
+
+			.dragOverviewCanvas *
+			{
+				pointer-events: none;
+				display: none;
+			}
+
+			.isMovingPlayer
+			{
+				cursor: -webkit-grabbing !important;
+			}
+
+			.isMovingPlayer *
+			{
+				pointer-events: none;
+			}
+
+			#overviewContainer
+			{
+				position: relative;
+				pointer-events: none;
+			}
+
+			#overviewImage
+			{
+				z-index: 1;
+				width: 100%;
+				height: 100%;
+			}
+
+			#mediaTip
+			{
+				position: absolute;
+				/*display: none;*/
+				pointer-events: none;
+				z-index: 100;
+				max-width: 300px;
+				max-height: 250px;
+			}
+
+			#mediaTipImage
+			{
+				/*display: none;*/
+				/*opacity: 255;*/
+				margin-top: 30px;
+				margin-left: 30px;
+				max-width: 100%;
+				max-height: 100%;
+				transition: all 1s;
+				/*
+				margin-left: auto;
+				margin-right: auto;*/
+			}
+
+			#disconnectButton
+			{
+				display: block;
+				position: fixed;
+				font-family: Arial;
+				font-size: 20px;
+				font-weight: bold;
+				padding: 8px;
+				padding-left: 16px;
+				padding-right: 16px;
+				background-color: #000;
+				border: 4px solid rgba(50, 50, 50, 150);
+				border-radius: 10px;
+				margin: 12px;
+				background-color: #000;
+				cursor: pointer;
+				bottom: 0;
+				right: 0;
+			}
+
+			#disconnectButton:hover
+			{
+				border-color: #fff;
+				background-color: #222;
+			}
+
+			.module
+			{
+				display: none;
+			}
+
+			.activeModule
+			{
+				display: initial;
+			}
+
+			.activeModule.moduleInlineBlock
+			{
+				display: inline-block;
+			}
+
+			#moduleTitle
+			{
+				pointer-events: none;
+				font-family: Arial;
+				font-size: 30px;
+				font-weight: bold;
+				padding: 10px;
+			}
+
+			.hiddenBackButton
+			{
+				visibility: hidden;
+				pointer-events: none;
+			}
+
+			.entryRow
+			{
+				font-family: Arial;
+				font-size: 26px;
+				font-weight: bold;
+				background-color: rgb(10, 10, 10);
+				cursor: pointer;
+			}
+
+			.entryRow:nth-child(even)
+			{
+				background-color: rgb(20, 20, 20);
+			}
+
+			.entryRow:hover
+			{
+				background-color: rgb(30, 30, 30);
+			}
+
+			.entryRow td
+			{
+				padding: 16px;
+				border-radius: 4px;
+				word-break: break-all;
+			}
+
+			.entryRow td *
+			{
+				pointer-events: none;
+			}
+
+			@media only screen and (max-width: 1024px)
+			{
+				.entryRow td:nth-child(1)
+				{
+					display: none;
+				}
+			}
+
+			.selectedEntryRow, .selectedEntryRow:nth-child(even)
+			{
+				background-color: rgb(20, 40, 20);
+			}
+
+			.selectedEntryRow:hover
+			{
+				background-color: rgb(30, 60, 30);
+			}
+
+			.entryType
+			{
+				color: #666;
+				font-style: italic;
+				word-wrap: normal;
+				white-space: nowrap;
+			}
+
+			.alwaysSeen
+			{
+				display: block !important;
+			}
+
+			.hotkeyHelpLabel
+			{
+				font-size: 10px;
+			}
+
+			#showcaseContainer, #playerShowcaseContainer
+			{
+				position: absolute;
+				top: 0;
+				z-index: 100;
+				pointer-events: none;
+			}
+
+			#showcaseContainer
+			{
+				text-align: right;
+			}
+
+			#playerShowcaseContainer
+			{
+				text-align: left;
+			}
+
+			#showcaseContainer
+			{
+				right: 0;
+			}
+
+			#playerShowcaseContainer
+			{
+				left: 0;
+			}
+
+			.showcaseImageContainer
+			{
+				cursor: pointer;
+				display: inline-block;
+				padding: 12px;
+				padding-top: 0;
+				background-color: rgb(10, 10, 10);
+				border-bottom-left-radius: 8px;
+				pointer-events: all;
+			}
+
+			.showcaseImage
+			{
+				max-width: 20vw;
+				max-height: 30vh;
+				border-bottom-left-radius: 8px;
+			}
+
+			.showcaseTitleContainer, .playerShowcaseDisplayNameContainer
+			{
+				cursor: pointer;
+				display: block;
+				padding: 12px;
+				background-color: rgb(10, 10, 10);
+				/*border-bottom-left-radius: 8px;*/
+				pointer-events: all;
+				font-size: 20px;
+				font-family: Arial;
+				letter-spacing: 0.1em;
+			}
+
+			.showcaseCloseContainer, .playerShowcaseCloseContainer
+			{
+				display: block;
+			}
+
+			.showcaseClose, .playerShowcaseClose
+			{
+				display: inline-block;
+				padding: 12px;
+				background-color: rgb(10, 10, 10);
+				border: 2px solid rgb(20, 20, 20);
+				pointer-events: all;
+				font-size: 18px;
+				font-family: Arial;
+				letter-spacing: 0.1em;
+				margin-top: 16px;
+				cursor: pointer;
+			}
+
+			.showcaseClose
+			{
+				border-top-left-radius: 8px;
+				border-bottom-left-radius: 8px;
+				border-right: 0;
+			}
+
+			.playerShowcaseClose
+			{
+				border-top-right-radius: 8px;
+				border-bottom-right-radius: 8px;
+				border-left: 0;
+			}
+
+			.playerCardUnfollow
+			{
+				display: none;
+				padding: 12px;
+				background-color: rgb(10, 10, 10);
+				border: 2px solid rgb(20, 20, 20);
+				pointer-events: all;
+				font-size: 18px;
+				font-family: Arial;
+				letter-spacing: 0.1em;
+				/*margin-top: 6px;*/
+				cursor: pointer;
+			}
+
+			.selectedPlayerEntryContainer .playerCardUnfollow
+			{
+				display: inline-block;
+			}
+
+			.playerCardUnfollow:hover
+			{
+				background-color: rgb(40, 40, 40);
+				border-color: rgb(200, 200, 200);
+			}
+
+			.showcaseClose:hover, .playerShowcaseClose:hover
+			{
+				background-color: rgb(30, 30, 30);
+			}
+
+			.playerShowcaseAvatarImageContainer
+			{
+				cursor: pointer;
+				display: inline-block;
+				padding: 12px;
+				/*padding-top: 0;*/
+				background-color: rgb(10, 10, 10);
+				border-bottom-right-radius: 8px;
+				pointer-events: all;
+			}
+
+			.playerShowcaseAvatarImage
+			{
+				max-width: 15vw;
+				max-height: 15vh;
+				border-bottom-right-radius: 8px;
+			}
+
+			.playerCard
+			{
+				display: inline-block;
+				border-radius: 20px;
+				border: 2px solid rgb(20, 20, 20);
+				background-color: rgb(20, 20, 20);
+				cursor: pointer;
+				margin: 20px;
+			}
+
+			.playerCard:hover
+			{
+				border: 2px solid rgb(30, 30, 30);
+				background-color: rgb(30, 30, 30);
+			}
+
+			.selectedPlayerEntryContainer, .selectedPlayerEntryContainer:hover
+			{
+				background-color: rgb(40, 40, 40);
+				border-color: #fff;
+			}
+
+			/*.playerCard *
+			{
+				pointer-events: none;
+			}*/
+
+			.playerAvatarImage
+			{
+			}
+
+			.playerDisplayName
+			{
+				/*
+				padding: 20px;
+				font-family: Arial;
+				font-size: 50px;*/
+			}
+
+			#playersTable>tr
+			{
+				background-color: rgb(10, 10, 10);
+			}
+
+			#playersTable>tr:nth-child(even)
+			{
+				background-color: rgb(5, 5, 5);
+			}
+
+			.playerShowcaseDisplayNameContainer
+			{
+				display: block;
+			}
+
+			.playerCardUnfollow *
+			{
+				pointer-events: none;
+			}
+
+			#optionsTable td
+			{
+				padding: 20px;
+			}
+
+			#optionsTable, #optionsTable input
+			{
+				font-size: 40px;
+				font-family: Arial;
+				padding: 10px;
+			}
+
+			#overviewChatEntries
+			{
+				display: inline-block;
+				z-index: 100;
+				position: absolute;
+				bottom: 0;
+				left: 0;
+				/*right: 0;*/
+				font-size: 30px;
+				font-family: Arial;
+				font-weight: bold;
+			}
+
+			.overviewChatEntryContainer
+			{
+				margin: 10px;
+				padding: 10px;
+				background-color: rgba(0, 0, 0, 0.9);
+				border: 2px solid rgb(20, 20, 20);
+				border-radius: 8px;
+				overfolow: hidden;
+				opacity: 1.0;
+				transition: all 1s;
+			}
+
+			.overviewChatEntryName
+			{
+				display: inline-block;
+				padding: 10px;
+				padding-right: 20px;
+				color: rgb(150, 150, 150);
+			}
+
+			.overviewChatEntryContent
+			{
+				display: inline-block;
+				padding: 10px;
+				color: rgb(255, 255, 255);
+			}
+
+			.chatVar
+			{
+				display: inline;
+			}
+
+			#previous
+			{
+				position: absolute;
+				left: 10px;
+				margin-top: auto;
+				margin-bottom: auto;
+				bottom: 0;
+				top: 0;
+				z-index: 10000;
+				border: 0px;
+				opacity: 0.6;
+			}
+
+			#previous:hover
+			{
+				opacity: 1.0;
+				cursor: pointer;
+			}
+
+			#next
+			{
+				position: absolute;
+				right: 10px;
+				margin-top: auto;
+				margin-bottom: auto;
+				bottom: 0;
+				top: 0;
+				z-index: 10000;
+				border: 0px;
+				opacity: 0.6;
+			}
+
+			#next:hover
+			{
+				opacity: 1.0;
+				cursor: pointer;
+			}
+
+			#full
+			{
+				position: absolute;
+				right: 10px;
+				margin-top: auto;
+				margin-bottom: auto;
+				bottom: 10px;
+				z-index: 10000;
+				border: 0px;
+				opacity: 0.6;
+			}
+
+			#full:hover
+			{
+				opacity: 1.0;
+				cursor: pointer;
+			}
+
+			#unfull
+			{
+				display: none;
+				position: absolute;
+				right: 10px;
+				margin-top: auto;
+				margin-bottom: auto;
+				bottom: 10px;
+				z-index: 10000;
+				border: 0px;
+				opacity: 0.6;
+			}
+
+			#unfull:hover
+			{
+				opacity: 1.0;
+				cursor: pointer;
+			}
+
+			#help
+			{
+				position: absolute;
+				left: 10px;
+				margin-top: auto;
+				margin-bottom: auto;
+				bottom: 10px;
+				z-index: 10000;
+				border: 0px;
+				opacity: 0.6;
+			}
+
+			#help:hover
+			{
+				opacity: 1.0;
+				cursor: pointer;
+			}
+
+			#panoHelp
+			{
+				display: none;
+				position: absolute;
+				margin-top: auto;
+				margin-bottom: auto;
+				bottom: 0;
+				top: 0;
+				margin-left: auto;
+				margin-right: auto;
+				left: 0;
+				right: 0;
+				z-index: 10000;
+				border: 2px solid #000;
+				border-radius: 15px;
+				background-color: rgba(0, 0, 0, 0.7);
+				max-width: 100%;
+				max-height: 100%;
+				height: 350px;
+				width: 500px;
+			}
+
+			#close
+			{
+				opacity: 0.6;
+				border: 2px solid #000;
+				border-radius: 99px;
+				background-color: #000;
+			}
+
+			#close:hover
+			{
+				opacity: 1.0;
+				cursor: pointer;
+			}
+
+			.panoMarkerContainer
+			{
+				cursor: pointer;
+				transform: scale(1.0);
+				-webkit-transition: all 0.3s;
+				transition: all 0.3s;
+				transition-timing-function: linear;
+				-webkit-transition-delay: 0s;
+				transition-delay: 0s;
+			}
+
+			.panoMarkerContainer:hover
+			{
+				transform: scale(1.5);
+			}
+		</style>
+
+		<!--<script src="http://code.responsivevoice.org/responsivevoice.js"></script>-->
+		<script src="https://cdn.firebase.com/js/client/2.3.2/firebase.js"></script>
+		<script src="metaverse.js"></script>
+		<script src="md5.min.js"></script>
+		<script src="sessionManager.js"></script>
+
+		<script>
+			// Firefox has no CSS zoom, so disable all zooming in it.
+			var isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+			var g_shouldUnfocusChat = false;
+			var g_shouldResetName = null;
+			var g_shouldResetAvatar = null;
+			var sessionManager = new SessionManager();
+			var g_rdyForMsgs = false;
+			var g_localUserIP;
+			var g_localUserHashedIP;
+			var g_sessionId;
+
+			var storedDisplayName = window.localStorage.getItem("displayName");
+			if( !storedDisplayName )
+				storedDisplayName = "Web Player";
+
+			var g_webUserName = storedDisplayName;
+
+			var storedAvatarUrl = window.localStorage.getItem("avatarUrl");
+			if( !storedAvatarUrl )
+				storedAvatarUrl = "";
+
+			var g_avatarUrl = storedAvatarUrl;
+		</script>
+
+		<script src="panos.js"></script>
+	</head>
+<body onselectstart="return false;" ondragstart="return false;">
+	<!-- Overlay LOADING -->
+	<div id="blackout" style="pointer-events: all; position: absolute; top: 0; bottom: 0; left: 0; right: 0; background-color: #000; z-index: 1000000;">
+		<table style="width: 100%; height: 100%; pointer-events: none;">
+			<tr>
+				<td align="center" style="font-size: 20px; color: #ccc; font-family: Arial;">
+					<img src="aalogo.png" class="aaLogo" style="max-width: 80%; width: 200px; margin: 40px; display: inline-block;" />
+					<br />
+					<div class="aaPrettyPanel">
+						<div id="loadingStuff">
+							<div class="loadingIndicator" style="display: inline-block; border-color: #ccc; border-width: 6px; width: 30px; height: 30px; vertical-align: middle; margin-right: 6px;"></div>
+							Connecting to server<div class="animatedEllipsis"><div>.</div><div>.</div><div>.</div></div>
+						</div>
+						<div id="passwordStuff">
+							<form style="padding: 0; margin: 0;">
+								<input type="password" style="display: none; font-family: Arial; font-size: 16px; padding: 6px; text-align: center; border-radius: 6px; pointer-events: all;" placeholder="password" autocomplete="off" id="password" />
+								<div id="wrongPassword" style="display: none; font-size: 12px; padding-top: 8px; font-weight: bold;">wrong password</div>
+							</form>
+						</div>
+					</div>
+					<br /><br /><br />
+					<div class="moduleButton" onclick="window.location='http://aarcade.tv/';" id="leaveButton">
+						<img src="iconLeave.png" style="max-height: 60px;" /><div class="hotkeyHelpLabel"><u>L</u>eave</div>
+					</div>
+				</td>
+			</tr>
+		</table>
+	</div>
+
+	<!-- Twitch -->
+	<div style="z-index: 1000; position: absolute; top: 800px; left: 0; border: 8px solid rgba(50, 50, 50, 150); border-radius: 10px; min-width: 400px; margin: 10px; background-color: #000; display: none;">
+		<div style="position: absolute; pointer-events: none;">
+			<div class="tab activeTab" id="twitchTab"><div style="pointer-events: none;">Twitch</div></div>
+		</div>
+		<div>
+			<!--
+			<iframe src="http://www.twitch.tv/anarchyarcade/popout" style="border: 0; width: 400px; height: "></iframe>-->
+			<!--
+				<div class="noEntries" style="font-weight: 900; font-size: 20px; font-family: Arial; padding: 20px;">No Twitch stream.</div>
+			-->
+		</div>
+	</div>
+
+	<!-- Shortcuts -->
+	<div style="z-index: 1000; position: absolute; top: 80px; left: 0; border: 8px solid rgba(50, 50, 50, 150); border-radius: 10px; min-width: 400px; margin: 10px; background-color: #000; display: none;">
+		<div style="position: absolute; pointer-events: none;">
+			<div style="margin-left: 10px;" class="tab activeTab" id="shortcutsTab"><div style="pointer-events: none;">Shortcuts</div></div>
+			<div class="tab" id="propsTab"><div style="pointer-events: none;">Props</div></div>
+		</div>
+		<div>
+			<div class="entriesContainer shortcutsContainer prettyScroll"></div>
+			<div class="noEntries" style="font-weight: 900; font-size: 20px; font-family: Arial; padding: 20px;">No shortcuts.</div>
+		</div>
+		<div style="display: none;">
+			<div class="entriesContainer propsContainer prettyScroll"></div>
+			<div class="noEntries" style="font-weight: 900; font-size: 20px; font-family: Arial; padding: 20px;">No props.</div>
+		</div>
+		<!--<div style="display: none;">
+			<div class="entriesContainer playersContainer prettyScroll"></div>
+			<div class="noEntries" style="font-weight: 900; font-size: 20px; font-family: Arial; padding: 20px;">No players.</div>
+		</div>-->
+	</div>
+
+	<!-- Chat -->
+	<div style="z-index: 1000; position: absolute; top: 500px; left: 0; border: 8px solid rgba(50, 50, 50, 150); border-radius: 10px; min-width: 400px; max-height: 300px; max-margin: 10px; background-color: #000; display: none;">
+		<div style="position: absolute; pointer-events: none;">
+			<div style="margin-left: 10px;" class="tab activeTab" id="chatTab"><div style="pointer-events: none;">Chat</div></div>
+			<div class="tab" id="playersTab"><div style="pointer-events: none;">Players</div></div>
+			<div class="tab" id="youTab"><div style="pointer-events: none;">You</div></div>
+		</div>
+
+		<div>
+			<div class="chatContainer">
+				<table style="width: 100%; max-width: 500px;">
+					<tr>
+						<td valign="bottom">
+							<div class="chatLogContainer prettyScroll" style="overflow-y: auto; max-height: 150px"></div>
+						</td>
+					</tr>
+					<tr>
+						<td style="height: 1%;">
+						</td>
+					</tr>
+				</table>
+			</div>
+		</div>
+
+		<div style="display: none;">
+			<div class="entriesContainer playersContainer prettyScroll"></div>
+			<div class="noEntries" style="font-weight: 900; font-size: 20px; font-family: Arial; padding: 20px;">No players.</div>
+		</div>
+		<div style="display: none;">
+			<div class="entriesContainer youContainer prettyScroll" style="font-weight: 900; font-size: 20px; font-family: Arial; padding: 10px; max-height: 250px; white-space: nowrap; overflow-x: auto;">
+				<div style="display: none;">
+					<!--
+					<img src="avatars/cowboycarl.png" class="avatarImage selectedAvatarImage" onclick="selectAvatar(this);" />
+					<img src="avatars/flipflopfred.png" class="avatarImage" onclick="selectAvatar(this);" />
+					<img src="avatars/hackerhaley.png" class="avatarImage" onclick="selectAvatar(this);" />
+					<img src="avatars/ninjanancy.png" class="avatarImage" onclick="selectAvatar(this);" />
+					<img src="avatars/zombiejoe.png" class="avatarImage" onclick="selectAvatar(this);" />
+				-->
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- View Screen -->
+	<div style="z-index: 1000; position: absolute; top: 80px; left: 500px; min-width: 512px; min-height: 288px; border: 8px solid rgba(50, 50, 50, 150); border-radius: 10px; margin: 10px; background-color: #000; display: none;">
+		<div style="position: absolute; pointer-events: none;">
+			<div style="margin-left: 10px;" class="tab activeTab" id="viewScreenTab"><div style="pointer-events: none;">Video</div></div>
+			<div class="tab" id="itemTab"><div style="pointer-events: none;">Image</div></div>
+			<div class="tab" id="modelTab" style="display: none;"><div style="pointer-events: none;">Cabinet</div></div>
+			<div class="tab" id="closeViewerTab" style="margin-left: 220px;"><div style="pointer-events: none;">X</div></div>
+		</div>
+		<!--
+			<div style="position: absolute; width: 100%; height: 100%;">
+				<iframe id="viewer" src="nopreview.html" style="border: 0; width: 100%; height: 100%; position: relative;"></iframe>
+			</div>
+			cursors/hippie_default.png
+		-->
+		<div style="position: absolute;">
+			<img id="playerCursor" style="display: none; width: 20px; position: relative; top: 0; left: 0;" src="" />
+		</div>
+		<div style="display: none;">
+			<div class="itemInfoContainer">
+				<div class="itemInfo">
+					<div style="display: none; padding: 40px;"><div class="loadingIndicator"></div></div>
+					<img src="" class="entryImage bestItemImage" style="display: none; max-width: 1200px; max-height: 900px; margin-left: auto; margin-right: auto;" />
+				</div>
+			</div>
+			<div class="noEntry" style="font-weight: 900; font-size: 20px; font-family: Arial; padding: 20px; text-align: center; line-height: 200px;">No shortcut selected.</div>
+		</div>
+		<div style="display: none;">
+			<div class="modelInfoContainer">
+				<div class="modelInfo" style="line-height: 200px; text-align: center;">
+					<div style="display: none; padding: 40px;"><div class="loadingIndicator"></div></div>
+					<img src="" class="entryImage bestModelImage" style="display: none; max-width: 300px; margin-left: auto; margin-right: auto; padding: 20px;" />
+				</div>
+			</div>
+			<div class="noEntry" style="font-weight: 900; font-size: 20px; font-family: Arial; padding: 20px; text-align: center; line-height: 200px;">No shortcut selected.</div>
+		</div>
+	</div>
+<!--
+	<table style="width: 5%;" cellspacing="0" cellpadding="0">
+		<tr>
+			<td align="right">
+				<div class="overviewContainer" align="left">
+					<div class="overview"></div>
+				</div>
+			</td>
+		</tr>
+	</table>
+-->
+
+	<select id="users" style="display: none;">
+	</select>
+
+	<div id="disconnectButton">Disconnect</div>
+
+	<div id="topContainer">
+		<table cellspacing="0" cellpadding="0" style="width: 100%; height: 100%; background-color: rgb(10, 10, 10);">
+			<tr align="center" style="background-color: rgb(10, 10, 10); pointer-events: all;">
+				<td style="width: 5%;" id="backButton" modulename="map" class="moduleButton" ontouchstart="activateModule('map');" onclick="activateModule('map');">
+					<img src="iconMap.png" style="max-height: 40px;" /><div class="hotkeyHelpLabel"><u>O</u>verview</div>
+				</td>
+				<td style="width: 5%;" id="backButton" modulename="3D" class="moduleButton disabledModuleButton" ontouchstart="activateModule('3D');" onclick="activateModule('3D');">
+					<img src="icon3d.png" style="max-height: 40px;" /><div class="hotkeyHelpLabel">3D</div>
+				</td>
+				<td><div id="moduleTitle">CONNECTING...</div></td>
+				<td style="width: 5%;" class="moduleButton" ontouchstart="activateModule('options');" onclick="activateModule('options');" modulename="options">
+					<img src="iconSettings.png" style="max-height: 40px;" /><div class="hotkeyHelpLabel"><u>O</u>ptions</div>
+				</td>
+				<td style="width: 5%;" class="moduleButton" onclick="window.location='http://aarcade.tv/';">
+					<img src="iconLeave.png" style="max-height: 40px;" /><div class="hotkeyHelpLabel"><u>L</u>eave</div>
+				</td>
+			</tr>
+		</table>
+	</div>
+
+
+	<div id="mapContainer" class="module" modulename="map">
+		<div id="overviewCanvasContainer">
+			<div id="overviewCanvas" draggable="true" style="left: 0px; top: 0px; width: 40960px; height: 40960px; zoom: 1.0;">
+				<div style="position: absolute; z-index: 0;" class="alwaysSeen">
+					<div id="overviewContainer" style="left: 0; top: 0;" class="alwaysSeen">
+						<img src="overviews/nowhere.png" id="overviewImage" class="alwaysSeen" />
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="showcaseContainer" style="display: none;">
+			<div class="showcaseTitleContainer" ontouchstart="activateModule('media');" onclick="activateModule('media');">
+				<div class="showcaseTitle"></div>
+			</div>
+			<div class="showcaseImageContainer" ontouchstart="activateModule('media');" onclick="activateModule('media');">
+				<img src="" class="showcaseImage" />
+			</div>
+			<div class="showcaseCloseContainer">
+				<div class="showcaseClose" ontouchstart="deselect();" onclick="deselect();"><img src="iconClose.png" style="vertical-align: middle; height: 24px;" /> DESELECT</div>
+			</div>
+		</div>
+		<div id="playerShowcaseContainer" style="display: none;">
+			<div class="playerShowcaseDisplayNameContainer" ontouchstart="tuneIn();" onclick="tuneIn();">
+				<div class="playerShowcaseDisplayName playerDisplayName"></div>
+			</div>
+			<div class="playerShowcaseAvatarImageContainer" ontouchstart="tuneIn();" onclick="tuneIn();">
+				<img src="" class="playerShowcaseAvatarImage playerAvatarImage" />
+			</div>
+			<div class="playerShowcaseCloseContainer">
+				<div class="playerShowcaseClose" ontouchstart="unfollow();" onclick="unfollow();"><img src="iconClose.png" style="vertical-align: middle; height: 24px;" /> UNFOLLOW</div>
+			</div>
+		</div>
+	</div>
+
+	<div id="overviewChatEntries" style="z-index: 2000000; position: absolute; left: 0; bottom: 90px;">
+	</div>
+
+	<div id="mediaContainer" class="module" modulename="3D" style="overflow: hidden;">
+		<a href="javascript:prev();"><img src="prev_arrow.png" id="previous" /></a>
+		<a href="javascript:next();"><img src="next_arrow.png" id="next" /></a>
+		<!--<a href="javascript:void(0)"><img src="fullscreen.png" id="full" /></a>-->
+		<!--<a href="javascript:toggleHelp();"><img src="help.png" id="help" /></a>-->
+		<!--<a href="javascript:unfull();"><img src="unfullscreen.png" id="unfull" /></a>-->
+
+		<div id="panoContainer" style="width: 100%; height: 100%;"></div>
+	</div>
+
+	<div id="mediaContainer" class="module" modulename="media" style="overflow: hidden;">
+		<table id="webContainer" style="width: 100%; height: 100%;" cellspacing="0" cellpadding="0">
+			<tr>
+				<td style="height: 1%; background-color: rgb(20, 20, 20); height: 30px;">
+					<table style="width: 100%; height: 100%; border: 4px solid rgb(10, 10, 10);" cellspacing="0" cellpadding="0">
+						<tr>
+							<td style="width: 1%; pointer-events: none;">
+								<div id="addressBoxLabel">Internet Address:</div>
+							</td>
+							<td>
+								<div id="addressBoxContainer">
+									<input type="text" id="addressBoxInput" readonly="true" onfocus="this.select();" />
+								</div>
+							</td>
+							<td style="width: 1%; border-left: 4px solid rgb(10, 10, 10);">
+								<div class="deselectAddressButton" style="cursor: pointer;" ontouchstart="deselect();" onclick="deselect();">
+									<img src="iconClose.png" style="display: inline-block; vertical-align: middle; height: 20px;" />
+								</div>
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<iframe id="viewer" src="nopreview.html" style="margin: 0; border: 0; width: 100%; height: 100%; position: relative;"></iframe>
+				</td>
+			</tr>
+		</table>
+		<!-- <div id="panoContainer" style="width: 100%; height: 100%;"></div> -->
+	</div>
+
+	<div class="module moduleInlineBlock prettyScroll" modulename="players">
+		<table id="playersTable" style="width: 100%;" cellspacing="6">
+			<tr>
+				<td align="center" id="playersTableContainer">
+				</td>
+			</tr>
+		</table>
+	</div>
+
+	<div class="module moduleInlineBlock prettyScroll" modulename="options">
+		<table id="optionsTable" style="width: 100%;" cellspacing="0" cellpadding="0">
+			<tr>
+				<td align="right" valign="top" style="width: 50%; padding: 30px;">
+					Display Name
+				</td>
+				<td align="left" valign="top" style="width: 50%;">
+					<form style="margin: 0; padding: 0;"><input type="text" placeholder="Web Player" id="displayNameInput" autocomplete="off" style="max-width: 50vw;" /><br /><div id="enterToSave" style="font-size: 20px; visibility: hidden; padding: 10px;">Press ENTER to save your changes!</div></form>
+				</td>
+			</tr>
+			<tr>
+				<td align="right" valign="top" style="width: 50%; padding: 30px;">
+					Avatar URL
+				</td>
+				<td align="left" valign="top" style="width: 50%;">
+					<form style="margin: 0; padding: 0;"><input type="text" placeholder="(No Avatar)" id="avatarUrlInput" autocomplete="off" style="max-width: 50vw;" /><br /><div id="enterToSaveAvatar" style="font-size: 20px; visibility: hidden; padding: 10px;">Press ENTER to save your changes!</div></form>
+					<br />
+					<img src="noavatar.jpg" class="localPlayerAvatarImage playerAvatarImage" style="width: 300px; max-height: 400px;" />
+				</td>
+			</tr>
+		</table>
+	</div>
+
+	<div id="inventoryTableContainer" class="module moduleInlineBlock prettyScroll" modulename="inventory">
+		<table id="inventoryTable" style="width: 100%; background-color: rgb(5, 5, 5);" cellspacing="6">
+		</table>
+	</div>
+
+	<div class="module moduleInlineBlock" modulename="chat">
+		<div id="chatTableContainer" class="prettyScroll">
+			<table cellspacing="0" cellpadding="0" style="width: 100%; height: 100%; pointer-events: none;">
+				<tr>
+					<td valign="bottom">
+						<table id="chatTable" cellspacing="6" cellpadding="0" style="width: 100%;">
+						</table>
+					</td>
+				</tr>
+			</table>
+		</div>
+
+		<div id="chatBoxContainer">
+			<form style="margin: 0; padding: 0;"><input type="text" placeholder="Enter chat text here..." id="chatBoxInput" autocomplete="off" /></form>
+		</div>
+	</div>
+
+	<div id="bottomContainer">
+		<table cellspacing="0" cellpadding="0" style="width: 100%; height: 100%;">
+			<tr align="center" style="background-color: rgb(10, 10, 10); pointer-events: all;">
+				<td class="moduleButton" modulename="chat" ontouchstart="activateModule('chat');" onclick="activateModule('chat');">
+					<img src="iconChat.png" /><div class="hotkeyHelpLabel"><u>C</u>hat</div>
+				</td>
+				<td class="moduleButton" modulename="inventory" ontouchstart="activateModule('inventory');" onclick="activateModule('inventory');">
+					<img src="iconList.png" /><div class="hotkeyHelpLabel"><u>I</u>nventory</div>
+				</td>
+				<td class="moduleButton disabledModuleButton" modulename="media" ontouchstart="activateModule('media');" onclick="activateModule('media');">
+					<table cellspacing="0" cellpadding="0" style="width: 100%;">
+						<tr align="center">
+							<td style="width: 33%;">
+							</td>
+							<td style="width: 33%;">
+								<img src="iconMedia.png" />
+								<div class="hotkeyHelpLabel"><u>M</u>edia</div>
+							</td>
+							<td style="width: 33%;" align="right">
+								<div class="deselectAddressButton" style="cursor: pointer;" ontouchstart="deselect();" onclick="deselect();">
+									<img src="iconClose.png" style="height: 50px;" />
+								</div>
+							</td>
+						</tr>
+					</table>
+				</td>
+				<td class="moduleButton" modulename="players" ontouchstart="activateModule('players');" onclick="activateModule('players');">
+					<img src="iconPlayers.png" /><div class="hotkeyHelpLabel"><u>P</u>layers</div>
+				</td>
+			</tr>
+		</table>
+	</div>
+
+	<!-- Overlay TV Fuzz
+	<div style="pointer-events: none; position: absolute; top: 0; bottom: 0; left: 0; right: 0; background-image: url('tvfuzz.gif'); background-size: cover; opacity: 0.03;"></div> -->
+
+	<script>
+		var chatBoxInputElem = document.querySelector("#chatBoxInput");
+		var showcaseContainerElem = document.querySelector("#showcaseContainer");
+
+		var g_activeModuleName = "";
+		var g_previousModuleName = "map";
+		function hideModule(moduleName)
+		{
+			// hide the old module
+			var oldModuleElem = document.querySelector(".module[modulename='" + g_activeModuleName + "']");
+
+			if( oldModuleElem )
+				oldModuleElem.classList.remove("activeModule");
+
+			// deactivate the old module button
+			var oldModuleButtonElem = document.querySelector(".moduleButton[modulename='" + g_activeModuleName + "']");
+
+			if( oldModuleButtonElem )
+				oldModuleButtonElem.classList.remove("activeModuleButton");
+
+			if( document.activeElement === chatBoxInputElem )
+				chatBoxInputElem.blur();
+
+			g_activeModuleName = "";
+		}
+
+		function setModuleEnabled(moduleName, value)
+		{
+			// enable the module button
+			var moduleButtonElem = document.querySelector(".moduleButton[modulename='" + moduleName + "']");
+
+			if( !!moduleButtonElem )
+			{
+				if( value )
+					moduleButtonElem.classList.remove("disabledModuleButton");
+				else
+					moduleButtonElem.classList.add("disabledModuleButton");
+			}
+		}
+
+		function activateModule(moduleName)
+		{
+			// hide old module
+			if( g_activeModuleName === moduleName )
+			{
+				if( moduleName === "map" )
+				{
+					//sessionManager.clientXLocalUser = g_defaultStarterX;
+					//sessionManager.clientYLocalUser = g_defaultStarterY;
+					overviewCanvasElem.style.zoom = g_canvasStartZoom;
+					overviewCanvasElem.offsetTop;
+					overviewCanvasElem.style.left = g_canvasStartLeft - 1000 + "px";
+					overviewCanvasElem.style.top = g_canvasStartTop + "px";
+				}
+				else
+					activateModule("map");
+
+				return;
+			}
+
+			// activate the module button
+			var moduleButtonElem = document.querySelector(".moduleButton[modulename='" + moduleName + "']");
+
+			if( !!!moduleButtonElem || moduleButtonElem.classList.contains("disabledModuleButton") )
+				return;
+
+			g_previousModuleName = g_activeModuleName;
+
+			moduleButtonElem.classList.add("activeModuleButton");
+
+			if( g_activeModuleName !== "" )
+				hideModule(g_activeModuleName);
+
+			// show new module
+			var moduleElem = document.querySelector(".module[modulename='" + moduleName + "']");
+
+			if( moduleElem )
+				moduleElem.classList.add("activeModule");
+
+			// update the module title
+			var moduleTitleElem = document.querySelector("#moduleTitle");
+			if( moduleTitleElem )
+			{
+				if( moduleName === "map" )
+					moduleTitleElem.innerHTML = '<img src="live.gif" style="width: 20px; text-align: middle;" /> LIVE MAP';
+				else
+					moduleTitleElem.innerHTML = moduleName.toUpperCase();
+
+			}
+
+			/*
+			// manage the BACK button
+			var backButtonElem = document.querySelector("#backButton");
+			if( !!backButtonElem )
+			{
+				if( moduleName !== "map" )
+					backButtonElem.classList.remove("hiddenBackButton");
+				else
+					backButtonElem.classList.add("hiddenBackButton");
+			}
+			*/
+
+			g_activeModuleName = moduleName;
+
+			if( g_activeModuleName === "chat" )
+				document.querySelector("#overviewChatEntries").style.display = "none";
+			else
+				document.querySelector("#overviewChatEntries").style.display = "block";
+
+			// if the active module is the inventory, auto-scroll to any selected row
+			if( g_activeModuleName === "inventory" )
+			{
+				var selectedEntryRowElem = document.querySelector(".selectedEntryRow");
+
+				if( selectedEntryRowElem )
+				{
+					var entryTop = selectedEntryRowElem.offsetTop;
+					entryTop += -(selectedEntryRowElem.parentNode.parentNode.offsetHeight / 2.0) + (selectedEntryRowElem.offsetHeight / 2.0);
+					selectedEntryRowElem.parentNode.parentNode.scrollTop = entryTop;
+				}
+			}
+			else if( g_activeModuleName === "chat" )
+			{
+				var chatTableContainerElem = document.querySelector("#chatTableContainer");
+				chatTableContainerElem.scrollTo(0, chatTableContainerElem.scrollHeight);
+
+				document.querySelector("#chatBoxInput").focus();
+			}
+			else if( g_activeModuleName === "3D" )
+			{
+				if( !g_panoReady )
+				{
+					var panoKeys = Object.keys(sessionManager.metaverse.panos);
+					var panoId = panoKeys[0];//panoKeys.length - 1];
+
+					var panoInfo = sessionManager.metaverse.panos[panoId];
+					loadPano(panoInfo);
+				}
+				else
+					onWindowResize();
+			}
+		}
+
+		function SetShowcase(item)
+		{
+			showcaseContainerElem.style.display = "block";
+
+			var title = item.title;
+			var imageElem = showcaseContainerElem.querySelector(".showcaseImage");
+			imageElem.style.display = "none";
+			sessionManager.loadItemBestImage(imageElem, item, function()
+			{
+			//	var panelElem = this.parentNode.parentNode.parentNode.parentNode;
+			
+			//	var loadingIndicatorElem = panelElem.querySelector(".loadingIndicator");
+			//	loadingIndicatorElem.parentNode.style.display = "none";
+
+				this.style.display = "block";
+			});
+
+			var titleElem = showcaseContainerElem.querySelector(".showcaseTitle");
+			titleElem.innerHTML = title;
+		}
+
+		function ClearShowcase()
+		{
+			showcaseContainerElem.style.display = "none";
+
+			var imageElem = showcaseContainerElem.querySelector(".showcaseImage");
+			imageElem.style.display = "none";
+
+			var titleElem = showcaseContainerElem.querySelector(".showcaseTitle");
+			titleElem.innerHTML = "";
+		}
+
+		var g_ignoreNextTuneAlert = false;
+		function tuneToObject(objectId)
+		{
+			var selectedEntryContainerElem = document.querySelector(".selectedEntryRow");
+
+			var entryContainerElem = document.querySelector(".entryRow[objectId='" + objectId + "']");
+
+			if( !!!entryContainerElem )
+				return;
+
+			if( selectedEntryContainerElem !== entryContainerElem )
+			{
+				g_ignoreNextTuneAlert = true;
+				sessionManager.entryClick.call(entryContainerElem);
+			}
+			else
+				activateModule("media");
+		}
+
+		function tuneIn()
+		{
+			var selectedPlayerEntryContainerElem = document.querySelector(".selectedPlayerEntryContainer");
+
+			if( selectedPlayerEntryContainerElem )
+			{
+				var user = sessionManager.metaverse.users[selectedPlayerEntryContainerElem.getAttribute("userId")];
+				if( !!user )
+				{
+					var objectId = (!!user.session.object) ? user.session.object.id : undefined;
+
+					if( !!objectId )
+						tuneToObject(objectId);
+				}
+			}
+		}
+
+		function unfollow()
+		{
+			sessionManager.stopFollowingPlayer();
+		}
+
+		function deselect()
+		{
+			// Remove the selected entry fx
+			var selectedEntryElem = document.querySelector(".selectedEntryRow");
+			if( !!!selectedEntryElem )
+				return;
+
+			ClearShowcase();
+			setModuleEnabled("media", false);
+
+			if( g_activeModuleName === "media" )
+				activateModule("map");
+
+			selectedEntryElem.classList.remove("selectedEntryRow");
+
+			// Remove the selected shortcut fx
+			var oldShortcutContainerElem = sessionManager.overviewCanvasElem.querySelector(".shortcutContainer[objectId='" + selectedEntryElem.getAttribute("objectId") + "']");
+			if( !!oldShortcutContainerElem )
+				sessionManager.shortcutMouseOut.call(oldShortcutContainerElem);
+
+			// Stop playback.
+			var url = "nopreview.html";
+			sessionManager.viewerElem.src = url;
+		}
+
+		var overviewCanvasContainerElem = document.querySelector("#overviewCanvasContainer");
+		var overviewCanvasElem = document.querySelector("#overviewCanvas");
+		//overviewCanvasElem.style.cssText = "color: pink;";
+		var overviewContainerElem = document.querySelector("#overviewContainer");
+		var overviewImageElem = document.querySelector("#overviewImage");
+
+		//var overviewElem = document.querySelector(".overview");
+		var g_localMoveIntervalHandle;
+		var g_localIsBeingDragged = false;
+		var g_localUserSay = "";
+		var g_oldLocalUserSay = "";
+
+		document.querySelector("#disconnectButton").addEventListener(g_touchEvent, function(e)
+		{
+			window.location = "http://aarcade.tv/";
+		}, true);
+
+		document.querySelector("#closeViewerTab").addEventListener(g_touchStartEvent, closeViewer, true);
+
+		function closeViewer(e)
+		{
+			var selectedEntryContainerElem = document.querySelector(".selectedEntryContainer");
+
+			if( !!selectedEntryContainerElem )
+			{
+				// Remove the selected entry fx
+				selectedEntryContainerElem.classList.remove("selectedEntryContainer");
+
+				// Remove the selected shortcut fx
+				var oldShortcutContainerElem = sessionManager.overviewCanvasElem.querySelector(".shortcutContainer[objectId='" + selectedEntryContainerElem.getAttribute("objectId") + "']");
+				if( !!oldShortcutContainerElem )
+					sessionManager.shortcutMouseOut.call(oldShortcutContainerElem);
+
+				if( selectedEntryContainerElem.getAttribute("itemId") )
+				{
+					// Remove the item panel stuff
+					var bestItemImageElem = document.querySelector(".bestItemImage");
+					bestItemImageElem.style.display = "none";
+					var panelElem = bestItemImageElem.parentNode.parentNode.parentNode.parentNode;
+					var noEntryElem = bestItemImageElem.parentNode.parentNode.parentNode.querySelector(".noEntry");
+					noEntryElem.style.display = "block";
+
+					// Remove the model panel stuff
+					var bestModelImageElem = document.querySelector(".bestModelImage");
+					bestModelImageElem.style.display = "none";
+					var panelElem = bestModelImageElem.parentNode.parentNode.parentNode.parentNode;
+					var noEntryElem = bestModelImageElem.parentNode.parentNode.parentNode.querySelector(".noEntry");
+					noEntryElem.style.display = "block";
+
+					// Clear the view screen
+					sessionManager.viewerElem.parentNode.parentNode.style.display = "none";
+					var url = "nopreview.html";
+					sessionManager.viewerElem.src = url;
+				}
+			}
+		}
+
+		function selectAvatar(avatarImageElem)
+		{
+			var selectedAvatarElem = document.querySelector(".selectedAvatarImage");
+			if( selectedAvatarElem === avatarImageElem )
+				return;
+
+			if( !!selectedAvatarElem )
+				selectedAvatarElem.classList.remove("selectedAvatarImage");
+
+			avatarImageElem.classList.add("selectedAvatarImage");
+		}
+
+		var displayNameInputElem = document.querySelector("#displayNameInput");
+		displayNameInputElem.value = g_webUserName;
+		/*
+		displayNameInputElem.addEventListener("focus", function(e)
+		{
+			this.select();
+		}.bind(displayNameInputElem), true);*/
+		var displayNameInputForm = displayNameInputElem.parentNode;
+		displayNameInputForm.addEventListener("submit", function(e)
+		{
+			e.preventDefault();
+
+			var displayName = this.value;
+			if( displayName === g_webUserName )
+				return false;
+
+			g_shouldResetName = null;
+			var oldName = g_webUserName;
+			g_webUserName = displayName;
+			window.localStorage.setItem("displayName", g_webUserName);
+
+			// sync our name right away
+			sessionManager.localUserUpdate(null, true);
+
+			sessionManager.updateUserDisplayName(sessionManager.metaverse.localUser.id, g_webUserName);
+
+			enterToSaveElem.style.visibility = "hidden";
+			document.activeElement.blur();
+
+			var msg = "YOU changed your name from <div class='chatVar' varIndex='0'></div> to <div class='chatVar' varIndex='1'></div>.";
+			sessionManager.addAlertMsg(msg, [oldName, g_webUserName]);
+
+			return false;
+		}.bind(displayNameInputElem), true);
+
+		displayNameInputElem.addEventListener("focus", function(e)
+		{
+			g_shouldResetName = displayNameInputElem.value;
+		}, true);
+
+		var enterToSaveElem = document.querySelector("#enterToSave");
+		displayNameInputElem.addEventListener("input", function(e)
+		{
+			if( !!g_shouldResetName )
+				enterToSaveElem.style.visibility = "visible";
+				//enterToSaveElem.style.display = "block";
+		}, true);
+
+		displayNameInputElem.addEventListener("blur", function(e)
+		{
+			if( !!g_shouldResetName )
+			{
+				displayNameInputElem.value = g_shouldResetName;
+				g_shouldResetName = null;
+			}
+
+			enterToSaveElem.style.visibility = "hidden";
+		}, true);
+
+
+
+		var avatarUrlInputElem = document.querySelector("#avatarUrlInput");
+		avatarUrlInputElem.value = g_avatarUrl;
+		avatarUrlInputElem.addEventListener("focus", function(e)
+		{
+			this.select();
+		}.bind(avatarUrlInputElem), true);
+		var avatarUrlInputForm = avatarUrlInputElem.parentNode;
+		avatarUrlInputForm.addEventListener("submit", function(e)
+		{
+			e.preventDefault();
+
+			var avatarUrl = this.value;
+			if( avatarUrl === g_avatarUrl )
+				return false;
+
+			g_shouldResetAvatar = null;
+			g_avatarUrl = avatarUrl;
+			window.localStorage.setItem("avatarUrl", g_avatarUrl);
+
+			// sync our name right away
+			sessionManager.localUserUpdate(null, true);
+
+			sessionManager.updateAvatarUrl(sessionManager.metaverse.localUser.id, g_avatarUrl);
+
+			enterToSaveAvatarElem.style.visibility = "hidden";
+			document.activeElement.blur();
+
+			return false;
+		}.bind(avatarUrlInputElem), true);
+
+		avatarUrlInputElem.addEventListener("focus", function(e)
+		{
+			g_shouldResetAvatar = avatarUrlInputElem.value;
+		}, true);
+
+		var enterToSaveAvatarElem = document.querySelector("#enterToSaveAvatar");
+		avatarUrlInputElem.addEventListener("input", function(e)
+		{
+			if( !!g_shouldResetAvatar )
+				enterToSaveAvatarElem.style.visibility = "visible";
+		}, true);
+
+		avatarUrlInputElem.addEventListener("blur", function(e)
+		{
+			if( !!g_shouldResetAvatar )
+			{
+				avatarUrlInputElem.value = g_shouldResetAvatar;
+				g_shouldResetAvatar = null;
+			}
+
+			enterToSaveAvatarElem.style.visibility = "hidden";
+		}, true);
+
+
+
+		var chatInputElem = document.querySelector("#chatBoxInput");
+		var chatInputForm = chatInputElem.parentNode;
+		chatInputForm.addEventListener("submit", function(e)
+		{
+			if( this.value !== "" )
+			{
+				var chatMsg = this.value;
+				g_localUserSay = chatMsg;
+				this.value = "";
+
+				// sync what we say as soon as we say it.
+				sessionManager.localUserUpdate(null, true);
+			}
+
+			if( g_shouldUnfocusChat )
+			{
+				g_shouldUnfocusChat = false;
+				this.blur();
+				//activateModule("map");
+				if( g_previousModuleName !== "chat" && g_previousModuleName !== "" )
+					activateModule(g_previousModuleName);
+				else
+					activateModule("map");
+			}
+
+			//this.blur();
+			//activateModule("map");
+
+			e.preventDefault();
+			return false;
+		}.bind(chatInputElem), true);
+
+		function localMouseMove(e)
+		{
+			var eventTarget;
+			var eventPageX;
+			var eventPageY;
+			if( !!!e.changedTouches )
+			{
+				eventTarget = e.target;
+				eventPageX = e.pageX;
+				eventPageY = e.pageY;
+				eventOffsetX = e.offsetX;
+				eventOffsetY = e.offsetY;
+			}
+			else
+			{
+				eventTarget = e.target;
+				//console.log(eventTarget);
+				eventPageX = e.changedTouches[0].pageX;
+				eventPageY = e.changedTouches[0].pageY;
+
+				var rect = e.target.getBoundingClientRect();
+				eventOffsetX = e.changedTouches[0].pageX - rect.left;
+				eventOffsetY = e.changedTouches[0].pageY - rect.top;
+				
+				//eventOffsetX /= parseFloat(overviewCanvasElem.style.zoom);
+				/*var pos = normalizePosition(e, e.target);
+				console.log(e.target);
+				eventOffsetX = pos.x;
+				eventOffsetY = pos.y;*/
+			}
+//console.log(parseFloat(overviewCanvasElem.style.zoom));
+			//if( Math.abs(sessionManager.clientXLocalUser - eventOffsetX) > 100 )
+			//	return;
+	//console.log("Woops: " + sessionManager.clientXLocalUser + " vs " + eventOffsetX);
+			sessionManager.clientXLocalUser = eventOffsetX;
+			sessionManager.clientYLocalUser = eventOffsetY;
+			sessionManager.localUserUpdate(null, false);
+		}
+
+		function localMoveInterval()
+		{
+			sessionManager.localUserUpdate(null, true);
+		}
+		//g_localMoveIntervalHandle = setInterval(localMoveInterval, 300);
+/*
+		function localMouseDown(e)
+		{
+			if( e.target.parentNode !== overviewCanvasElem && !e.target.parentNode.classList.contains("localPlayerMarker") )
+				return;
+
+			g_localIsBeingDragged = true;
+			overviewCanvasElem.addEventListener(g_touchEndEvent, function(e)
+			{
+				document.removeEventListener(g_touchMoveEvent, localMouseMove, true);
+				overviewElem.removeEventListener(g_touchEndEvent, arguments.callee, true);
+				g_localIsBeingDragged = false;
+			}, true);
+
+			document.addEventListener(g_touchMoveEvent, localMouseMove, true);
+		}
+*/
+		/*
+		g_localMoveIntervalHandle = setInterval(localMoveInterval, 300);
+
+		overviewElem.addEventListener("dragstart", function(e)
+		{
+			e.preventDefault();
+			return false;
+		}, true);
+
+		overviewElem.addEventListener("selectstart", function(e)
+		{
+			e.preventDefault();
+			return false;
+		}, true);
+
+		overviewElem.addEventListener(g_touchEvent, function(e)
+		{
+			if( e.target.parentNode !== overviewElem && !e.target.classList.contains("localPlayerMarker") && !e.target.classList.contains("breadCrumb") )
+				return;
+
+			sessionManager.clientXLocalUser = e.pageX;
+			sessionManager.clientYLocalUser = e.pageY;
+			sessionManager.localUserUpdate.call(overviewElem, e, true);
+		}, true);*/
+
+		var twitchTabElem = document.querySelector("#twitchTab");
+		twitchTabElem.dragContainer = twitchTabElem.parentNode.parentNode;
+		/*
+		twitchTabElem.addEventListener(g_touchEvent, function(e)
+		{
+			sessionManager.switchToTab.call(this, this.parentNode.parentNode.querySelector(".twitchContainer").parentNode);
+		}.bind(twitchTabElem), true);
+*/
+
+		twitchTabElem.addEventListener(g_touchStartEvent, dragStart, true);
+		twitchTabElem.dragContainer.addEventListener(g_touchStartEvent, alwaysBringToFront.bind(twitchTabElem.dragContainer), true);
+
+		var viewScreenTabElem = document.querySelector("#viewScreenTab");
+		viewScreenTabElem.dragContainer = viewScreenTabElem.parentNode.parentNode;
+		viewScreenTabElem.addEventListener(g_touchEvent, function(e)
+		{
+			var selectedTab = this.parentNode.querySelector(".activeTab");
+			selectedTab.classList.remove("activeTab");
+
+			var otherList = this.parentNode.parentNode.querySelector(".itemInfoContainer").parentNode.style.display = "none";
+			otherList = this.parentNode.parentNode.querySelector(".modelInfoContainer").parentNode.style.display = "none";
+
+			var ourList = this.parentNode.parentNode.querySelector("#viewer").parentNode.style.display = "block";
+			this.classList.add("activeTab");
+		}.bind(viewScreenTabElem), true);
+		viewScreenTabElem.addEventListener(g_touchStartEvent, dragStart, true);
+		viewScreenTabElem.dragContainer.addEventListener(g_touchStartEvent, alwaysBringToFront.bind(viewScreenTabElem.dragContainer), true);
+
+		var shortcutsTabElem = document.querySelector("#shortcutsTab");
+		shortcutsTabElem.dragContainer = shortcutsTabElem.parentNode.parentNode;
+		shortcutsTabElem.addEventListener(g_touchEvent, function(e)
+		{
+			sessionManager.switchToTab.call(this, this.parentNode.parentNode.querySelector(".shortcutsContainer").parentNode);
+		}.bind(shortcutsTabElem), true);
+		shortcutsTabElem.addEventListener(g_touchStartEvent, dragStart, true);
+		shortcutsTabElem.dragContainer.addEventListener(g_touchStartEvent, alwaysBringToFront.bind(shortcutsTabElem.dragContainer), true);
+
+		var propsTabElem = document.querySelector("#propsTab");
+		propsTabElem.dragContainer = propsTabElem.parentNode.parentNode;
+		propsTabElem.addEventListener(g_touchEvent, function(e)
+		{
+			sessionManager.switchToTab.call(this, this.parentNode.parentNode.querySelector(".propsContainer").parentNode);
+		}.bind(propsTabElem), true);
+		propsTabElem.addEventListener(g_touchStartEvent, dragStart, true);
+		propsTabElem.dragContainer.addEventListener(g_touchStartEvent, alwaysBringToFront.bind(propsTabElem.dragContainer), true);
+		
+
+		var chatTabElem = document.querySelector("#chatTab");
+		chatTabElem.dragContainer = chatTabElem.parentNode.parentNode;
+		chatTabElem.addEventListener(g_touchEvent, function(e)
+		{
+			sessionManager.switchToTab.call(this, this.parentNode.parentNode.querySelector(".chatContainer").parentNode);
+		}.bind(chatTabElem), true);
+		chatTabElem.addEventListener(g_touchStartEvent, dragStart, true);
+		chatTabElem.dragContainer.addEventListener(g_touchStartEvent, alwaysBringToFront.bind(chatTabElem.dragContainer), true);
+
+		var playersTabElem = document.querySelector("#playersTab");
+		playersTabElem.dragContainer = playersTabElem.parentNode.parentNode;
+		playersTabElem.addEventListener(g_touchEvent, function(e)
+		{
+			sessionManager.switchToTab.call(this, this.parentNode.parentNode.querySelector(".playersContainer").parentNode);
+		}.bind(playersTabElem), true);
+		playersTabElem.addEventListener(g_touchStartEvent, dragStart, true);
+		playersTabElem.dragContainer.addEventListener(g_touchStartEvent, alwaysBringToFront.bind(playersTabElem.dragContainer), true);
+
+		var youTabElem = document.querySelector("#youTab");
+		youTabElem.dragContainer = youTabElem.parentNode.parentNode;
+		youTabElem.addEventListener(g_touchEvent, function(e)
+		{
+			sessionManager.switchToTab.call(this, this.parentNode.parentNode.querySelector(".youContainer").parentNode);
+		}.bind(youTabElem), true);
+		youTabElem.addEventListener(g_touchStartEvent, dragStart, true);
+		youTabElem.dragContainer.addEventListener(g_touchStartEvent, alwaysBringToFront.bind(youTabElem.dragContainer), true);
+
+
+		var itemTabElem = document.querySelector("#itemTab");
+		itemTabElem.dragContainer = itemTabElem.parentNode.parentNode;
+		itemTabElem.addEventListener(g_touchEvent, function(e)
+		{
+			sessionManager.switchToTab.call(this, this.parentNode.parentNode.querySelector(".itemInfoContainer").parentNode);
+		}.bind(itemTabElem), true);
+		itemTabElem.addEventListener(g_touchStartEvent, dragStart, true);
+		itemTabElem.dragContainer.addEventListener(g_touchStartEvent, alwaysBringToFront.bind(itemTabElem.dragContainer), true);
+
+		var modelTabElem = document.querySelector("#modelTab");
+		modelTabElem.dragContainer = modelTabElem.parentNode.parentNode;
+		modelTabElem.addEventListener(g_touchEvent, function(e)
+		{
+			sessionManager.switchToTab.call(this, this.parentNode.parentNode.querySelector(".modelInfoContainer").parentNode);
+		}.bind(modelTabElem), true);
+		modelTabElem.addEventListener(g_touchStartEvent, dragStart, true);
+		modelTabElem.dragContainer.addEventListener(g_touchStartEvent, alwaysBringToFront.bind(modelTabElem.dragContainer), true);
+
+		var g_topFrontZIndex = 1000;
+		function alwaysBringToFront()
+		{
+			g_topFrontZIndex++;
+			this.style.zIndex = g_topFrontZIndex;
+			//g_topFrontZIndex++;
+			//document.querySelector("#viewer").parentNode.parentNode.style.zIndex = g_topFrontZIndex;
+		}
+
+		var g_dragInfo;
+		function dragStart(e)
+		{
+			var targetElem = e.target;
+			var dragContainer = targetElem.dragContainer;
+
+			if( !!!dragContainer )
+				return;
+
+			g_dragInfo = {
+				"container":dragContainer,
+				"startTop": dragContainer.offsetTop,
+				"startLeft": dragContainer.offsetLeft
+			};
+
+			document.addEventListener(g_touchMoveEvent, drag, true);
+			document.addEventListener(g_touchEndEvent, dragEnd, true);
+
+			e.preventDefault();
+			return true;
+		}
+
+		function dragEnd(e)
+		{
+			delete g_dragInfo;
+			e.preventDefault();
+			document.removeEventListener(g_touchMoveEvent, drag, true);
+			document.removeEventListener(g_touchEndEvent, dragEnd, true);
+			return true;
+		}
+
+		function drag(e)
+		{
+			var offsetX;
+			if( !g_dragInfo.hasOwnProperty("startX") )
+				g_dragInfo.startX = e.clientX;
+
+			offsetX = e.clientX - g_dragInfo.startX;
+
+			var offsetY;
+			if( !g_dragInfo.hasOwnProperty("startY") )
+				g_dragInfo.startY = e.clientY;
+
+			offsetY = e.clientY - g_dragInfo.startY;
+
+			g_dragInfo.startX = e.clientX;
+			g_dragInfo.startY = e.clientY;
+
+			var xAnchorName = (!!g_dragInfo.container.style.left) ? "left" : "right";
+			var yAnchorName = (!!g_dragInfo.container.style.top) ? "top" : "bottom";
+
+			var oldX = parseInt(g_dragInfo.container.style[xAnchorName]);
+			var signX = (xAnchorName === "left") ? 1 : -1;
+			g_dragInfo.container.style[xAnchorName] = oldX + (offsetX * signX) + "px";
+
+			var oldY = parseInt(g_dragInfo.container.style[yAnchorName]);
+			var signY = (yAnchorName === "top") ? 1 : -1;
+			g_dragInfo.container.style[yAnchorName] = oldY + (offsetY * signY) + "px";
+		}
+
+		function localUserUpdate(instance, say, bodyOrigin, bodyAngles, headOrigin, headAngles, item, object, mouseX, mouseY, webURL)
+		{
+			sessionManager.metaverse.sendInstanceUserUpdate(instance, say, bodyOrigin, bodyAngles, headOrigin, headAngles, item, object, mouseX, mouseY, webURL);
+		}
+
+		function doLogIn()
+		{
+			if( !!!g_localUserIP )
+			{
+				alert("Cannot log-in.  Unable to obtain your IP address.");
+				window.location = "http://aarcade.tv/";
+				return;
+			}
+
+			function onUserLoggedIn(user)
+			{
+				//console.log("Connected.");
+
+				if( !!!user.session )
+				{
+					alert("Could not log-in.");
+					window.location = "http://aarcade.tv/";
+					return;
+				}
+				else
+				{
+					g_sessionId = user.session.id;
+
+					function addInstanceUserNow(instance, session, user)
+					{
+						sessionManager.metaverse.addInstanceUser(instance, session, user.id, function(data)
+						{
+							//console.log("YOU (" + user.session.displayName + ") have JOINED the session.");
+
+							g_rdyForMsgs = true;
+
+							//sessionManager.addAlertMsg(user.session.displayName + " (YOU) have JOINED the session.");
+							sessionManager.addAlertMsg("<div class='chatVar' varIndex='0'></div> (YOU) have JOINED the session.", [user.session.displayName]);
+
+							var numUsers = Object.keys(sessionManager.metaverse.users).length;
+							if( numUsers === 1 )
+								sessionManager.addAlertMsg("There is " + numUsers + " other user in the session with you.", [""]);
+							else if( numUsers > 1 )
+								sessionManager.addAlertMsg("There are " + numUsers + " other users in the session with you.", [""]);
+							else if( numUsers === 0 )
+								sessionManager.addAlertMsg("You are the only user in this session.", [""]);
+
+							var overviewLeft = parseFloat(overviewContainerElem.style.left);
+							var overviewTop = parseFloat(overviewContainerElem.style.top);
+							var starterX = (overviewLeft + overviewImageElem.width / 2.0);
+							var starterY = (overviewTop + overviewImageElem.height / 2.0);
+							g_defaultStarterX = starterX;
+							g_defaultStarterY = starterY;
+							sessionManager.clientXLocalUser = starterX;
+							sessionManager.clientYLocalUser = starterY;
+
+							var results = sessionManager.convertPageCoordsToWorldCoords(starterX, starterY);
+							var x = results.x;
+							var y = results.y;
+
+							var sessionUpdateData = {
+								"transform":
+								{
+									"body":
+									{
+										"origin": x + " " + y + " 0",
+										"angles": "0 0 0"
+									}
+								}
+							};
+
+							// Do the local movement.
+							sessionManager.onUserSessionUpdated(sessionManager.metaverse.localUser.id, sessionUpdateData);
+
+							g_localMoveIntervalHandle = setInterval(localMoveInterval, 300);
+
+							// And sync us to the firebase...
+							// FIXME: This should only happen 3 times a second!!
+							//sessionManager.metaverse.sendInstanceUserUpdate(sessionManager.instance);
+
+							document.querySelector("#blackout").style.display = "none";
+						});
+					}
+
+					// is there a password?
+					// loadingStuff
+					//sessionManager.metaverse.instanceRef.
+					var masterPassword = sessionManager.metaverse.instanceInfo.password;
+
+					var sessionCode = sessionStorage.getItem("sessionCode");
+					if( !!!sessionCode )
+						sessionCode = "";
+
+					if( !!masterPassword && masterPassword !== "" && masterPassword !== sessionCode )
+					{
+						document.querySelector("#loadingStuff").style.display = "none";
+						document.querySelector("#passwordStuff").style.display = "block";
+						var passwordElem = document.querySelector("#password");
+						passwordElem.style.display = "block";
+						passwordElem.ezInfo = {
+							"instance": sessionManager.instance,
+							"session": g_sessionId,
+							"user": user
+						};
+
+						var passwordFormElem = passwordElem.parentNode;
+						var encodedValue;
+						passwordFormElem.addEventListener("submit", function(e)
+						{
+							e.preventDefault();
+
+							var encodedValue = sessionManager.metaverse.encodePasscode(this.value);
+
+							if( encodedValue !== masterPassword )
+							{
+								document.querySelector("#wrongPassword").style.display = "block";
+								this.select();
+							}
+							else
+							{
+								sessionStorage.setItem("sessionCode", encodedValue);
+								addInstanceUserNow(this.ezInfo.instance, this.ezInfo.session, this.ezInfo.user);
+							}
+
+							return false;
+						}.bind(passwordElem));
+						//addInstanceUserNow(sessionManager.instance, g_sessionId, user);
+					}
+					else
+						addInstanceUserNow(sessionManager.instance, g_sessionId, user);
+				}
+			}
+
+			// TODO: Make this function not repetitive & less dumb
+			sessionManager.metaverse.logIn(g_localUserHashedIP, g_localUserIP, function(error)
+			{
+				if( !!error )
+				{
+					if( error.message.indexOf("NOTICE: You were *not* logged") >= 0 )
+					{
+						console.log(error.message);
+						alert("Could not join because your IP is already in the lobby. If you crashed, please wait a couple minutes for your connection to timeout.");
+						window.location = "http://aarcade.tv/";
+					}
+					else
+					{
+						var userData = {
+							"username": g_localUserHashedIP,
+							"passcode": g_localUserIP
+						};
+
+						sessionManager.metaverse.createUser(userData, function(data)
+						{
+							if( !!!data )
+							{
+								alert("ERROR: Could not create user!");
+								window.location = "http://aarcade.tv/";
+								return;
+							}
+
+							// now login to the new user
+							sessionManager.metaverse.logIn(g_localUserHashedIP, g_localUserIP, function(error2)
+							{
+								if( !!error2 )
+								{
+									alert(error2.message);
+									window.location = "http://aarcade.tv/";
+								}
+								else
+									onUserLoggedIn(sessionManager.metaverse.localUser);
+							}, g_localUserHashedIP, g_webUserName);
+						}, g_localUserHashedIP);
+					}
+				}
+				else
+					onUserLoggedIn(sessionManager.metaverse.localUser);
+			}, g_localUserHashedIP, g_webUserName);
+		}
+
+		document.addEventListener("keyup", function(e)
+		{
+			var code = e.which || e.keyCode;
+			if( code === 27 )
+				activateModule("map");
+
+			//e.preventDefault();
+			//return true;
+		}, true);
+
+		document.addEventListener("keypress", function(e)
+		{
+			if( document.activeElement.tagName === "INPUT" )
+				return;
+
+			var code = e.which || e.keyCode;
+			if( code === 99 || code === 121 || code === 116 )
+			{
+				g_shouldUnfocusChat = true;
+				activateModule("chat");
+				e.preventDefault();
+				return true;
+			}
+			else if( code === 105 )
+			{
+				activateModule("inventory");
+				e.preventDefault();
+				return true;
+			}
+			else if( code === 109 )
+			{
+				activateModule("media");
+				e.preventDefault();
+				return true;
+			}
+			else if( code === 112 )
+			{
+				activateModule("players");
+				e.preventDefault();
+				return true;
+			}
+			else if( code === 111 )
+			{
+				activateModule("options");
+				e.preventDefault();
+				return true;
+			}
+			else if( code === 108 )
+			{
+				activateModule("map");
+				e.preventDefault();
+				return true;
+			}
+		}, true);
+
+		document.addEventListener("keydown", function(e)
+		{
+			if( document.activeElement.tagName === "INPUT" )
+				return;
+
+			var shouldSwallow = true;
+			var zoom = parseFloat(overviewCanvasElem.style.zoom);
+			var delta = 80.0 * zoom;
+			var code = e.keyCode;
+			if( code === 87 )
+			{
+				// move up
+				var localPlayerMarkerElem = document.querySelector(".localPlayerMarker");
+				sessionManager.clientYLocalUser += -delta;
+				sessionManager.localUserUpdate(null, false);
+			}
+			else if( code === 65 )
+			{
+				// move left
+				var localPlayerMarkerElem = document.querySelector(".localPlayerMarker");
+				sessionManager.clientXLocalUser += -delta;
+				sessionManager.localUserUpdate(null, false);
+			}
+			else if( code === 83 )
+			{
+				// move down
+				var localPlayerMarkerElem = document.querySelector(".localPlayerMarker");
+				sessionManager.clientYLocalUser += delta;
+				sessionManager.localUserUpdate(null, false);
+			}
+			else if( code === 68 )
+			{
+				// move right
+				var localPlayerMarkerElem = document.querySelector(".localPlayerMarker");
+				sessionManager.clientXLocalUser += delta;
+				sessionManager.localUserUpdate(null, false);
+			}
+			else
+				shouldSwallow = false;
+
+			if( shouldSwallow )
+			{
+				e.preventDefault();
+				return false;
+			}
+		}, true);
+
+		overviewCanvasElem.addEventListener("contextmenu", function(e)
+		{
+			e.preventDefault();
+			return true;
+		}, true);
+
+		//overviewCanvasElem.addEventListener(g_touchEvent, function(e)
+		//{
+			//if( e.target.parentNode !== overviewElem && !e.target.classList.contains("localPlayerMarker") && !e.target.classList.contains("breadCrumb") )
+			//	return;
+//console.log(e);
+			//sessionManager.clientXLocalUser = e.pageX;
+			//sessionManager.clientYLocalUser = e.pageY;
+			//sessionManager.localUserUpdate.call(overviewElem, e, true);
+		//}, true);
+	</script>
+
+	<script>
+		function doZoom(offsetX, offsetY, delta)
+		{
+			var zoom = parseFloat(overviewCanvasElem.style.zoom) - delta;
+			if( zoom < minZoom )
+				zoom = minZoom;
+			else if( zoom > maxZoom )
+				zoom = maxZoom;
+
+			var oldZoom = parseFloat(overviewCanvasElem.style.zoom);
+			var oldLeft = parseFloat(overviewCanvasElem.style.left);
+			var oldTop = parseFloat(overviewCanvasElem.style.top);
+
+			var deltaZoom = zoom - oldZoom;
+			sessionManager.clientXLocalUser = (sessionManager.clientXLocalUser / oldZoom) * zoom;
+			sessionManager.clientYLocalUser = (sessionManager.clientYLocalUser / oldZoom) * zoom;
+
+			var deltaX = (((offsetX+(oldLeft * oldZoom)) * zoom) - ((offsetX+(oldLeft * oldZoom)) * oldZoom)) / -oldZoom;
+			deltaX /= zoom;
+
+			var deltaY = (((offsetY+(oldTop * oldZoom)) * zoom) - ((offsetY+(oldTop * oldZoom)) * oldZoom)) / -oldZoom;
+			deltaY /= zoom;
+
+
+			overviewCanvasElem.classList.add("dragOverviewCanvas");
+			overviewCanvasElem.style.zoom = zoom;
+
+			overviewCanvasElem.style.left = parseFloat(overviewCanvasElem.style.left) + deltaX + "px";
+			overviewCanvasElem.style.top = parseFloat(overviewCanvasElem.style.top) + deltaY + "px";
+
+			overviewCanvasElem.offsetWidth;
+
+			overviewCanvasElem.classList.remove("dragOverviewCanvas");
+		}
+
+		var minZoom = 0.1;
+		var maxZoom = 1.0;
+
+		if( isFirefox )
+		{
+			minZoom = 1.0;
+			maxZoom = 1.0;
+		}
+
+		// MOUSE WHEEL = Zoom
+		if( !isFirefox )
+		{
+			overviewCanvasElem.addEventListener("wheel", function(e)
+			{
+				if( e.target !== overviewCanvasElem )
+					return;
+
+				var offsetX = e.offsetX;
+				var offsetY = e.offsetY;
+				var delta = (e.deltaY > 0) ? 0.1: -0.1;
+				doZoom(offsetX, offsetY, delta);
+			}, true);
+		}
+
+		function onTouchEnd(e)
+		{
+			var eventTarget;
+			var eventPageX;
+			var eventPageY;
+			if( !!!e.changedTouches )
+			{
+				eventTarget = e.target;
+				eventPageX = e.pageX;
+				eventPageY = e.pageY;
+				eventOffsetX = e.offsetX;
+				eventOffsetY = e.offsetY;
+			}
+			else
+			{
+				eventTarget = e.target;
+				eventPageX = e.changedTouches[0].pageX;
+				eventPageY = e.changedTouches[0].pageY;
+
+				var rect = e.target.getBoundingClientRect();
+				eventOffsetX = e.changedTouches[0].pageX - rect.left;
+				eventOffsetY = e.changedTouches[0].pageY - rect.top;
+				/*var pos = normalizePosition(e, e.target);
+				eventOffsetX = pos.x;
+				eventOffsetY = pos.y;*/
+			}
+
+			var originalX = this.originalX;
+			var originalY = this.originalY;
+			var originalOffsetX = this.originalOffsetX;
+			var originalOffsetY = this.originalOffsetY;
+			if( eventPageX === originalX && eventPageY === originalY )
+			{
+				sessionManager.clientXLocalUser = originalOffsetX;
+				sessionManager.clientYLocalUser = originalOffsetY;
+				sessionManager.localUserUpdate(null, true);
+			}
+
+			//overviewCanvasElem.style.cursor = "-webkit-grab";
+			overviewCanvasElem.classList.remove("dragOverviewCanvas");
+			delete overviewCanvasElem.dragStartX;
+			delete overviewCanvasElem.dragStartY;
+			overviewCanvasElem.removeEventListener(g_touchMoveEvent, overviewDragListener, true);
+			e.preventDefault();
+		}
+
+		function onTouchStart(e)
+		{
+			var eventTarget;
+			var eventPageX;
+			var eventPageY;
+			if( !!!e.touches )
+			{
+				eventTarget = e.target;
+				eventPageX = e.pageX;
+				eventPageY = e.pageY;
+				eventOffsetX = e.offsetX;
+				eventOffsetY = e.offsetY;
+			}
+			else
+			{
+				if( e.touches.length > 1 )
+				{
+					e.preventDefault();
+					onTouchEnd.call(this, e);
+					return;
+				}
+
+				eventTarget = e.target;
+				eventPageX = e.changedTouches[0].pageX;
+				eventPageY = e.changedTouches[0].pageY;
+
+				var rect = e.target.getBoundingClientRect();
+				eventOffsetX = e.changedTouches[0].pageX - rect.left;
+				eventOffsetY = e.changedTouches[0].pageY - rect.top;
+				/*var pos = normalizePosition(e, e.target);
+				eventOffsetX = pos.x;
+				eventOffsetY = pos.y;*/
+			}
+
+			if( eventTarget !== overviewCanvasElem )
+				return;
+
+			e.preventDefault();
+
+			var originalX = eventPageX;
+			var originalY = eventPageY;
+			var originalOffsetX = eventOffsetX
+			var originalOffsetY = eventOffsetY;
+
+			overviewCanvasElem.addEventListener(g_touchMoveEvent, overviewDragListener, true);
+
+			var container = {
+				"originalX": originalX,
+				"originalY": originalY,
+				"originalOffsetX": eventOffsetX,
+				"originalOffsetY": eventOffsetY
+			};
+			document.addEventListener(g_touchEndEvent, onTouchEnd.bind(container), true);
+			document.activeElement.blur();
+		}
+
+		// DRAG = Pan
+		overviewCanvasElem.addEventListener(g_touchStartEvent, onTouchStart, true);
+
+		function overviewDragListener(e)
+		{
+			var eventTarget;
+			var eventPageX;
+			var eventPageY;
+			if( !!!e.touches )
+			{
+				eventTarget = e.target;
+				eventPageX = e.pageX;
+				eventPageY = e.pageY;
+				eventOffsetX = e.offsetX;
+				eventOffsetY = e.offsetY;
+			}
+			else
+			{
+				eventTarget = e.target;
+				eventPageX = e.changedTouches[0].pageX;
+				eventPageY = e.changedTouches[0].pageY;
+
+				//var rect = e.target.getBoundingClientRect();
+				//eventOffsetX = e.changedTouches[0].pageX - rect.left;
+				//eventOffsetY = e.changedTouches[0].pageY - rect.top;
+				var pos = normalizePosition(e, e.target);
+				eventOffsetX = pos.x;
+				eventOffsetY = pos.y;
+			}
+
+			var offsetX = eventOffsetX;
+			var offsetY = eventOffsetY;
+
+			if( overviewCanvasElem.dragStartX === undefined )
+			{
+				overviewCanvasElem.dragStartX = offsetX;
+				overviewCanvasElem.dragStartY = offsetY;
+				return;
+			}
+
+			overviewCanvasElem.classList.add("dragOverviewCanvas");
+
+			var deltaX = offsetX - overviewCanvasElem.dragStartX;
+			var deltaY = offsetY - overviewCanvasElem.dragStartY;
+
+			// move the actual div
+			overviewCanvasElem.style.left = parseInt(Math.round(parseInt(overviewCanvasElem.style.left) + deltaX)) + "px";
+			overviewCanvasElem.style.top = parseInt(Math.round(parseInt(overviewCanvasElem.style.top)) + deltaY) + "px";
+		}
+	</script>
+
+	<script>
+		var foundLast = location.href.lastIndexOf("/live/");
+		var g_lobbyId = location.href.substring(foundLast + 6);
+		foundLast = g_lobbyId.indexOf("?");
+		if( foundLast < 0 )
+			foundLast = g_lobbyId.indexOf("&");
+		if( foundLast < 0 )
+			foundLast = g_lobbyId.indexOf("#");
+		if( foundLast > 0 )
+			g_lobbyId = g_lobbyId.substring(0, foundLast);
+
+		//var g_server = sessionManager.getParameterByName("server");
+		//var g_lobbyId = sessionManager.getParameterByName("server");
+		//var paramServer = sessionManager.getParameterByName("server");
+		//var paramUniverse = sessionManager.getParameterByName("universe");
+		//var paramInstance = sessionManager.getParameterByName("instance");
+
+		if( true )
+		{
+			// get the client's IP
+			var xmlHttp = new XMLHttpRequest();
+			xmlHttp.onreadystatechange = function()
+			{ 
+				if (xmlHttp.readyState == 4)
+				{
+					if(xmlHttp.status == 200)
+					{
+						obtainedUserIP.call(sessionManager, {"ip": xmlHttp.responseText});
+					}
+					else
+						useFakeIP();
+				}
+			}
+			
+			xmlHttp.open("GET", "ip.php", true);
+			xmlHttp.send(null);
+		}
+
+		function useFakeIP()
+		{
+			function getRandomIntInclusive(min, max)
+			{
+				min = Math.ceil(min);
+				max = Math.floor(max);
+				return parseInt(Math.floor(Math.random() * (max - min + 1)) + min); //The maximum is inclusive and the minimum is inclusive 
+			}
+
+			var randomFakeIP = getRandomIntInclusive(0, 9) + "" + getRandomIntInclusive(0, 9) + "" + getRandomIntInclusive(0, 9) + "" + getRandomIntInclusive(0, 9) + "" + getRandomIntInclusive(0, 9) + "" + getRandomIntInclusive(0, 9);
+
+			obtainedUserIP.call(sessionManager, {"ip": randomFakeIP});
+		}
+
+		function onNotAllowedToJoin(banInfo)
+		{
+			window.location = "http://aarcade.tv/";
+		}
+/*
+		var nope = true;
+		setTimeout(function()
+		{
+			nope = false;
+		}, 6000);
+*/
+		//function onPanoAdded(panoInfo)
+
+		function onKicked(user)
+		{
+			/*window.location = "onlineSessions.html";*/
+			setTimeout(function()
+			{
+				window.location = "http://aarcade.tv/";
+			}, 1000);
+		}
+
+		function obtainedUserIP(response)
+		{
+			if( !!!response.ip )
+			{
+				alert("ERROR: Could not obtain your IP to login!");
+				window.location = "http://aarcade.tv/";
+				return;
+			}
+			
+			g_localUserIP = response.ip;
+			g_localUserHashedIP = sessionManager.generateCRC(g_localUserIP);
+
+			var optionsAvatarElem = document.querySelector(".localPlayerAvatarImage");
+			optionsAvatarElem.setAttribute("userId", g_localUserHashedIP);
+			var goodAvatarUrl = (g_avatarUrl !== "") ? g_avatarUrl : "noavatar.jpg";
+			optionsAvatarElem.src = goodAvatarUrl;
+
+			sessionManager.connect({}, function()
+			{
+				if(!!sessionManager.metaverse.usersRef)
+				{
+					/*
+					if( !!window.g_overview )
+					{
+						window.g_overview.file = window.g_overview.binary;
+						this.overviewInfo = window.g_overview;
+						document.querySelector("#overviewImage").src = this.overviewInfo.file;
+					}*/
+
+					// check if we are banned
+					//console.log(sessionManager.metaverse.rootRef.child("library").child)
+					sessionManager.metaverse.rootRef.child(sessionManager.metaverse.universe).child("info").child("banned").once("value", function(bannedSnapshot)
+					{
+						var bannedUsers = bannedSnapshot.val();
+						if( !!bannedUsers && !!bannedUsers[g_localUserHashedIP] )
+							window.location = "http://aarcade.tv/";
+						else
+							doLogIn();
+					});
+				}
+				else
+				{
+					alert("Could not connect so that lobby.");
+					window.location = "http://aarcade.tv/";
+					return;
+				}
+			});
+		}
+
+	</script>
+
+	<!-- Media Tip -->
+	<div id="mediaTip"><img src="" id="mediaTipImage" /></div>
+
+	<script>
+		var mediaTipElem = document.querySelector("#mediaTip");
+		var mediaTipImageElem = document.querySelector("#mediaTipImage");
+		document.addEventListener(g_touchMoveEvent, function(e)
+		{
+			mediaTipElem.style.left = e.pageX;
+			mediaTipElem.style.top = e.pageY;
+		}, true);
+
+		window.addEventListener("message", receiveMessage, false);
+
+		function receiveMessage(e)
+		{
+			if( e.origin !== "null" && e.origin !== window.location.origin )
+				return;
+
+			var goodAddress;
+
+			if( !!e.data && !!e.data.originalUrl && e.data.originalUrl !== "" )
+				goodAddress = e.data.originalUrl;
+			else
+				goodAddress = "Media Preview";
+
+			document.querySelector("#addressBoxInput").value = goodAddress;
+		}
+	</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+	<img src="grid.jpg" style="position: absolute; width: 1px; height: 1px;" />
+	<script src="http://threejs.org/build/three.min.js"></script>
+	<script src="http://threejs.org/examples/js/renderers/CSS3DRenderer.js"></script>
+
+	<script>
+		var vr = false;
+
+		var panoWidth;
+		var panoHeight;
+
+		var g_camera, scene, renderer, clock, bggrid;
+		var effect = null;
+		var geometry, material, mesh;
+		var target = new THREE.Vector3();
+
+		var lon = 90, lat = 0;
+		var phi = 0, theta = 0;
+
+		var touchX, touchY;
+
+		var oldLon = 0;
+		var lonDirection = 1.0;
+		var minFov = 40;
+		var maxFov = 90;
+
+		var panoSides = [];
+		var gridSides = [];
+		var sides;
+
+		function init(panoInfo) {
+			g_activePanoId = panoInfo.id;
+			clock = new THREE.Clock();
+			g_camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
+			g_camera.userData.rotVel = new THREE.Vector3();
+			g_camera.userData.zoomVel = 0.0;
+
+			scene = new THREE.Scene();
+
+			sides = [
+				{
+					url: 'outset/3.jpg',
+					position: [ -512, 0, 0 ],
+					rotation: [ 0, Math.PI / 2, 0 ]
+				},
+				{
+					url: 'outset/2.jpg',
+					position: [ 512, 0, 0 ],
+					rotation: [ 0, -Math.PI / 2, 0 ]
+				},
+				{
+					url: 'outset/5.jpg',
+					position: [ 0,  512, 0 ],
+					rotation: [ Math.PI / 2, 0, 0 ]
+				},
+				{
+					url: 'outset/4.jpg',
+					position: [ 0, -512, 0 ],
+					rotation: [ - Math.PI / 2, 0, 0 ]
+				},
+				{
+					url: 'outset/0.jpg',
+					position: [ 0, 0,  512 ],
+					rotation: [ 0, Math.PI, 0 ]
+				},
+				{
+					url: 'outset/1.jpg',
+					position: [ 0, 0, -512 ],
+					rotation: [ 0, 0, 0 ]
+				}
+			];
+
+			// create the loading grid
+			var img = new THREE.MeshBasicMaterial({
+					map: THREE.ImageUtils.loadTexture("loadinggrid.jpg")
+				});
+			for ( var i = 0; i < sides.length; i ++ ) {
+				var side = sides[i];
+
+				// plane
+				//var object = new THREE.Mesh(new THREE.PlaneGeometry(1820 * 0.9, 1024 * 0.9), img);
+				var object = new THREE.Mesh(new THREE.PlaneGeometry(1024 * 0.9, 1024 * 0.9), img);
+				object.position.fromArray( side.position ).multiplyScalar(0.9);
+				object.rotation.fromArray( side.rotation );
+				scene.add( object );
+
+				gridSides.push(object);
+			}
+
+			var sideNames = ["right", "left", "top", "bottom", "front", "back"];
+			for ( var i = 0; i < sides.length; i ++ ) {
+
+				var side = sides[ i ];
+
+				var img = new THREE.MeshBasicMaterial({
+					map: THREE.ImageUtils.loadTexture(panoInfo.binary[sideNames[i]], {}, function()
+					{
+						gridSides[sides.indexOf(this)].scale.set(0.0001, 0.0001, 0.0001);
+					}.bind(side))
+				});
+
+				// plane
+				//var object = new THREE.Mesh(new THREE.PlaneGeometry(1820, 1024), img);
+				var object = new THREE.Mesh(new THREE.PlaneGeometry(1024, 1024), img);
+				object.userData.panosrc = side.url;
+				//object.overdraw = true;
+
+				object.position.fromArray( side.position );
+				object.rotation.fromArray( side.rotation );
+				scene.add( object );
+
+				panoSides.push(object);
+			}
+
+			renderer = new THREE.WebGLRenderer({ clearColor: 0xffffff, clearAlpha: 1, antialias: true });
+
+			var panoContainerElem = document.querySelector("#panoContainer");
+			panoContainerElem.style.display = "block";
+
+			panoWidth = window.innerWidth;
+			panoHeight = window.innerHeight;
+			renderer.setSize(panoWidth, panoHeight);
+			panoContainerElem.appendChild(renderer.domElement);
+
+			if( g_activeModuleName !== "3D" )
+				activateModule("3D");
+
+			document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+			document.addEventListener( 'mousewheel', onDocumentMouseWheel, false );
+
+			document.addEventListener( 'touchstart', onDocumentTouchStart, false );
+			document.addEventListener( 'touchmove', onDocumentTouchMove, false );
+
+			document.addEventListener("fullscreenchange", fullscreenChange, false);
+			document.addEventListener("mozfullscreenchange", fullscreenChangeMoz, false);
+			document.addEventListener("webkitfullscreenchange", fullscreenChangeWebkit, false);
+			document.addEventListener("msfullscreenchange", fullscreenChangeMs, false);
+
+			function fullscreenSetState(state)
+			{
+				var fullButton = document.querySelector("#full");
+				var unfullButton = document.querySelector("#unfull");
+
+				if( state )
+				{
+					fullButton.style.display = "none";
+					unfullButton.style.display = "block";
+				}
+				else
+				{
+					fullButton.style.display = "block";
+					unfullButton.style.display = "none";
+				}
+			}
+
+			function fullscreenChange()
+			{
+				fullscreenSetState(document.fullscreen);
+			}
+
+			function fullscreenChangeMoz()
+			{
+				fullscreenSetState(document.mozFullScreen);
+			}
+
+			function fullscreenChangeWebkit()
+			{
+				fullscreenSetState(document.webkitIsFullScreen);
+			}
+
+			function fullscreenChangeMs()
+			{
+				fullscreenSetState(document.msFullscreenElement);
+			}
+
+			window.addEventListener( 'resize', onWindowResize, false );
+/*
+			window.addEventListener("keydown", panoKeydown, true);
+			window.addEventListener("keyup", panoKeyup, true);*/
+		}
+
+		function panoKeydown(e)
+		{
+			if( g_activeModuleName !== "3D" )
+				return;
+
+			if( e.keyCode === 65 || e.keyCode === 37 )
+			{
+				g_camera.userData.rotVel.y = 1.0;
+			}
+			else if( e.keyCode === 68 || e.keyCode === 39 )
+			{
+				g_camera.userData.rotVel.y = -1.0;
+			}
+			else if( e.keyCode === 87 || e.keyCode === 38 )
+			{
+				g_camera.userData.rotVel.x = -1.0;
+			}
+			else if( e.keyCode === 83 || e.keyCode === 40 )
+			{
+				g_camera.userData.rotVel.x = 1.0;
+			}
+			else if( e.keyCode === 81 || e.keyCode === 109 )
+			{
+				g_camera.userData.zoomVel = -1.0;
+			}
+			else if( e.keyCode === 69 || e.keyCode === 107 )
+			{
+				g_camera.userData.zoomVel = 1.0;
+			}
+		}
+
+		function panoKeyup(e)
+		{
+			if( g_activeModuleName !== "3D" )
+				return;
+
+			if( e.keyCode === 65 || e.keyCode === 37 )
+			{
+				g_camera.userData.rotVel.y = 0.0;
+			}
+			else if( e.keyCode === 68 || e.keyCode === 39 )
+			{
+				g_camera.userData.rotVel.y = 0.0;
+			}
+			else if( e.keyCode === 87 || e.keyCode === 38 )
+			{
+				g_camera.userData.rotVel.x = 0;
+			}
+			else if( e.keyCode === 83 || e.keyCode === 40 )
+			{
+				g_camera.userData.rotVel.x = 0;
+			}
+			else if( e.keyCode === 81 || e.keyCode === 109 )
+			{
+				g_camera.userData.zoomVel = 0;
+			}
+			else if( e.keyCode === 69 || e.keyCode === 107 )
+			{
+				g_camera.userData.zoomVel = 0;
+			}
+			else if( e.keyCode === 33 || e.keyCode === 50 )
+			{
+				next();
+			}
+			else if( e.keyCode === 34 || e.keyCode === 49 )
+			{
+				prev();
+			}
+		}
+
+		function aaLoadTexture(prefix)
+		{
+			return THREE.ImageUtils.loadTexture(prefix);
+		}
+
+		function aaUpdateHistory(id)
+		{
+			//try{history.pushState(null, null, '?id=' + id);}catch(e){}
+		}
+
+		function onWindowResize()
+		{
+			var panoContainerElem = document.querySelector("#panoContainer");
+			panoWidth = window.innerWidth;//.offsetWidth;
+			panoHeight = panoContainerElem.offsetHeight;
+
+			g_camera.aspect = panoWidth / panoHeight;
+			g_camera.updateProjectionMatrix();
+
+			if( effect )
+				effect.setSize(panoWidth, panoHeight);
+			else
+				renderer.setSize(panoWidth, panoHeight);
+
+		}
+
+		function onDocumentMouseDown( event ) {
+
+			if( g_activeModuleName !== "3D" )
+				return;
+
+			event.preventDefault();
+
+			document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+			document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+
+		}
+
+		function onDocumentMouseMove( event ) {
+
+			if( g_activeModuleName !== "3D" )
+				return;
+
+			var movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+			var movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+
+			lon -= movementX * 0.1;
+			lat += movementY * 0.1;
+
+		}
+
+		function onDocumentMouseUp( event ) {
+
+			if( g_activeModuleName !== "3D" )
+				return;
+
+			document.removeEventListener( 'mousemove', onDocumentMouseMove );
+			document.removeEventListener( 'mouseup', onDocumentMouseUp );
+
+		}
+
+		function onDocumentMouseWheel( event ) {
+
+			if( g_activeModuleName !== "3D" )
+				return;
+
+			if( (g_camera.fov > minFov && event.wheelDeltaY > 0) || (g_camera.fov < maxFov && event.wheelDeltaY < 0) )
+			{
+				g_camera.fov -= event.wheelDeltaY * 0.05;
+				g_camera.updateProjectionMatrix();
+			}
+
+			event.preventDefault();
+			return false;
+		}
+
+		function onDocumentTouchStart( event ) {
+
+			if( g_activeModuleName !== "3D" )
+				return;
+
+			event.preventDefault();
+
+			var touch = event.touches[ 0 ];
+
+			touchX = touch.screenX;
+			touchY = touch.screenY;
+
+		}
+
+		function onDocumentTouchMove( event ) {
+
+			if( g_activeModuleName !== "3D" )
+				return;
+			
+			event.preventDefault();
+
+			var touch = event.touches[ 0 ];
+
+			lon -= ( touch.screenX - touchX ) * 0.1;
+			lat += ( touch.screenY - touchY ) * 0.1;
+
+			touchX = touch.screenX;
+			touchY = touch.screenY;
+
+		}
+
+		function animate() {
+
+			requestAnimationFrame( animate );
+
+			if( g_activeModuleName !== "3D" )
+				return;
+
+			var deltaTime = clock.getDelta();
+
+			if( g_camera.userData.rotVel.length() == 0 )
+			{
+				if(oldLon - lon > 0)
+					lonDirection = -1;
+				else if( oldLon - lon < 0)
+					lonDirection = 1;
+
+				lon +=  0.05 * lonDirection;
+				oldLon = lon;
+
+				lat = Math.max( - 85, Math.min( 85, lat ) );
+			}
+			else
+			{
+				if(g_camera.userData.rotVel.y > 0)
+					lonDirection = -1;
+				else if( g_camera.userData.rotVel.y < 0)
+					lonDirection = 1;
+
+				lon += Math.abs(g_camera.userData.rotVel.y) * lonDirection;
+				lat -= g_camera.userData.rotVel.x;
+			}
+
+			phi = THREE.Math.degToRad( 90 - lat );
+			theta = THREE.Math.degToRad( lon );
+
+			target.x = Math.sin( phi ) * Math.cos( theta );
+			target.y = Math.cos( phi );
+			target.z = Math.sin( phi ) * Math.sin( theta );
+
+			g_camera.lookAt( target );
+
+			var testFov = g_camera.fov;
+			if( (g_camera.fov > minFov && g_camera.userData.zoomVel > 0) || (g_camera.fov < maxFov && g_camera.userData.zoomVel < 0) )
+				testFov -= g_camera.userData.zoomVel;
+
+			if( testFov != g_camera.fov )
+			{
+				g_camera.fov = testFov;
+				g_camera.updateProjectionMatrix();
+			}
+
+			if( effect )
+				effect.render( scene, g_camera );
+			else
+				renderer.render( scene, g_camera );
+		}
+
+		function setPano(panoInfo)
+		{
+			g_activePanoId = panoInfo.id;
+
+			// Change all of the URLs
+			var i;
+			for( i = 0; i < gridSides.length; i++ )
+			{
+				gridSides[i].scale.set(1, 1, 1);
+			}
+
+			var sideNames = ["right", "left", "top", "bottom", "front", "back"];
+			var side;
+			for( i = 0; i < panoSides.length; i++ )
+			{
+				side = panoSides[i];
+				side.material.map = THREE.ImageUtils.loadTexture(panoInfo.binary[sideNames[i]], {}, function()
+				{
+					gridSides[panoSides.indexOf(this)].scale.set(0.0001, 0.0001, 0.0001);
+				}.bind(side));
+			}
+		}
+
+		function next()
+		{
+			// Figure out which one WE are
+			var keys = Object.keys(sessionManager.metaverse.panos);
+			var thisIndex = -1;
+			var i;
+			for( i = 0; i < keys.length; i++ )
+			{
+				if( sessionManager.metaverse.panos[keys[i]].id == g_activePanoId )
+				{
+					thisIndex = i;
+					break;
+				}
+			}
+
+			// Grab the NEXT one
+			thisIndex++;
+
+			if( thisIndex >= keys.length )
+				thisIndex = 0;
+
+			var panoInfo = sessionManager.metaverse.panos[keys[thisIndex]];
+			if( !!panoInfo.binary )
+				setPano(panoInfo);
+			else
+			{
+				sessionManager.metaverse.fetchPano(panoInfo, function(fetchedPanoInfo)
+				{
+					loadPano(fetchedPanoInfo);
+					if( g_activeModuleName !== "3D" )
+						activateModule("3D");
+				});
+			}
+		}
+
+		function aaChangeAllTextures(id)
+		{
+			// Change all of the URLs
+			var i;
+			for( i = 0; i < gridSides.length; i++ )
+			{
+				gridSides[i].scale.set(1, 1, 1);
+			}
+
+			var side;
+			var i;
+			for( i = 0; i < panoSides.length; i++ )
+			{
+				side = panoSides[i];
+
+				var prefix = side.userData.panosrc;
+
+				var foundLast = prefix.lastIndexOf("/");
+				prefix = prefix.substring(0, foundLast);
+
+				var foundFirst = prefix.lastIndexOf("/");
+				prefix = prefix.substring(0, foundFirst+1);
+
+				prefix += id;
+				prefix += side.userData.panosrc.substring(foundLast);
+
+				//side.material.map = THREE.ImageUtils.loadTexture(prefix);
+				side.material.map = THREE.ImageUtils.loadTexture(prefix, {}, function()
+				{
+					gridSides[panoSides.indexOf(this)].scale.set(0.0001, 0.0001, 0.0001);
+				}.bind(side));
+			}
+		}
+
+		function prev()
+		{
+			// Figure out which one WE are
+			var keys = Object.keys(sessionManager.metaverse.panos);
+			var thisIndex = -1;
+			var i;
+			for( i = 0; i < keys.length; i++ )
+			{
+				if( sessionManager.metaverse.panos[keys[i]].id == g_activePanoId )
+				{
+					thisIndex = i;
+					break;
+				}
+			}
+
+			// Grab the NEXT one
+			thisIndex--;
+
+			if( thisIndex < 0 )
+				thisIndex = keys.length-1;
+
+			var panoInfo = sessionManager.metaverse.panos[keys[thisIndex]];
+			if( !!panoInfo.binary )
+				setPano(panoInfo);
+			else
+			{
+				sessionManager.metaverse.fetchPano(panoInfo, function(fetchedPanoInfo)
+				{
+					loadPano(fetchedPanoInfo);
+					if( g_activeModuleName !== "3D" )
+						activateModule("3D");
+				});
+			}
+		}
+
+		function full()
+		{
+			var docElm = document.documentElement;
+			if (docElm.requestFullscreen) {
+			    docElm.requestFullscreen();
+			}
+			else if (docElm.mozRequestFullScreen) {
+			    docElm.mozRequestFullScreen();
+			}
+			else if (docElm.webkitRequestFullScreen) {
+			    docElm.webkitRequestFullScreen();
+			}
+			else if (docElm.msRequestFullscreen) {
+			    docElm.msRequestFullscreen();
+			}
+		}
+
+		function unfull()
+		{
+			if (document.exitFullscreen) {
+			    document.exitFullscreen();
+			}
+			else if (document.mozCancelFullScreen) {
+			    document.mozCancelFullScreen();
+			}
+			else if (document.webkitCancelFullScreen) {
+			    document.webkitCancelFullScreen();
+			}
+			else if (document.msExitFullscreen) {
+			    document.msExitFullscreen();
+			}
+		}
+
+		function toggleHelp()
+		{
+			var elem = document.querySelector("#panoHelp");
+
+			if( elem.style.display === "block" )
+				elem.style.display = "none";
+			else
+				elem.style.display = "block";
+		}
+
+		var g_panoReady = false;
+		function loadPano(panoInfo)
+		{
+			if( !g_panoReady )
+			{
+				g_panoReady = true;
+
+				if( !!panoInfo.binary )
+					loadPano(panoInfo);
+				else
+					sessionManager.metaverse.fetchPano(panoInfo, function(fetchedPanoInfo)
+					{
+						//loadPano(fetchedPanoInfo);
+						init(fetchedPanoInfo);
+						animate();
+
+						if( g_activeModuleName !== "3D" )
+							activateModule("3D");
+					});
+			}
+			else
+			{
+				// gets done auto-set in init. :)
+				setPano(panoInfo);
+
+				if( g_activeModuleName !== "3D" )
+					activateModule("3D");
+			}
+		}
+	</script>
+
+	<div id="panoHelp">
+		<div style="float: right;"><a href="javascript: toggleHelp();"><img src="x.png" id="close" /></a></div>
+		<center>
+			<table style="padding: 6px;">
+				<tr>
+					<td align="right" style="padding-right: 40px; font-size: 30px; color: #fff; letter-spacing: 0.1em; font-weight: bold; font-family: Arial;">
+						ROTATE
+					</td>
+					<td align="center">
+						<img src="controls_rotate.png" />
+					</td>
+				</tr>
+				<tr>
+					<td align="right" style="padding-right: 40px; font-size: 30px; color: #fff; letter-spacing: 0.1em; font-weight: bold; font-family: Arial;">
+						ZOOM
+					</td>
+					<td align="center">
+						<img src="controls_zoom.png" />
+					</td>
+				</tr>
+				<tr>
+					<td align="right" style="padding-right: 40px; font-size: 30px; color: #fff; letter-spacing: 0.1em; font-weight: bold; font-family: Arial;">
+						CHANGE SCENE
+					</td>
+					<td align="center">
+						<img src="controls_scenes.png" />
+					</td>
+				</tr>
+			</table>
+		</center>
+	</div>
+
+
+
+
+
+
+
+
+
+	<script>
+		setInterval(function()
+		{
+			var animatedEllipsisElems = document.querySelectorAll(".animatedEllipsis");
+			var animatedEllipsisElem, animatedEllipsisDivs;
+			for( var i = 0; i < animatedEllipsisElems.length; i++ )
+			{
+				animatedEllipsisElem = animatedEllipsisElems[i];
+				if( !!!animatedEllipsisElem.state )
+					animatedEllipsisElem.state = 0;
+
+				animatedEllipsisElem.state++;
+
+				if( animatedEllipsisElem.state > 3 )
+					animatedEllipsisElem.state = 0;
+
+				animatedEllipsisDivs = animatedEllipsisElem.querySelectorAll("div");
+				for( var j = 0; j < animatedEllipsisDivs.length; j++ )
+				{
+					if( j < animatedEllipsisElem.state )
+						animatedEllipsisDivs[j].style.visibility = "visible";
+					else
+						animatedEllipsisDivs[j].style.visibility = "hidden";
+				}
+			}
+		}, 500);
+	</script>
+</body>
+</html>

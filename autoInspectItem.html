@@ -1,0 +1,579 @@
+<html>
+	<head>
+    <style>
+      body
+      {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+        background-color: #000;
+      }
+
+      #loadingImageContainer img
+      {
+       /* width: 100%;*/
+       /* height: 100%;*/
+        /*position: fixed;*/
+        top: 0;
+        left: 0;
+      }
+
+      body::-webkit-scrollbar
+      {
+        width: 15px;
+        height: 15px;
+      }
+
+      body::-webkit-scrollbar-track
+      {
+        -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.7);
+        border-radius: inherit;
+        background-color: rgba(100, 100, 100, 0.7);
+      }
+
+      body::-webkit-scrollbar-thumb
+      {
+        border-radius: inherit;
+        -webkit-box-shadow: inset 0 0 6px rgba(100,100,100,1);
+        background-color: #777;
+      }
+
+      body::-webkit-scrollbar-corner
+      {
+        background-color: transparent;
+      }
+    </style>
+    <title>Newly selected object...</title>
+	</head>
+	<body>
+    <div id="loadingImageContainer"></div>
+
+
+    <script>
+      // kodi crc code originally from: http://forum.kodi.tv/showthread.php?tid=58389
+      Number.prototype.unsign = function(bytes)
+      {
+        return this >= 0 ? this : Math.pow(256, bytes || 4) + this;
+      };
+
+      // kodi crc code originally from: http://forum.kodi.tv/showthread.php?tid=58389
+      // needed to generate cache names without any API calls to the backend.
+      function generateCRC(data_in)
+      {
+        var data = data_in.toLowerCase();
+        data = data.replace(/\//g,"\\");
+
+          var CRC = 0xffffffff;
+          data = data.toLowerCase();
+          for ( var j = 0; j < data.length; j++) {
+              var c = data.charCodeAt(j);
+              CRC ^= c << 24;
+              for ( var i = 0; i < 8; i++) {
+                  if (CRC.unsign(8) & 0x80000000) {
+                      CRC = (CRC << 1) ^ 0x04C11DB7;
+                  } else {
+                      CRC <<= 1;
+                  }
+              }
+          }
+          if (CRC < 0)
+              CRC = CRC >>> 0;
+          var CRC_str = CRC.toString(16);
+          while (CRC_str.length < 8) {
+              CRC_str = '0' + CRC_str;
+          }
+
+          return CRC_str;
+      }
+
+
+
+      //var scrollHandle = null;
+      var bIsFullscreenImage = false;
+      var bShouldScroll = true;
+
+      var elemImage = null;
+      var IsWide = 0;
+      var direction = 1;
+      var scrollSpeed = 10;
+      var scrollStep = 1;
+
+      function ScrollImagePage()
+      {
+        if( !bShouldScroll )
+          return;
+
+        if( !IsWide )
+        {
+          var newPos = document.body.scrollTop;
+
+          if( direction == 1 )
+            newPos = document.body.scrollTop + scrollStep;
+          else
+            newPos = document.body.scrollTop - scrollStep;
+
+          if( newPos >= 0 && newPos <= document.body.scrollHeight - window.innerHeight )
+            document.body.scrollTop = newPos;
+          else
+          {
+            if( direction == 0 )
+              direction = 1;
+            else
+              direction = 0;
+
+            //ScrollImage();
+          }
+        }
+        else
+        {
+          var newPos = document.body.scrollLeft;
+
+          if( direction == 1 )
+            newPos = document.body.scrollLeft + scrollStep;
+          else
+            newPos = document.body.scrollLeft - scrollStep;
+
+          if( newPos >= 0 && newPos <= document.body.scrollWidth - window.innerWidth )
+            document.body.scrollLeft = newPos;
+          else
+          {
+            if( direction == 0 )
+              direction = 1;
+            else
+              direction = 0;
+
+            //ScrollImage();
+          }
+        }
+          window.requestAnimationFrame(ScrollImagePage);
+      }
+
+      function ClearScrollImage()
+      {
+        //clearInterval(scrollHandle);
+        bShouldScroll = false;
+        document.body.style.overflowY = "auto";
+        document.body.style.overflowX = "auto";
+      }
+
+      function FullscreenImage()
+      {
+        bShouldScroll = false;
+        elemImage = document.querySelector(".previewImage");
+        //elemImage.style.position = "fixed";
+        elemImage.style.width = "100%";
+        elemImage.style.height = "100%";
+      }
+
+      var maxRatioDifference = 0.4;
+      var originalWidth;
+      var originalHeight;
+      function ResizeImage()
+      {
+        elemImage = document.querySelector(".previewImage");
+
+        var imageWidth = (!!originalWidth) ? originalWidth : elemImage.offsetWidth;
+        var imageHeight = (!!originalHeight) ? originalHeight : elemImage.offsetHeight;
+
+        if( !!!originalWidth )
+          originalWidth = imageWidth;
+
+        if( !!!originalHeight )
+          originalHeight = imageHeight;
+
+        var targetRatio = window.innerWidth/window.innerHeight;
+        var actualRatio = (imageWidth * 1.0) / (imageHeight * 1.0);
+        if( Math.abs(targetRatio - actualRatio) > maxRatioDifference )
+        {
+          if( imageWidth/imageHeight > window.innerWidth/window.innerHeight )
+          {
+            IsWide = 1;
+            document.body.style.overflowX = "hidden";
+            document.body.style.overflowY = "hidden";
+            elemImage.style.width = "initial";
+            elemImage.style.height = "100%";
+          }
+          else
+          {
+            IsWide = 0;
+            document.body.style.overflowX = "hidden";
+            document.body.style.overflowY = "hidden";
+            elemImage.style.width = "100%";
+            elemImage.style.height = "initial";
+          }
+
+          window.requestAnimationFrame(ScrollImagePage);
+        }
+        else
+        {
+          elemImage.style.width = "100%";
+          elemImage.style.height = "100%";
+          bIsFullscreenImage = true;
+        }
+      }
+    </script>
+
+		<script>
+// http://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
+function getParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+
+function ExtractYouTubePlaylistId(trailerURL)
+{
+  if( typeof trailerURL === "undefined" )
+    return trailerURL;
+  
+  var playlist = getParameterByName("list", trailerURL);
+  return playlist;
+}
+
+function ExtractYouTubeId(trailerURL)
+{
+  if( typeof trailerURL === "undefined" )
+    return trailerURL;
+  
+  var youtubeid;
+  if( trailerURL.indexOf("youtube") != -1 && trailerURL.indexOf("v=") != -1 )
+  {
+    youtubeid = trailerURL.substr(trailerURL.indexOf("v=")+2);
+
+    var found = youtubeid.indexOf("&");
+    if( found > -1 )
+    {
+      youtubeid = youtubeid.substring(0, found);
+    }
+  }
+  else
+  {
+    var found = trailerURL.indexOf("youtu.be/");
+    if( found != -1 )
+    {
+      youtubeid = trailerURL.substring(found+9);
+
+      found = youtubeid.indexOf("&");
+      if( found != -1 )
+      {
+        youtubeid = youtubeid.substring(0, found);
+      }
+    }
+  }
+
+  return youtubeid;
+}
+
+function ExtractTwitchId(trailerURL)
+{
+    if( typeof trailerURL === "undefined" )
+      return trailerURL;
+
+    var twitchid;
+    var test = trailerURL;
+    var found = test.indexOf("twitch.tv/");
+    if( found >= 0 )
+    {
+      twitchid = test.substr(found + 10);
+
+      found = twitchid.indexOf("/");
+      if( found > 0 )
+        twitchid = twitchid - twitchid.substring(0, found);
+    }
+
+    return twitchid;
+}
+
+function showImage(title, fieldValue)
+{
+  if( window.top !== window.self )
+    window.parent.postMessage({"url": fieldValue, "originalUrl": fieldValue}, '*');
+
+  var imageContainerElem = document.body.querySelector("#loadingImageContainer");
+  var imageElem = document.createElement("img");
+  imageElem.className = "previewImage";
+  //imageElem.style.cssText = "z-index: 2;";
+  imageContainerElem.appendChild(imageElem);
+  imageElem.src = fieldValue;//decodeURIComponent(getParameterByName("uri"));
+  imageElem.fieldValue = fieldValue;// because the SRC attribute might get auto-adjusted by browser.
+  imageElem.addEventListener("load", function(e)
+  {
+    ResizeImage();
+   // window.location = "http://jk.smsithlord.com/";
+  }, true);
+
+  imageElem.addEventListener("wheel", function(e)
+  {
+    if( bShouldScroll )
+      ClearScrollImage();
+  }, true);
+
+  var lastClick;// = new Date();
+  imageElem.addEventListener("click", function(e)
+  {
+    var currentClick = new Date();
+    if( !!lastClick && currentClick.getTime() - lastClick.getTime() < 300.0 )
+    {
+      currentClick = undefined;
+
+      if( !bIsFullscreenImage )
+      {
+        bShouldScroll = false;
+        FullscreenImage();
+        bIsFullscreenImage = true;
+      }
+      else
+      {
+        bShouldScroll = true;
+        ResizeImage();
+        bIsFullscreenImage = false;
+      }
+    }
+    else if( !bIsFullscreenImage )
+    {
+      if( bShouldScroll )
+        ClearScrollImage();
+      else
+      {
+        bShouldScroll = true;
+        ResizeImage();
+        //bShouldScroll = true;
+        //document.body.style.overflowY = "hidden";
+        //document.body.style.overflowX = "hidden";
+        //window.requestAnimationFrame(ScrollImagePage);
+      }
+    }
+
+    lastClick = currentClick;
+  }, true);
+
+  //ONLOAD='ResizeImage();' ONCLICK='ClearScrollImage();'
+  imageElem.addEventListener("error", function()
+  {
+/*
+title = decodeURIComponent(getParameterByName("title"));
+      var preview = decodeURIComponent(getParameterByName("preview"));
+      var file = decodeURIComponent(getParameterByName("file"));
+      var screen = decodeURIComponent(getParameterByName("screen"));
+      var marquee
+*/
+    if(preview === this.fieldValue)
+      preview = "";
+    else if(file === this.fieldValue)
+      file = "";
+    else if(screen === this.fieldValue)
+      screen = "";
+    else if(marquee === this.fieldValue)
+      marquee = "";
+    else if(cacheFile === this.fieldValue)
+      cacheFile = "";
+    else if(cacheScreen === this.fieldValue)
+      cacheScreen = "";
+    else if(cacheMarquee === this.fieldValue)
+      cacheMarquee = "";
+
+
+    this.parentNode.removeChild(this);
+
+    attemptPreview();
+  }.bind(imageElem), true);
+
+  //var title = decodeURIComponent(getParameterByName("title"));
+  if( title === "" )
+    title = "Untitled";
+
+  document.title = "Image - " + title;
+}
+
+      function isImageEnding(val)
+      {
+        var imageEndings = ["jpg", "jpeg", "gif", "png", "bmp"];
+        var extension = val;
+        extension = extension.toLowerCase();
+        var found = extension.lastIndexOf("/");
+        if( found >= 0 )
+          extension = extension.substring(found+1);
+
+        found = extension.indexOf("?");
+        if( found >= 0)
+          extension = extension.substring(0, found);
+
+        found = extension.indexOf("#");
+        if( found >= 0)
+          extension = extension.substring(0, found);
+
+        found = extension.indexOf(":");
+        if( found > 1 )
+          extension = extension.substring(0, found);
+
+        found = extension.lastIndexOf(".");
+        if( found >= 0 )
+          extension = extension.substring(found+1);
+        
+        return (imageEndings.indexOf(extension) >= 0);
+      }
+
+      function isWebAddress(val)
+      {
+        var testVal = val.toLowerCase();
+        var webPrefixes = ["http", "www"];
+
+        for( var i = 0; i < webPrefixes.length; i++ )
+        {
+          if( testVal.indexOf(webPrefixes[i]) === 0 )
+            return true;
+        }
+
+        return false;
+      }
+
+      function shouldWebPreview(file)
+      {
+        if( file.toLowerCase().indexOf("netflix.com/watch/") !== -1 )
+          return false;
+        else
+          return true;
+      }
+
+      var title = decodeURIComponent(getParameterByName("title"));
+			var preview = decodeURIComponent(getParameterByName("preview"));
+			var file = decodeURIComponent(getParameterByName("file"));
+			var screen = decodeURIComponent(getParameterByName("screen"));
+			var marquee = decodeURIComponent(getParameterByName("marquee"));
+
+      var cacheFolder = window.location.href;
+      var found = cacheFolder.indexOf("/resource/ui/html/autoInspectItem.html");
+      if( found >= 0 )
+      {
+        cacheFolder = cacheFolder.substring(0, found);
+        found = cacheFolder.lastIndexOf("/");
+        if( found >= 0 )
+        {
+          cacheFolder = cacheFolder.substring(0, found) + "/aarcade_user/cache/urls/";
+        }
+        else
+          cacheFolder = "";
+      }
+      else
+        cacheFolder = "";
+
+      var cacheFile = (cacheFolder !== "" && file !== "" && shouldWebPreview(file)) ? cacheFolder + generateCRC(file) + ".jpg" : "";
+      var cacheScreen = (cacheFolder !== "" && screen !== "") ? cacheFolder + generateCRC(screen) + ".jpg" : "";
+      var cacheMarquee = (cacheFolder !== "" && marquee !== "") ? cacheFolder + generateCRC(marquee) + ".jpg" : "";
+
+      attemptPreview();
+      //window.location = "https://www.youtube.com/watch?v=AkFqg5wAuFk";
+
+      function attemptPreview()
+      {
+        var fieldValue = "";
+        if( preview != "" && shouldWebPreview(preview) )
+          fieldValue = preview;
+        else if( shouldWebPreview(file) && (isWebAddress(file) || isImageEnding(file)))
+          fieldValue = file;
+        else if( screen != "" )
+          fieldValue = screen;
+        else if( marquee != "" )
+          fieldValue = marquee;
+        else if( cacheFile != "" )
+          fieldValue = cacheFile;
+        else if( cacheScreen != "" )
+          fieldValue = cacheScreen;
+        else if( cacheMarquee != "" )
+          fieldValue = cacheMarquee;
+
+        // FIXME: This needs to pass the php all of its known YouTubeIds, so the player can try them all until it finds one that actually works.
+
+        // prefer preview urls
+        var youTubeIds = {};
+        var youTubeId;
+
+        var youTubeListIds = {};
+        var youTubeList;
+
+        youTubeId = ExtractYouTubeId(file);
+        if( !!youTubeId )
+        {
+          youTubeIds["file"] = youTubeId;
+          youTubeList = ExtractYouTubePlaylistId(file);
+          if( !!youTubeList )
+            youTubeListIds["file"] = youTubeList;
+        }
+
+        youTubeId = ExtractYouTubeId(preview);
+        if( !!youTubeId )
+        {
+          youTubeIds["preview"] = youTubeId;
+          youTubeList = ExtractYouTubePlaylistId(preview);
+          if( !!youTubeList )
+            youTubeListIds["preview"] = youTubeList;
+        }
+
+        var twitchId = ExtractTwitchId(file);
+
+        if( preview !== "" )
+        {
+          //window.location = "http://smarcade.net/dlcv2/view_youtube.php?id=" + youTubeIds["preview"] + "&autoplay=1&width=" + window.innerWidth + "&height=" + window.innerHeight;
+          if( !!youTubeIds["preview"] )
+            forwardToUrl("http://www.anarchyarcade.com/youtube_player.php?id=" + youTubeIds["preview"] + "&autoplay=1&width=" + window.innerWidth + "&height=" + window.innerHeight, preview);
+          else
+          {
+            if( isImageEnding(fieldValue) )
+              showImage(title, fieldValue);
+              //window.location = "showImage.html?title=" + encodeURIComponent(title) + "&uri=" + encodeURIComponent(fieldValue);
+            else if( isWebAddress(fieldValue) )
+              forwardToUrl(fieldValue);
+            else
+              forwardToUrl("nopreview.html");
+              //window.location = "unsupportedPreview.html?preview=" + encodeURIComponent(fieldValue);
+          }
+        }
+        else
+        {
+          if( !!youTubeIds["file"] )
+          {
+            if( !!youTubeListIds["file"] )
+              forwardToUrl("http://www.anarchyarcade.com/youtube_player.php?id=" + youTubeIds["file"] + "&list=" + youTubeListIds["file"] + "&autoplay=0&width=" + window.innerWidth + "&height=" + window.innerHeight, file);
+            else
+              forwardToUrl("http://www.anarchyarcade.com/youtube_player.php?id=" + youTubeIds["file"] + "&autoplay=0&width=" + window.innerWidth + "&height=" + window.innerHeight, file);
+          }
+            //window.location = "http://smarcade.net/dlcv2/view_youtube2.php?id=" + fieldValue + "&autoplay=1";
+          else if( !!twitchId )
+            forwardToUrl("http://www.twitch.tv/" + twitchId + "/popout", file);
+          else
+          {
+            if( isImageEnding(fieldValue) )
+              showImage(title, fieldValue);
+              //window.location = "showImage.html?title=" + encodeURIComponent(title) + "&uri=" + encodeURIComponent(fieldValue);
+            else if( isWebAddress(fieldValue) )
+              forwardToUrl(fieldValue);
+            else
+              forwardToUrl("nopreview.html");
+             // window.location = "unsupportedFile.html?file=" + encodeURIComponent(file);
+          }
+  			}
+      }
+      ////window.location = "http://smarcade.net/dlcv2/view_youtube.php?id=" + youTubeIds["file"] + "&autoplay=1";
+
+      function forwardToUrl(url, originalUrl)
+      {
+        if( window.top !== window.self )
+        {
+          if( !!!originalUrl )
+            originalUrl = url;
+          window.parent.postMessage({"url": url, "originalUrl": originalUrl}, '*');
+        }
+
+        window.location = url;
+      }
+		</script>
+    <!--
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/MyljTx4K4O0?rel=0&amp;controls=0&amp;showinfo=0&autoplay=1" frameborder="0" allowfullscreen></iframe>-->
+	</body>
+</html>

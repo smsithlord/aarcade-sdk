@@ -1,0 +1,235 @@
+<html>
+	<head>
+		<title>AArcade: Web</title>
+		<script src="https://cdn.firebase.com/js/client/2.3.2/firebase.js"></script>
+		<style>
+			#leaveButton
+			{
+				opacity: 0.3;
+			}
+
+			#leaveButton:hover
+			{
+				opacity: 1.0;
+			}
+
+			.aaLogo
+			{
+				border: 3px solid #999;
+				background-color: rgb(20, 20, 20);
+				background-image: url('globe.gif');
+				background-size: cover;
+				border-radius: 50%;
+				padding: 16px;
+			}
+
+			.aaPrettyPanel
+			{
+				border: 3px solid #999;
+				display: inline-block;
+				font-family: Arial;
+				font-size: 30px;
+				/*font-weight: bold;*/
+				color: #ccc;
+				background-color: rgb(20, 20, 20);
+				padding: 20px;
+				border-radius: 20px;
+			}
+
+			.loadingIndicator
+			{
+				width: 50px;
+				height: 50px;
+				border-width: 10px;
+				border-radius: 50%;
+				border-style: dashed;
+				-webkit-animation: spin 4s infinite linear;
+			}
+
+			@-webkit-keyframes spin
+			{
+				0%  {-webkit-transform: rotate(0deg);}
+				100% {-webkit-transform: rotate(360deg);}   
+			}
+
+			.animatedEllipsis
+			{
+				display: inline;
+			}
+
+			.animatedEllipsis div
+			{
+				display: inline;
+				visibility: hidden;
+			}
+
+			#pleaseWait
+			{
+				cursor: default;
+			}
+
+			body
+			{
+				background-color: #000;
+			}
+
+			.instanceContainer
+			{
+				display: flex;
+				margin: auto;
+				cursor: pointer;
+			}
+
+			.instanceContainer:hover
+			{
+				background-color: rgb(40, 40, 40);
+				color: #fff;
+				border-color: #fff;
+			}
+
+			.instanceTitle
+			{
+				display: inline-block;
+				width: 50%;
+			}
+
+			.instanceNumPlayers
+			{
+				display: inline-block;
+				margin-left: 20px;
+			}
+
+			.moduleButton
+			{
+				background-color: rgb(20, 20, 20);
+				display: inline-block;
+				pointer-events: all;
+				border: 2px solid #999;
+				/*border-radius: 4px;*/
+				/*display: inline-block;*/
+				padding: 8px;
+				margin: 6px;
+				cursor: pointer;
+				font-family: Arial;
+				font-size: 30px;
+				font-weight: bold;
+				border-radius: 8px;
+				color: #ccc;
+			}
+
+			.moduleButton:hover
+			{
+				background-color: rgb(40, 40, 40);
+				border-color: #fff;
+				color: #fff;
+			}
+		</style>
+		<script>
+			function getParameterByName(name, url)
+			{
+				// http://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
+				if (!url) url = window.location.href;
+				name = name.replace(/[\[\]]/g, "\\$&");
+				var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+				results = regex.exec(url);
+				if (!results) return null;
+				if (!results[2]) return '';
+				return decodeURIComponent(results[2].replace(/\+/g, " "));
+			}
+
+			var universeId = getParameterByName("universe");
+			var instanceId = getParameterByName("instance");
+		</script>
+	</head>
+<body>
+	<table style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%;" cellspacing="0" cellpadding="0">
+		<tr>
+			<td align="center" valign="middle">
+				<img src="aalogo.png" class="aaLogo" style="margin: 40px;" />
+				<br />
+				<div class="aaPrettyPanel" id="pleaseWait">
+					<div class="loadingIndicator" style="display: inline-block; border-color: #ccc; border-width: 6px; width: 30px; height: 30px; vertical-align: middle; margin-right: 6px;"></div>
+					Please wait, the server is changing maps<div class="animatedEllipsis"><div>.</div><div>.</div><div>.</div></div>
+				</div>
+				<br /><br /><br />
+				<div class="moduleButton" onclick="window.location='http://aarcade.tv/';" id="leaveButton">
+					<img src="iconLeave.png" style="max-height: 60px;" /><div class="hotkeyHelpLabel"><u>L</u>eave</div>
+				</div>
+			</td>
+		</tr>
+	</table>
+
+	<script>
+		var theInterval;
+		var instanceListElem = document.querySelector("#instanceList")
+		var root = "https://metaverse.firebaseio.com/";
+		var rootRef = new Firebase(root);
+
+		rootRef.child(universeId).child("library").child("instances").child(instanceId).child("users").once("child_added", function(child, next)
+		{
+			//console.log("Now find a lobby with universe (" + universeId + ") and instance (" + instanceId + ")");
+
+			var payload = {
+				"universeId": universeId,
+				"instanceId": instanceId
+			};
+
+			function cb()
+			{
+				rootRef.child("lobbies").once("value", function(lobbiesSnapshot)
+				{
+					var lobbies = lobbiesSnapshot.val();
+					if( !!lobbies )
+					{
+						var lobby;
+						var lobbiesKeys = Object.keys(lobbies);
+						for( var i = 0; i < lobbiesKeys.length; i++ )
+						{
+							lobby = lobbies[lobbiesKeys[i]];
+							if( lobby.instance === this.instanceId && lobby.universe === this.universeId )
+							{
+								window.location = "live/" + lobby.id;
+								clearInterval(theInterval);
+								break;
+							}
+						}
+					}
+				}.bind(payload));
+			}
+
+			theInterval = setInterval(cb.bind(payload), 3000);
+			cb.call(payload);
+			//window.location = "live.html?universe=" + universeId + "&instance=" + instanceId;
+		});
+	</script>
+
+
+	<script>
+		setInterval(function()
+		{
+			var animatedEllipsisElems = document.querySelectorAll(".animatedEllipsis");
+			var animatedEllipsisElem, animatedEllipsisDivs;
+			for( var i = 0; i < animatedEllipsisElems.length; i++ )
+			{
+				animatedEllipsisElem = animatedEllipsisElems[i];
+				if( !!!animatedEllipsisElem.state )
+					animatedEllipsisElem.state = 0;
+
+				animatedEllipsisElem.state++;
+
+				if( animatedEllipsisElem.state > 3 )
+					animatedEllipsisElem.state = 0;
+
+				animatedEllipsisDivs = animatedEllipsisElem.querySelectorAll("div");
+				for( var j = 0; j < animatedEllipsisDivs.length; j++ )
+				{
+					if( j < animatedEllipsisElem.state )
+						animatedEllipsisDivs[j].style.visibility = "visible";
+					else
+						animatedEllipsisDivs[j].style.visibility = "hidden";
+				}
+			}
+		}, 500);
+	</script>
+</body>
+</html>
