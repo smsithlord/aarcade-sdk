@@ -299,8 +299,8 @@ SessionManager.prototype.connect = function(options, callback)
 
 							// determine scale
 							var scaledSize = 1024 * sessionManager.uberScale * sessionManager.overviewInfo.scale;
-							var startLeft = (parseFloat(overviewCanvasElem.style.width)/2.0) + (sessionManager.overviewInfo.pos_x);
-							var startTop = (parseFloat(overviewCanvasElem.style.width)/2.0) - (sessionManager.overviewInfo.pos_y);
+							var startLeft = (parseFloat(overviewCanvasElem.style.width)/2.0) + parseFloat(sessionManager.overviewInfo.pos_x);
+							var startTop = (parseFloat(overviewCanvasElem.style.width)/2.0) - parseFloat(sessionManager.overviewInfo.pos_y);
 
 							overviewContainerElem.style.width = scaledSize + "px";
 							overviewContainerElem.style.height = scaledSize + "px";
@@ -320,7 +320,10 @@ SessionManager.prototype.connect = function(options, callback)
 
 							var containerWidth = parseFloat(overviewCanvasContainerElem.offsetWidth);// / sessionManager.uberScale;
 							var containerXOffset = ((containerWidth / zoom) / 2.0) - (scaledSize / 2.0);	// use / 2.0 to make it perfectly centered instead!!
+
+
 							g_canvasStartLeft = (-startLeft) + containerXOffset;
+console.log(startLeft + " vs " + containerXOffset);
 							overviewCanvasElem.style.left = g_canvasStartLeft + "px";	// DOES NOTHING!!
 							//overviewCanvasElem.style.left = (-startLeft) + "px";
 							//overviewCanvasElem.style.top = (-startTop) + "px";
@@ -2152,6 +2155,51 @@ SessionManager.prototype.onUserSessionUpdated = function(userId, userSession, ol
 		var newTop = (parseInt(position.y) - (size / 2.0)) + "px";
 		var newLeft = (parseInt(position.x) - (size / 2.0)) + "px";
 		//newLeft = "400px";
+
+
+		// spawn you at them...
+		function teleport(startLeft, startTop)
+		{
+			var sessionManager = window.sessionManager;
+			// determine scale
+			var scaledSize = 1024 * sessionManager.uberScale * sessionManager.overviewInfo.scale;
+			//var startLeft = (parseFloat(overviewCanvasElem.style.width)/2.0) + (sessionManager.overviewInfo.pos_x);
+			//var startLeft = (parseFloat(overviewCanvasElem.style.width)/2.0) + (sessionManager.overviewInfo.pos_x);
+			//var startTop = (parseFloat(overviewCanvasElem.style.width)/2.0) - (sessionManager.overviewInfo.pos_y);
+
+			overviewContainerElem.style.width = scaledSize + "px";
+			overviewContainerElem.style.height = scaledSize + "px";
+			overviewContainerElem.style.left = startLeft + "px";
+			overviewContainerElem.style.top = startTop + "px";
+
+			var zoom = 1 / sessionManager.overviewInfo.scale;
+			if( zoom < minZoom )
+				zoom = minZoom;
+			else if( zoom > maxZoom )
+				zoom = maxZoom;
+
+			zoom = 1.0;
+
+			overviewCanvasElem.style.zoom = zoom;
+			g_canvasStartZoom = zoom;
+
+			var containerWidth = parseFloat(overviewCanvasContainerElem.offsetWidth);// / sessionManager.uberScale;
+			var containerXOffset = ((containerWidth / zoom) / 2.0) - (scaledSize / 2.0);	// use / 2.0 to make it perfectly centered instead!!
+			g_canvasStartLeft = (-startLeft) + containerXOffset;
+			overviewCanvasElem.style.left = g_canvasStartLeft + "px";	// DOES NOTHING!!
+			//overviewCanvasElem.style.left = (-startLeft) + "px";
+			//overviewCanvasElem.style.top = (-startTop) + "px";
+
+			var containerHeight = parseFloat(overviewCanvasContainerElem.offsetHeight);
+			var containerYOffset = ((containerHeight / zoom) / 2.0) - (scaledSize / 2.0);
+			g_canvasStartTop = (-startTop) + containerYOffset;
+			overviewCanvasElem.style.top = g_canvasStartTop + "px";
+		}
+		if( g_shouldTeleport )
+		{
+			//teleport(newLeft, newTop);
+			g_shouldTeleport = false;
+		}
 
 		if( !!playerMarkerElem )
 		{

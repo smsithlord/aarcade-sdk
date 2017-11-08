@@ -5,6 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
 		<script>
+			var g_shouldTeleport = true;
+
 			// https://stackoverflow.com/questions/17130940/retrieve-the-same-offsetx-on-touch-like-mouse-event
 			function normalizePosition(evt, parent)
 			{ // Simple adoptation
@@ -38,6 +40,49 @@
 			var g_touchEndEvent = (g_isMobile) ? "touchend" : "mouseup";
 			var g_touchMoveEvent = (g_isMobile) ? "touchmove" : "mousemove";
 			var g_touchEvent = (g_isMobile) ? "touchend" : "click";
+
+			function teleport(startLeft, startTop)
+		{
+			console.log(startLeft + ", " + startTop);
+			var sessionManager = window.sessionManager;
+			// determine scale
+			//var scaledSize = 1024 * sessionManager.uberScale * sessionManager.overviewInfo.scale;
+			//var startLeft = (parseFloat(overviewCanvasElem.style.width)/2.0) + (sessionManager.overviewInfo.pos_x);
+			//var startLeft = (parseFloat(overviewCanvasElem.style.width)/2.0) + (sessionManager.overviewInfo.pos_x);
+			//var startTop = (parseFloat(overviewCanvasElem.style.width)/2.0) - (sessionManager.overviewInfo.pos_y);
+
+			//overviewContainerElem.style.width = scaledSize + "px";
+			//overviewContainerElem.style.height = scaledSize + "px";
+			//overviewContainerElem.style.left = startLeft + "px";
+			//overviewContainerElem.style.top = startTop + "px";
+/*
+			var zoom = 1 / sessionManager.overviewInfo.scale;
+			if( zoom < minZoom )
+				zoom = minZoom;
+			else if( zoom > maxZoom )
+				zoom = maxZoom;
+
+			zoom = 1.0;
+*/
+			//overviewCanvasElem.style.zoom = zoom;
+			//g_canvasStartZoom = zoom;
+
+			//var containerWidth = parseFloat(overviewCanvasContainerElem.offsetWidth);// / sessionManager.uberScale;
+			//var containerXOffset = ((containerWidth / zoom) / 2.0) - (scaledSize / 2.0);	// use / 2.0 to make it perfectly centered instead!!
+			//g_canvasStartLeft = (-startLeft) + containerXOffset;
+			
+			console.log(g_canvasStartLeft + ", " + startLeft);
+			overviewCanvasElem.style.left = g_canvasStartLeft + startLeft + "px";	// DOES NOTHING!!
+			//overviewCanvasElem.style.left = (-startLeft) + "px";
+			//overviewCanvasElem.style.top = (-startTop) + "px";
+
+			//var containerHeight = parseFloat(overviewCanvasContainerElem.offsetHeight);
+			//var containerYOffset = ((containerHeight / zoom) / 2.0) - (scaledSize / 2.0);
+			//g_canvasStartTop = (-startTop) + containerYOffset;
+			//overviewCanvasElem.style.top = g_canvasStartTop + "px";
+			console.log(g_canvasStartTop + ", " + startTop);
+			overviewCanvasElem.style.top = g_canvasStartTop + startTop + "px";
+		}
 		</script>
 
 		<style>
